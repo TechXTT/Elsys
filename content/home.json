@@ -1,0 +1,24 @@
+{
+  "hero": {
+    "title": "Технологично училище Електронни системи",
+    "subtitle": "Образование по информатика и компютърни науки",
+    "cta": { "label": "Научи повече", "href": "/uchilishteto" }
+  },
+  "tracks": [
+    { "key": "sp", "title": "Системно програмиране", "description": "Дълбоки основи в компютърните системи", "href": "/obuchenie" },
+    { "key": "ai", "title": "Изкуствен интелект", "description": "Модерни алгоритми и машинно обучение", "href": "/obuchenie" },
+    { "key": "net", "title": "Компютърни мрежи", "description": "Мрежова администрация и сигурност", "href": "/obuchenie" }
+  ],
+  "why": [
+    { "icon": "BookOpen", "title": "Силна програма", "description": "Проверена учебна програма" },
+    { "icon": "Handshake", "title": "Бизнес партньорства", "description": "Работа с водещи компании" },
+    { "icon": "Brain", "title": "Иновации", "description": "Проекти и състезания" },
+    { "icon": "Users", "title": "Общност", "description": "Силни ментори и алумни" }
+  ],
+  "numbers": [
+    { "value": "1000+", "label": "Алумни" },
+    { "value": "35+", "label": "Години опит" },
+    { "value": "50+", "label": "Партньори" },
+    { "value": "95%", "label": "Реализация" }
+  ]
+}
