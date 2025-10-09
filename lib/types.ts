@@ -5,6 +5,7 @@ export interface PostItem {
   date?: string;
   href: string;
   image?: string;
+  body?: string; // optional rich text/HTML body
 }
 
 export interface HomeHero {
