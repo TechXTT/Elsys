@@ -37,4 +37,10 @@ header { box-shadow: 0 1px 0 rgba(2,6,23,0.04), 0 2px 10px rgba(2,6,23,0.04); }
 .btn-primary:focus-visible { background: var(--color-brand-accent); }
 .btn-primary:disabled { opacity:0.6; cursor:not-allowed; }
 
+/* Animations */
+.fade-up { opacity:0; transform: translateY(8px); transition: opacity 400ms ease, transform 400ms ease; }
+.fade-up.revealed { opacity:1; transform: translateY(0); }
+.hover-lift { transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease; }
+.hover-lift:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(2,6,23,0.08); border-color: var(--color-border); }
+
 

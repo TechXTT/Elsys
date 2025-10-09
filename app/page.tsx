@@ -6,6 +6,7 @@ import { NewsCard } from '../components/news-card';
 import { PostCard } from '../components/post-card';
 import { BookOpen, Users, Handshake, BrainCircuit, GraduationCap } from 'lucide-react';
 import { Section } from '@/components/Section';
+import { Reveal } from '@/components/Reveal';
 
 const iconMap: Record<string, React.ComponentType<any>> = {
   BookOpen: BookOpen,
@@ -27,7 +28,9 @@ export default function HomePage() {
         {news.length === 0 && <p className="text-sm text-slate-600 dark:text-slate-400">Няма налични новини.</p>}
         {news.length > 0 && (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {news.map(n => <NewsCard key={n.id} post={n} />)}
+            {news.map(n => (
+              <Reveal key={n.id}><NewsCard post={n} /></Reveal>
+            ))}
           </div>
         )}
       </Section>
@@ -35,18 +38,22 @@ export default function HomePage() {
         {blog.length === 0 && <p className="text-sm text-slate-600 dark:text-slate-400">Няма публикации.</p>}
         {blog.length > 0 && (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {blog.map(p => <PostCard key={p.id} post={p} />)}
+            {blog.map(p => (
+              <Reveal key={p.id}><PostCard post={p} /></Reveal>
+            ))}
           </div>
         )}
       </Section>
       <Section title="Профили" description="Специализирани направления на обучение.">
         <div className="grid gap-6 md:grid-cols-3">
           {home.tracks.map((t) => (
-            <div key={t.key} className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-5 shadow-subtle transition hover:border-brand-400 hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{t.title}</h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400">{t.description}</p>
+            <Reveal key={t.key}>
+              <div className="hover-lift flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-5 shadow-subtle transition hover:border-brand-400 hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{t.title}</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400">{t.description}</p>
                 <a href={t.href} className="mt-auto inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400">Виж повече <span aria-hidden>→</span></a>
-            </div>
+              </div>
+            </Reveal>
           ))}
         </div>
       </Section>
