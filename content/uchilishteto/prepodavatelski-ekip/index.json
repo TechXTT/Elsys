@@ -1,7 +1,17 @@
 [
-  {"id":"t1","title":"Ръководство","excerpt":"Директор и заместник-директори","href":"/uchilishteto/prepodavatelski-ekip/rukovodstvo"},
-  {"id":"t2","title":"Преподаватели по информатика","excerpt":"Екип по информатика и ИИ","href":"/uchilishteto/prepodavatelski-ekip/informatika"},
-  {"id":"t3","title":"Преподаватели по компютърни мрежи","excerpt":"Екип по мрежи и системи","href":"/uchilishteto/prepodavatelski-ekip/mreji"}
+  {
+    "id": "t1",
+    "title": "Подстраница",
+    "href": "/uchilishteto/prepodavatelski-ekip/obshtoobrazovatelni-prepodavateli"
+  },
+  {
+    "id": "t2",
+    "title": "Подстраница",
+    "href": "/uchilishteto/prepodavatelski-ekip/prepodavateli-po-specialni-predmeti"
+  },
+  {
+    "id": "t3",
+    "title": "Подстраница",
+    "href": "/uchilishteto/prepodavatelski-ekip/bivshi-prepodavateli"
+  }
 ]
-
-
