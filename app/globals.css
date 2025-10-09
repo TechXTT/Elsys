@@ -19,8 +19,18 @@
 	--transition-fast: 120ms cubic-bezier(.4,0,.2,1);
 }
 
+/* Dark theme tokens */
+.dark {
+	--color-bg: #0b1220; /* near-slate-950 */
+	--color-bg-alt: #0f172a; /* slate-900 */
+	--color-surface: #0f172a;
+	--color-border: #1f2a44; /* muted border */
+	--color-text: #eef2ff; /* light indigo-50 */
+	--color-text-muted: #94a3b8; /* slate-400 */
+}
+
 html { font-feature-settings: "ss01"; }
-body { background:#fff; color: var(--color-text); -webkit-font-smoothing: antialiased; }
+body { background: var(--color-bg); color: var(--color-text); -webkit-font-smoothing: antialiased; transition: background-color var(--transition-fast), color var(--transition-fast); }
 ::selection { background: var(--color-brand-accent); color:#fff; }
 a { text-underline-offset: 2px; }
 a:focus-visible, button:focus-visible, select:focus-visible { outline: none; box-shadow: var(--shadow-focus); border-radius: var(--radius-sm); }
