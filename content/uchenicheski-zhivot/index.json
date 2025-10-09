@@ -1,11 +1,51 @@
 [
-  {"id":"s1","title":"Клубове","excerpt":"Извънкласни дейности","href":"/uchenicheski-zhivot/klubove"},
-  {"id":"s2","title":"Hack TUES","excerpt":"Хакатон на ТУЕС","href":"/uchenicheski-zhivot/hack-tues"},
-  {"id":"s3","title":"TUES Talks","excerpt":"Срещи с професионалисти","href":"/uchenicheski-zhivot/tues-talks"},
-  {"id":"s4","title":"Inspiration Talks","excerpt":"Лектори и гости","href":"/uchenicheski-zhivot/inspiration-talks"},
-  {"id":"s5","title":"Екскурзии","excerpt":"Пътувания и посещения","href":"/uchenicheski-zhivot/ekskurzii"},
-  {"id":"s6","title":"Мнения за ТУЕС","excerpt":"Отзиви и истории","href":"/uchenicheski-zhivot/mnenija-za-tues"},
-  {"id":"s7","title":"Награди","excerpt":"Успехи на учениците","href":"/uchenicheski-zhivot/nagradi"}
+  {
+    "id": "s1",
+    "title": "Клубове",
+    "excerpt": "Извънкласни дейности",
+    "href": "/uchenicheski-zhivot/klubove",
+    "body": "<p>Скоро повече информация.</p>"
+  },
+  {
+    "id": "s2",
+    "title": "Hack TUES",
+    "excerpt": "Хакатон на ТУЕС",
+    "href": "/uchenicheski-zhivot/hack-tues",
+    "body": "<p>Скоро повече информация.</p>"
+  },
+  {
+    "id": "s3",
+    "title": "TUES Talks",
+    "excerpt": "Срещи с професионалисти",
+    "href": "/uchenicheski-zhivot/tues-talks",
+    "body": "<p>Скоро повече информация.</p>"
+  },
+  {
+    "id": "s4",
+    "title": "Inspiration Talks",
+    "excerpt": "Лектори и гости",
+    "href": "/uchenicheski-zhivot/inspiration-talks",
+    "body": "<p>Скоро повече информация.</p>"
+  },
+  {
+    "id": "s5",
+    "title": "Екскурзии",
+    "excerpt": "Пътувания и посещения",
+    "href": "/uchenicheski-zhivot/ekskurzii",
+    "body": "<p>Скоро повече информация.</p>"
+  },
+  {
+    "id": "s6",
+    "title": "Мнения за ТУЕС",
+    "excerpt": "Отзиви и истории",
+    "href": "/uchenicheski-zhivot/mnenija-za-tues",
+    "body": "<p>Скоро повече информация.</p>"
+  },
+  {
+    "id": "s7",
+    "title": "Награди",
+    "excerpt": "Успехи на учениците",
+    "href": "/uchenicheski-zhivot/nagradi",
+    "body": "<p>Скоро повече информация.</p>"
+  }
 ]
-
-

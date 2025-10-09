@@ -2,16 +2,19 @@
   {
     "id": "t1",
     "title": "Подстраница",
-    "href": "/uchilishteto/prepodavatelski-ekip/obshtoobrazovatelni-prepodavateli"
+    "href": "/uchilishteto/prepodavatelski-ekip/obshtoobrazovatelni-prepodavateli",
+    "body": "<p>Скоро повече информация.</p>"
   },
   {
     "id": "t2",
     "title": "Подстраница",
-    "href": "/uchilishteto/prepodavatelski-ekip/prepodavateli-po-specialni-predmeti"
+    "href": "/uchilishteto/prepodavatelski-ekip/prepodavateli-po-specialni-predmeti",
+    "body": "<p>Скоро повече информация.</p>"
   },
   {
     "id": "t3",
     "title": "Подстраница",
-    "href": "/uchilishteto/prepodavatelski-ekip/bivshi-prepodavateli"
+    "href": "/uchilishteto/prepodavatelski-ekip/bivshi-prepodavateli",
+    "body": "<p>Скоро повече информация.</p>"
   }
 ]

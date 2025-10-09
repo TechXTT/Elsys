@@ -1,13 +1,65 @@
 [
-  {"id":"o1","title":"Професионално образование","excerpt":"Специалности и програми","href":"/obuchenie/profesionalno-obrazovanie"},
-  {"id":"o2","title":"Учебна програма","excerpt":"Предмети и часове","href":"/obuchenie/uchebna-programa"},
-  {"id":"o3","title":"Учебна практика по специалността","excerpt":"Практика и стажове","href":"/obuchenie/uchebna-praktika-po-specialnostta"},
-  {"id":"o4","title":"Иновативен учебен подход","excerpt":"Съвременни методи на преподаване","href":"/obuchenie/inovativen-ucheben-podhod"},
-  {"id":"o5","title":"Интеграция с ТУ - София","excerpt":"Партньорство с Техническия университет","href":"/obuchenie/integracija-s-tu-sofija"},
-  {"id":"o6","title":"Дипломна работа","excerpt":"Завършващ проект","href":"/obuchenie/diplomna-rabota"},
-  {"id":"o7","title":"Cisco академия","excerpt":"Сертификати и обучение","href":"/obuchenie/cisco-akademija"},
-  {"id":"o8","title":"Investech Project","excerpt":"Международна инициатива","href":"/obuchenie/investech-project"},
-  {"id":"o9","title":"Календар на събитията","excerpt":"Дати и мероприятия","href":"/obuchenie/kalendar-na-sabitijata"}
+  {
+    "id": "o1",
+    "title": "Професионално образование",
+    "excerpt": "Специалности и програми",
+    "href": "/obuchenie/profesionalno-obrazovanie",
+    "body": "<p>Скоро повече информация.</p>"
+  },
+  {
+    "id": "o2",
+    "title": "Учебна програма",
+    "excerpt": "Предмети и часове",
+    "href": "/obuchenie/uchebna-programa",
+    "body": "<p>Скоро повече информация.</p>"
+  },
+  {
+    "id": "o3",
+    "title": "Учебна практика по специалността",
+    "excerpt": "Практика и стажове",
+    "href": "/obuchenie/uchebna-praktika-po-specialnostta",
+    "body": "<p>Скоро повече информация.</p>"
+  },
+  {
+    "id": "o4",
+    "title": "Иновативен учебен подход",
+    "excerpt": "Съвременни методи на преподаване",
+    "href": "/obuchenie/inovativen-ucheben-podhod",
+    "body": "<p>Скоро повече информация.</p>"
+  },
+  {
+    "id": "o5",
+    "title": "Интеграция с ТУ - София",
+    "excerpt": "Партньорство с Техническия университет",
+    "href": "/obuchenie/integracija-s-tu-sofija",
+    "body": "<p>Скоро повече информация.</p>"
+  },
+  {
+    "id": "o6",
+    "title": "Дипломна работа",
+    "excerpt": "Завършващ проект",
+    "href": "/obuchenie/diplomna-rabota",
+    "body": "<p>Скоро повече информация.</p>"
+  },
+  {
+    "id": "o7",
+    "title": "Cisco академия",
+    "excerpt": "Сертификати и обучение",
+    "href": "/obuchenie/cisco-akademija",
+    "body": "<p>Скоро повече информация.</p>"
+  },
+  {
+    "id": "o8",
+    "title": "Investech Project",
+    "excerpt": "Международна инициатива",
+    "href": "/obuchenie/investech-project",
+    "body": "<p>Скоро повече информация.</p>"
+  },
+  {
+    "id": "o9",
+    "title": "Календар на събитията",
+    "excerpt": "Дати и мероприятия",
+    "href": "/obuchenie/kalendar-na-sabitijata",
+    "body": "<p>Скоро повече информация.</p>"
+  }
 ]
-
-
