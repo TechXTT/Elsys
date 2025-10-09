@@ -46,7 +46,7 @@
     "title": "Преподавателски екип",
     "excerpt": "Нашите преподаватели",
     "href": "/uchilishteto/prepodavatelski-ekip",
-    "body": "<p>Скоро повече информация.</p>"
+    "body": " <figure> <a href=\"/uchilishteto/prepodavatelski-ekip/obshtoobrazovatelni-prepodavateli\" title=\"Общообразователни предмети\"> <img src=\"/web/files/richeditor/fig2.png\" alt=\"Общообразователни предмети\"> </a> </figure> <h3> <a href=\"/uchilishteto/prepodavatelski-ekip/obshtoobrazovatelni-prepodavateli\" title=\"Общообразователни предмети\">Общообразователни предмети</a> </h3> <a href=\"/uchilishteto/prepodavatelski-ekip/obshtoobrazovatelni-prepodavateli\" title=\"Общообразователни предмети\">виж повече</a> "
   },
   {
     "id": "u8",
@@ -60,7 +60,7 @@
     "title": "Галерия",
     "excerpt": "Снимки и видео",
     "href": "/uchilishteto/galerija",
-    "body": "<p>Скоро повече информация.</p>"
+    "body": " <figure> <a href=\"/uchilishteto/galerija/hack-tues\" title=\"Hack TUES\"> <img src=\"/web/files/richeditor////hack_tues_logo-last.png\" alt=\"Hack TUES\"> </a> </figure> <h3> <a href=\"/uchilishteto/galerija/hack-tues\" title=\"Hack TUES\">Hack TUES</a> </h3> <p><span>Hack TUES е първият и единствен по рода си хакатон в България, организиран от ученици за ученици.</span></p> <a href=\"/uchilishteto/galerija/hack-tues\" title=\"Hack TUES\">виж повече</a> "
   },
   {
     "id": "u10",
