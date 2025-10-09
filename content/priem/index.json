@@ -1,6 +1,10 @@
 [
   {"id":"p1","title":"Защо да избера ТУЕС","excerpt":"Предимства и реализация","href":"/priem/zashto-da-izbera-tues"},
-  {"id":"p2","title":"Ред и условия за прием","excerpt":"Кандидатстване и критерии","href":"/priem/red-i-uslovija-za-priem"}
+  {"id":"p2","title":"Ред и условия за прием","excerpt":"Кандидатстване и критерии","href":"/priem/red-i-uslovija-za-priem"},
+  {"id":"p3","title":"Специалност: Компютърни мрежи","excerpt":"Профил и перспективи","href":"/priem/specialnost-komputyrni-mreji"},
+  {"id":"p4","title":"Специалност: Изкуствен интелект","excerpt":"Профил и перспективи","href":"/priem/specialnost-programirane-na-izkustven-intelekt"},
+  {"id":"p5","title":"Специалност: Системно програмиране","excerpt":"Профил и перспективи","href":"/priem/specialnost-sistemno-programirane"},
+  {"id":"p6","title":"TUES Fest / Ден на отворените врати","excerpt":"Събитие за бъдещи ученици","href":"/priem/tues-fest-den-na-otvorenite-vrati"}
 ]
 
 

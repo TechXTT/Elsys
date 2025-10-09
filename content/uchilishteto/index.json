@@ -1,4 +1,12 @@
 [
   {"id":"u1","title":"Мисия","excerpt":"Нашата цел и ценности","href":"/uchilishteto/misija"},
-  {"id":"u2","title":"Контакти","excerpt":"Адрес и връзка","href":"/uchilishteto/kontakti"}
+  {"id":"u2","title":"История","excerpt":"Минало и развитие","href":"/uchilishteto/istorija"},
+  {"id":"u3","title":"ТУЕС в числа","excerpt":"Ключови статистики","href":"/uchilishteto/tues-v-chisla"},
+  {"id":"u4","title":"Асоциация на завършилите ТУЕС","excerpt":"Алумни общност","href":"/uchilishteto/asociacija-na-zavurshilite-tues"},
+  {"id":"u5","title":"Лидери, завършили ТУЕС","excerpt":"Истории на успеха","href":"/uchilishteto/lideri-zavurshili-tues"},
+  {"id":"u6","title":"Обществен съвет","excerpt":"Роля и членове","href":"/uchilishteto/obshtestven-savet"},
+  {"id":"u7","title":"Преподавателски екип","excerpt":"Нашите преподаватели","href":"/uchilishteto/prepodavatelski-ekip"},
+  {"id":"u8","title":"Правилници и документи","excerpt":"Официални документи","href":"/uchilishteto/pravilnici-i-dokumenti"},
+  {"id":"u9","title":"Галерия","excerpt":"Снимки и видео","href":"/uchilishteto/galerija"},
+  {"id":"u10","title":"Контакти","excerpt":"Адрес и връзка","href":"/uchilishteto/kontakti"}
 ]
