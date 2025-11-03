@@ -1,0 +1,106 @@
+{
+  "Locale": {
+    "switcher": "Език"
+  },
+  "Common": {
+    "loading": "Зареждане...",
+    "comingSoon": "Скоро повече информация.",
+    "noContent": "Няма съдържание.",
+    "missingHome": "Липсва файл home.json.",
+    "pageNotFound": "Страницата не е намерена.",
+    "viewMore": "Виж повече"
+  },
+  "Nav": {
+    "news": "Новини",
+    "admissions": "Прием",
+    "admissionsWhy": "Защо ТУЕС",
+    "admissionsProcess": "Ред и условия",
+    "admissionsNetworks": "Специалност: Компютърни мрежи",
+    "admissionsAI": "Специалност: Изкуствен интелект",
+    "admissionsSystems": "Специалност: Системно програмиране",
+    "admissionsFest": "TUES Fest / Ден на отворените врати",
+    "education": "Обучение",
+    "educationVocational": "Професионално образование",
+    "educationCurriculum": "Учебна програма",
+    "educationPractice": "Учебна практика по специалността",
+    "educationApproach": "Иновативен учебен подход",
+    "educationIntegration": "Интеграция с ТУ - София",
+    "educationThesis": "Дипломна работа",
+    "educationCisco": "Cisco академия",
+    "educationInvestech": "Investech Project",
+    "educationCalendar": "Календар на събитията",
+    "school": "Училището",
+    "schoolMission": "Мисия",
+    "schoolHistory": "История",
+    "schoolNumbers": "ТУЕС в числа",
+    "schoolAlumni": "Асоциация на завършилите ТУЕС",
+    "schoolLeaders": "Лидери, завършили ТУЕС",
+    "schoolBoard": "Обществен съвет",
+    "schoolTeam": "Преподавателски екип",
+    "schoolPolicies": "Правилници и документи",
+    "schoolGallery": "Галерия",
+    "schoolContacts": "Контакти",
+    "studentLife": "Ученически живот",
+    "studentLifeClubs": "Клубове",
+    "studentLifeHack": "Hack TUES",
+    "studentLifeTalks": "TUES Talks",
+    "studentLifeInspiration": "Inspiration Talks",
+    "studentLifeTrips": "Екскурзии",
+    "studentLifeVoices": "Мнения за ТУЕС",
+    "studentLifeAwards": "Награди",
+    "blog": "Блог",
+    "projects": "Европроекти"
+  },
+  "Header": {
+    "menu": "Меню",
+    "mobileMenu": "Мобилно меню",
+    "homeAria": "Начало",
+    "brandShort": "ТУЕС"
+  },
+  "Footer": {
+    "title": "ТУЕС към ТУ-София",
+    "description": "Технологично училище Електронни системи",
+    "linksTitle": "Връзки",
+    "contactsTitle": "Контакти",
+    "news": "Новини",
+    "admissions": "Прием",
+    "school": "Училището",
+    "address": "София 1000, бул. Климент Охридски 8",
+    "email": "tues@elsys-bg.org",
+    "copyright": "© {year} ТУЕС към ТУ-София"
+  },
+  "Home": {
+    "newsTitle": "Новини и събития",
+    "newsEmpty": "Няма налични новини.",
+    "blogTitle": "Блог",
+    "blogEmpty": "Няма публикации.",
+    "tracksTitle": "Профили",
+    "tracksDescription": "Специализирани направления на обучение.",
+    "whyTitle": "Защо ТУЕС?",
+    "numbersTitle": "ТУЕС в числа"
+  },
+  "News": {
+    "title": "Новини",
+    "empty": "Няма новини.",
+    "publishedOn": "Публикувано на {date}",
+    "missing": "Публикацията не е намерена."
+  },
+  "Blog": {
+    "title": "Блог",
+    "empty": "Няма публикации.",
+    "missing": "Публикацията не е намерена."
+  },
+  "Section": {
+    "empty": "Няма съдържание."
+  },
+  "Projects": {
+    "description": "Проекти, финансирани по европейски програми."
+  },
+  "Theme": {
+    "label": "Тема",
+    "toLight": "Светла",
+    "toDark": "Тъмна",
+    "toggleAria": "Превключване на тема"
+  }
+}
+

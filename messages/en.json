@@ -1,0 +1,106 @@
+{
+  "Locale": {
+    "switcher": "Language"
+  },
+  "Common": {
+    "loading": "Loading...",
+    "comingSoon": "More information coming soon.",
+    "noContent": "No content available.",
+    "missingHome": "Missing home.json file.",
+    "pageNotFound": "Page not found.",
+    "viewMore": "See more"
+  },
+  "Nav": {
+    "news": "News",
+    "admissions": "Admissions",
+    "admissionsWhy": "Why TUES",
+    "admissionsProcess": "Process & requirements",
+    "admissionsNetworks": "Specialty: Computer Networks",
+    "admissionsAI": "Specialty: Artificial Intelligence",
+    "admissionsSystems": "Specialty: Systems Programming",
+    "admissionsFest": "TUES Fest / Open day",
+    "education": "Education",
+    "educationVocational": "Vocational education",
+    "educationCurriculum": "Curriculum",
+    "educationPractice": "Specialty internship",
+    "educationApproach": "Innovative teaching approach",
+    "educationIntegration": "Integration with TU Sofia",
+    "educationThesis": "Diploma thesis",
+    "educationCisco": "Cisco Academy",
+    "educationInvestech": "Investech Project",
+    "educationCalendar": "Events calendar",
+    "school": "About the school",
+    "schoolMission": "Mission",
+    "schoolHistory": "History",
+    "schoolNumbers": "TUES in numbers",
+    "schoolAlumni": "Alumni association",
+    "schoolLeaders": "Leaders who graduated from TUES",
+    "schoolBoard": "School board",
+    "schoolTeam": "Teaching staff",
+    "schoolPolicies": "Policies & documents",
+    "schoolGallery": "Gallery",
+    "schoolContacts": "Contacts",
+    "studentLife": "Student life",
+    "studentLifeClubs": "Clubs",
+    "studentLifeHack": "Hack TUES",
+    "studentLifeTalks": "TUES Talks",
+    "studentLifeInspiration": "Inspiration Talks",
+    "studentLifeTrips": "Excursions",
+    "studentLifeVoices": "Voices about TUES",
+    "studentLifeAwards": "Awards",
+    "blog": "Blog",
+    "projects": "EU projects"
+  },
+  "Header": {
+    "menu": "Menu",
+    "mobileMenu": "Mobile menu",
+    "homeAria": "Home",
+    "brandShort": "TUES"
+  },
+  "Footer": {
+    "title": "TUES at TU-Sofia",
+    "description": "Technological School of Electronic Systems",
+    "linksTitle": "Links",
+    "contactsTitle": "Contacts",
+    "news": "News",
+    "admissions": "Admissions",
+    "school": "About the school",
+    "address": "Sofia 1000, 8 Kliment Ohridski Blvd",
+    "email": "tues@elsys-bg.org",
+    "copyright": "© {year} TUES at TU-Sofia"
+  },
+  "Home": {
+    "newsTitle": "News & events",
+    "newsEmpty": "No news available.",
+    "blogTitle": "Blog",
+    "blogEmpty": "No posts yet.",
+    "tracksTitle": "Study tracks",
+    "tracksDescription": "Specialized areas of education.",
+    "whyTitle": "Why TUES?",
+    "numbersTitle": "TUES in numbers"
+  },
+  "News": {
+    "title": "News",
+    "empty": "No news available.",
+    "publishedOn": "Published on {date}",
+    "missing": "The article could not be found."
+  },
+  "Blog": {
+    "title": "Blog",
+    "empty": "No posts yet.",
+    "missing": "The post could not be found."
+  },
+  "Section": {
+    "empty": "No content available."
+  },
+  "Projects": {
+    "description": "Projects funded by European programs."
+  },
+  "Theme": {
+    "label": "Theme",
+    "toLight": "Light",
+    "toDark": "Dark",
+    "toggleAria": "Toggle theme"
+  }
+}
+

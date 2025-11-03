@@ -1,47 +1,66 @@
-export interface NavItem { label: string; href?: string; children?: { label: string; href: string }[] }
+export interface NavItem {
+  key: string;
+  href?: string;
+  children?: Array<{
+    key: string;
+    href: string;
+  }>;
+}
 
 export const nav: NavItem[] = [
-  { label: 'Новини', href: '/novini' },
-  { label: 'Прием', children: [
-    { label: 'Защо ТУЕС', href: '/priem/zashto-da-izbera-tues' },
-    { label: 'Ред и условия', href: '/priem/red-i-uslovija-za-priem' },
-    { label: 'Специалност: Компютърни мрежи', href: '/priem/specialnost-komputyrni-mreji' },
-    { label: 'Специалност: Изкуствен интелект', href: '/priem/specialnost-programirane-na-izkustven-intelekt' },
-    { label: 'Специалност: Системно програмиране', href: '/priem/specialnost-sistemno-programirane' },
-    { label: 'TUES Fest / Ден на отворените врати', href: '/priem/tues-fest-den-na-otvorenite-vrati' }
-  ]},
-  { label: 'Обучение', children: [
-    { label: 'Професионално образование', href: '/obuchenie/profesionalno-obrazovanie' },
-    { label: 'Учебна програма', href: '/obuchenie/uchebna-programa' },
-    { label: 'Учебна практика по специалността', href: '/obuchenie/uchebna-praktika-po-specialnostta' },
-    { label: 'Иновативен учебен подход', href: '/obuchenie/inovativen-ucheben-podhod' },
-    { label: 'Интеграция с ТУ - София', href: '/obuchenie/integracija-s-tu-sofija' },
-    { label: 'Дипломна работа', href: '/obuchenie/diplomna-rabota' },
-    { label: 'Cisco академия', href: '/obuchenie/cisco-akademija' },
-    { label: 'Investech Project', href: '/obuchenie/investech-project' },
-    { label: 'Календар на събитията', href: '/obuchenie/kalendar-na-sabitijata' }
-  ]},
-  { label: 'Училището', children: [
-    { label: 'Мисия', href: '/uchilishteto/misija' },
-    { label: 'История', href: '/uchilishteto/istorija' },
-    { label: 'ТУЕС в числа', href: '/uchilishteto/tues-v-chisla' },
-    { label: 'Асоциация на завършилите ТУЕС', href: '/uchilishteto/asociacija-na-zavurshilite-tues' },
-    { label: 'Лидери, завършили ТУЕС', href: '/uchilishteto/lideri-zavurshili-tues' },
-    { label: 'Обществен съвет', href: '/uchilishteto/obshtestven-savet' },
-    { label: 'Преподавателски екип', href: '/uchilishteto/prepodavatelski-ekip' },
-    { label: 'Правилници и документи', href: '/uchilishteto/pravilnici-i-dokumenti' },
-    { label: 'Галерия', href: '/uchilishteto/galerija' },
-    { label: 'Контакти', href: '/uchilishteto/kontakti' }
-  ]},
-  { label: 'Ученически живот', children: [
-    { label: 'Клубове', href: '/uchenicheski-zhivot/klubove' },
-    { label: 'Hack TUES', href: '/uchenicheski-zhivot/hack-tues' },
-    { label: 'TUES Talks', href: '/uchenicheski-zhivot/tues-talks' },
-    { label: 'Inspiration Talks', href: '/uchenicheski-zhivot/inspiration-talks' },
-    { label: 'Екскурзии', href: '/uchenicheski-zhivot/ekskurzii' },
-    { label: 'Мнения за ТУЕС', href: '/uchenicheski-zhivot/mnenija-za-tues' },
-    { label: 'Награди', href: '/uchenicheski-zhivot/nagradi' }
-  ]},
-  { label: 'Блог', href: '/blog' },
-  { label: 'Европроекти', href: '/evroproekti' },
+  { key: "news", href: "/novini" },
+  {
+    key: "admissions",
+    children: [
+      { key: "admissionsWhy", href: "/priem/zashto-da-izbera-tues" },
+      { key: "admissionsProcess", href: "/priem/red-i-uslovija-za-priem" },
+      { key: "admissionsNetworks", href: "/priem/specialnost-komputyrni-mreji" },
+      { key: "admissionsAI", href: "/priem/specialnost-programirane-na-izkustven-intelekt" },
+      { key: "admissionsSystems", href: "/priem/specialnost-sistemno-programirane" },
+      { key: "admissionsFest", href: "/priem/tues-fest-den-na-otvorenite-vrati" },
+    ],
+  },
+  {
+    key: "education",
+    children: [
+      { key: "educationVocational", href: "/obuchenie/profesionalno-obrazovanie" },
+      { key: "educationCurriculum", href: "/obuchenie/uchebna-programa" },
+      { key: "educationPractice", href: "/obuchenie/uchebna-praktika-po-specialnostta" },
+      { key: "educationApproach", href: "/obuchenie/inovativen-ucheben-podhod" },
+      { key: "educationIntegration", href: "/obuchenie/integracija-s-tu-sofija" },
+      { key: "educationThesis", href: "/obuchenie/diplomna-rabota" },
+      { key: "educationCisco", href: "/obuchenie/cisco-akademija" },
+      { key: "educationInvestech", href: "/obuchenie/investech-project" },
+      { key: "educationCalendar", href: "/obuchenie/kalendar-na-sabitijata" },
+    ],
+  },
+  {
+    key: "school",
+    children: [
+      { key: "schoolMission", href: "/uchilishteto/misija" },
+      { key: "schoolHistory", href: "/uchilishteto/istorija" },
+      { key: "schoolNumbers", href: "/uchilishteto/tues-v-chisla" },
+      { key: "schoolAlumni", href: "/uchilishteto/asociacija-na-zavurshilite-tues" },
+      { key: "schoolLeaders", href: "/uchilishteto/lideri-zavurshili-tues" },
+      { key: "schoolBoard", href: "/uchilishteto/obshtestven-savet" },
+      { key: "schoolTeam", href: "/uchilishteto/prepodavatelski-ekip" },
+      { key: "schoolPolicies", href: "/uchilishteto/pravilnici-i-dokumenti" },
+      { key: "schoolGallery", href: "/uchilishteto/galerija" },
+      { key: "schoolContacts", href: "/uchilishteto/kontakti" },
+    ],
+  },
+  {
+    key: "studentLife",
+    children: [
+      { key: "studentLifeClubs", href: "/uchenicheski-zhivot/klubove" },
+      { key: "studentLifeHack", href: "/uchenicheski-zhivot/hack-tues" },
+      { key: "studentLifeTalks", href: "/uchenicheski-zhivot/tues-talks" },
+      { key: "studentLifeInspiration", href: "/uchenicheski-zhivot/inspiration-talks" },
+      { key: "studentLifeTrips", href: "/uchenicheski-zhivot/ekskurzii" },
+      { key: "studentLifeVoices", href: "/uchenicheski-zhivot/mnenija-za-tues" },
+      { key: "studentLifeAwards", href: "/uchenicheski-zhivot/nagradi" },
+    ],
+  },
+  { key: "blog", href: "/blog" },
+  { key: "projects", href: "/evroproekti" },
 ];
