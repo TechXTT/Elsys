@@ -13,6 +13,10 @@ const intlMiddleware = createIntlMiddleware({
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  // Bypass i18n for one-time secret reveal links to ensure they live at /one-time/* (no locale prefix)
+  if (pathname.startsWith("/one-time")) {
+    return NextResponse.next();
+  }
   if (pathname.startsWith("/admin")) {
     if (pathname.startsWith("/admin/login")) {
       return NextResponse.next();
