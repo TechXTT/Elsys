@@ -18,7 +18,7 @@ export async function recordAudit(params: {
   try {
     const ip = params.req ? getClientIp(params.req.headers) : undefined;
     const userAgent = params.req?.headers.get("user-agent") ?? undefined;
-    await prisma.auditLog.create({
+    await (prisma as any).auditLog.create({
       data: {
         userId: params.userId ?? undefined,
         action: params.action,

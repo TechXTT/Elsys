@@ -68,5 +68,18 @@ export async function POST(request: Request) {
     select: { id: true, email: true, name: true } as any,
   });
 
-  return NextResponse.json({ user, password: passwordPlain }, { status: 201 });
+  // Create one-time token storing the plaintext password; expires in 48h
+  const token = crypto.randomBytes(24).toString("base64url");
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 48);
+  await (prisma as any).oneTimeSecret.create({
+    data: {
+      token,
+      userId: (user as any).id,
+      type: "INITIAL_PASSWORD",
+      secret: passwordPlain,
+      expiresAt,
+    },
+  });
+
+  return NextResponse.json({ user, oneTimeLink: `/one-time/${token}` }, { status: 201 });
 }
