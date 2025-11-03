@@ -1,7 +1,8 @@
 "use client";
 
 import { type ChangeEvent, type ComponentPropsWithoutRef, type FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
+import { defaultLocale } from "@/i18n/config";
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import type { PostItem } from "@/lib/types";
@@ -672,7 +673,8 @@ export function NewsManager({ initialPosts }: Props) {
                     {post.excerpt && <p className="text-xs text-slate-600 dark:text-slate-400">{post.excerpt}</p>}
                     <div className="flex flex-wrap items-center gap-2">
                       <Link
-                        href={`/novini/${post.id}`}
+                        href={{ pathname: "/novini/[slug]", query: { slug: post.id } }}
+                        locale={defaultLocale}
                         className="text-xs font-medium text-blue-600 hover:underline"
                         target="_blank"
                         rel="noopener noreferrer"
