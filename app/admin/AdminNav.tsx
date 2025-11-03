@@ -11,7 +11,6 @@ const baseLinks: NavLink[] = [
   { href: "/admin/news", label: "News" },
   { href: "/admin/pages", label: "Pages" },
   { href: "/admin/settings", label: "Settings" },
-  { href: "/admin/admins", label: "Admins", adminOnly: true },
   { href: "/admin/users", label: "Users", adminOnly: true },
 ];
 
