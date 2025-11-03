@@ -1,0 +1,30 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Next.js
+.next/
+out/
+
+# Testing
+coverage/
+
+# Env
+.env*
+!.env.example
+
+# MacOS
+.DS_Store
+
+# Logs
+logs
+*.log
+*.log.*
+
+# VSCode
+.vscode/
+node_modules/
+.next/
