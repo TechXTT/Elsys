@@ -59,29 +59,29 @@ export function AdminNav() {
       </div>
       {showSignOut && (
         <div
-          className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 p-4"
+          className="fixed left-0 top-0 w-screen h-screen z-50 flex items-center justify-center bg-black/40 p-4"
           aria-modal="true"
           role="dialog"
         >
-          <div className="w-full max-w-sm rounded-md border border-slate-200 bg-white p-4 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+          <div className="w-full max-w-sm transform rounded-md border border-slate-200 bg-white p-4 shadow-xl dark:border-slate-700 dark:bg-slate-900">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Sign out</h2>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Are you sure you want to sign out?</p>
             <div className="mt-4 flex justify-end gap-2">
               <button
-                onClick={() => setShowSignOut(false)}
-                className="rounded border border-slate-300 px-3 py-1 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+          onClick={() => setShowSignOut(false)}
+          className="rounded border border-slate-300 px-3 py-1 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
               >
-                Cancel
+          Cancel
               </button>
               <button
-                onClick={() => {
-                  setShowSignOut(false);
-                  // Use NextAuth signOut to terminate the session and redirect
-                  void signOut({ callbackUrl: "/admin/login" });
-                }}
-                className="rounded border border-red-300 bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700 dark:border-red-700"
+          onClick={() => {
+            setShowSignOut(false);
+            // Use NextAuth signOut to terminate the session and redirect
+            void signOut({ callbackUrl: "/admin/login" });
+          }}
+          className="rounded border border-red-300 bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700 dark:border-red-700"
               >
-                Sign out
+          Sign out
               </button>
             </div>
           </div>

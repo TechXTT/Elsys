@@ -25,6 +25,8 @@ export default function EditUserPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [oneTimeLink, setOneTimeLink] = useState<string | null>(null);
 
   const [email, setEmail] = useState<string>("");
   const [firstName, setFirstName] = useState<string>("");
@@ -85,6 +87,22 @@ export default function EditUserPage() {
     }
   }
 
+  async function onResetPassword() {
+    setResetting(true);
+    setError(null);
+    setOneTimeLink(null);
+    try {
+      const res = await fetch(`/api/admin/users/${id}/reset-password`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Reset failed");
+      setOneTimeLink(data.oneTimeLink as string);
+    } catch (e: any) {
+      setError(e.message || "Failed to reset password");
+    } finally {
+      setResetting(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <header>
@@ -139,6 +157,34 @@ export default function EditUserPage() {
               <button disabled={saving} className="rounded bg-blue-600 px-3 py-1 text-sm font-medium text-white disabled:opacity-60">Save</button>
             </div>
           </form>
+          <div className="mt-6 border-t border-slate-200 pt-6 dark:border-slate-700">
+            <h3 className="mb-2 text-sm font-semibold text-slate-900 dark:text-slate-100">Password</h3>
+            <button
+              onClick={onResetPassword}
+              disabled={resetting}
+              className="rounded border border-red-300 px-3 py-1 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-60 dark:border-red-600 dark:text-red-300 dark:hover:bg-red-900/30"
+            >
+              {resetting ? "Resetting…" : "Reset password"}
+            </button>
+            {oneTimeLink && (
+              <div className="mt-4 rounded border border-blue-300 bg-blue-50 p-3 text-sm text-blue-800 dark:border-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                <strong className="font-semibold">One-time link:</strong>
+                <div className="mt-1 flex items-center gap-2">
+                  <code className="select-all break-all">{typeof window !== 'undefined' ? `${window.location.origin}${oneTimeLink}` : oneTimeLink}</code>
+                  <button
+                    onClick={() => {
+                      const url = `${window.location.origin}${oneTimeLink}`;
+                      void navigator.clipboard.writeText(url);
+                    }}
+                    className="rounded border border-blue-400 px-2 py-0.5 text-xs font-medium hover:bg-blue-100 dark:hover:bg-blue-800/40"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <p className="mt-1 text-xs opacity-80">Share this link securely with the user. It works once and then expires.</p>
+              </div>
+            )}
+          </div>
         </section>
       )}
     </div>

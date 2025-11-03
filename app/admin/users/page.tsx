@@ -24,7 +24,7 @@ export default function UsersAdminPage() {
   const [gradeLevel, setGradeLevel] = useState<number | "">("");
   const [gradeClass, setGradeClass] = useState<"A" | "B" | "V" | "G" | "">("");
   const [creating, setCreating] = useState(false);
-  const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
+  const [oneTimeLink, setOneTimeLink] = useState<string | null>(null);
   const [newUserRole, setNewUserRole] = useState<"ADMIN" | "USER">("USER");
 
   async function load() {
@@ -49,7 +49,7 @@ export default function UsersAdminPage() {
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
     setCreating(true);
-    setGeneratedPassword(null);
+    setOneTimeLink(null);
     setError(null);
     try {
       const res = await fetch("/api/admin/users", {
@@ -66,7 +66,7 @@ export default function UsersAdminPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Create failed");
-      setGeneratedPassword(data.password as string);
+      setOneTimeLink(data.oneTimeLink as string);
       setEmail("");
       setFirstName("");
       setLastName("");
@@ -136,10 +136,22 @@ export default function UsersAdminPage() {
             <button disabled={creating} className="rounded bg-blue-600 px-3 py-1 text-sm font-medium text-white disabled:opacity-60">Create</button>
           </div>
         </form>
-        {generatedPassword && (
-          <div className="mt-4 rounded border border-green-300 bg-green-50 p-3 text-sm text-green-800 dark:border-green-700 dark:bg-green-900/30 dark:text-green-300">
-            <strong className="font-semibold">Generated password:</strong> <code className="select-all">{generatedPassword}</code>
-            <p className="mt-1 text-xs opacity-80">Save this password – it is shown only once.</p>
+        {oneTimeLink && (
+          <div className="mt-4 rounded border border-blue-300 bg-blue-50 p-3 text-sm text-blue-800 dark:border-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+            <strong className="font-semibold">One-time link:</strong>
+            <div className="mt-1 flex items-center gap-2">
+              <code className="select-all break-all">{typeof window !== 'undefined' ? `${window.location.origin}${oneTimeLink}` : oneTimeLink}</code>
+              <button
+                onClick={() => {
+                  const url = `${window.location.origin}${oneTimeLink}`;
+                  void navigator.clipboard.writeText(url);
+                }}
+                className="rounded border border-blue-400 px-2 py-0.5 text-xs font-medium hover:bg-blue-100 dark:hover:bg-blue-800/40"
+              >
+                Copy
+              </button>
+            </div>
+            <p className="mt-1 text-xs opacity-80">Share this link securely with the user. It works once and then expires.</p>
           </div>
         )}
       </section>
