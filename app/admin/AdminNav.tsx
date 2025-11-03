@@ -9,6 +9,7 @@ const adminLinks = [
   { href: "/admin/news", label: "Новини" },
   { href: "/admin/pages", label: "Страници" },
   { href: "/admin/admins", label: "Администратори" },
+  { href: "/admin/users", label: "Потребители" },
 ] as const;
 
 export function AdminNav() {
