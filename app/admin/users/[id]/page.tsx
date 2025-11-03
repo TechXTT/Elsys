@@ -42,10 +42,9 @@ export default function EditUserPage() {
       if (!res.ok) throw new Error(data.error || "Load failed");
       const u: EditUser = data.user;
       setEmail(u.email || "");
-      const [fn, ln] = (u.name || "").split(" ");
-      setFirstName(fn || "");
-      setLastName(ln || "");
-      if (u.gradeLevel) setGradeLevel(u.gradeLevel);
+      setFirstName((u.firstName ?? "") || "");
+      setLastName((u.lastName ?? "") || "");
+      if (typeof u.gradeLevel === "number") setGradeLevel(u.gradeLevel);
       if (u.gradeClass) setGradeClass(u.gradeClass);
       setRole(u.role || "USER");
     } catch (e: any) {

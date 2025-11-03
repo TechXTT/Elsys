@@ -17,7 +17,19 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   const auth = await requireAdmin();
   if (!auth.ok) return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
 
-  const user = await prisma.user.findUnique({ where: { id: params.id }, select: { id: true, email: true, name: true } as any });
+  const user = await prisma.user.findUnique({
+    where: { id: params.id },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      firstName: true,
+      lastName: true,
+      gradeLevel: true,
+      gradeClass: true,
+      role: true,
+    } as any,
+  });
   if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ user });
 }
@@ -43,6 +55,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (body.gradeLevel !== undefined) data.gradeLevel = body.gradeLevel;
   if (body.gradeClass !== undefined) data.gradeClass = body.gradeClass;
   if (body.role) data.role = body.role;
+
+  // Keep the legacy `name` in sync when first/last provided
+  if ("firstName" in (body ?? {}) || "lastName" in (body ?? {})) {
+    const fn = (body?.firstName ?? "").trim();
+    const ln = (body?.lastName ?? "").trim();
+    const full = `${fn} ${ln}`.trim();
+    data.name = full || null;
+  }
 
   const user = await prisma.user.update({ where: { id: params.id }, data: data as any, select: { id: true } });
   return NextResponse.json({ ok: true, id: user.id });
