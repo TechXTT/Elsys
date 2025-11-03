@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useLocale } from "next-intl";
+import { defaultLocale } from "@/i18n/config";
 
 const adminLinks = [
   { href: "/admin", label: "Табло" },
@@ -13,7 +13,6 @@ const adminLinks = [
 
 export function AdminNav() {
   const pathname = usePathname() ?? "";
-  const locale = useLocale();
 
   return (
     <nav className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
@@ -23,7 +22,7 @@ export function AdminNav() {
         </Link>
         <div className="flex flex-1 items-center justify-end gap-4 text-sm">
           <Link
-            href={`/${locale}`}
+            href={`/${defaultLocale}`}
             className="cursor-pointer rounded border border-slate-300 px-3 py-1 font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             ← Към сайта
