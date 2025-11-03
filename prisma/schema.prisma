@@ -25,6 +25,7 @@ model User {
 
   accounts       Account[]
   sessions       Session[]
+  auditLogs      AuditLog[]
 
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -75,4 +76,20 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  entity    String?
+  entityId  String?
+  details   Json?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([userId, createdAt])
 }

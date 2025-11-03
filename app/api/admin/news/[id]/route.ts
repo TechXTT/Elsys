@@ -5,6 +5,7 @@ import path from "path";
 import { put } from "@vercel/blob";
 import { authOptions } from "@/lib/auth";
 import { getNewsFilePath, getNewsMarkdownPath, loadNewsJson, loadNewsMarkdown } from "@/lib/content";
+import { recordAudit } from "@/lib/audit";
 import type { PostItem } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -53,22 +54,40 @@ function parseDeclaredMeta(value: FormDataEntryValue | null): DeclaredImageMeta[
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) {
+    try {
+      await recordAudit({ req: request, action: "news.open.denied", entity: "news", entityId: params.id });
+    } catch {}
     return NextResponse.json({ error: "Неоторизиран достъп" }, { status: 401 });
   }
 
   const posts = loadNewsJson();
   const post = posts.find((item) => item.id === params.id);
   if (!post) {
+    try {
+      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.open.notfound", entity: "news", entityId: params.id });
+    } catch {}
     return NextResponse.json({ error: "Публикацията не е намерена" }, { status: 404 });
   }
 
   const markdown = loadNewsMarkdown(post.id) ?? "";
+  try {
+    await recordAudit({
+      req: request,
+      userId: (session.user as any)?.id as string | undefined,
+      action: "news.open",
+      entity: "news",
+      entityId: post.id,
+    });
+  } catch {}
   return NextResponse.json({ post, markdown });
 }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) {
+    try {
+      await recordAudit({ req: request, action: "news.update.denied", entity: "news", entityId: params.id });
+    } catch {}
     return NextResponse.json({ error: "Неоторизиран достъп" }, { status: 401 });
   }
 
@@ -77,6 +96,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     form = await request.formData();
   } catch (error) {
     console.error("News update payload error", error);
+    try {
+      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.update.payload.error", entity: "news", entityId: params.id });
+    } catch {}
     return NextResponse.json({ error: "Невалидно тяло на заявката" }, { status: 400 });
   }
 
@@ -96,25 +118,40 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   const markdown = typeof markdownValue === "string" ? markdownValue.trim() : "";
 
   if (!normalizedTitle) {
+    try {
+      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.update.validation.title", entity: "news", entityId: params.id });
+    } catch {}
     return NextResponse.json({ error: "Заглавието е задължително" }, { status: 400 });
   }
 
   if (!normalizedSlug) {
+    try {
+      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.update.validation.slug", entity: "news", entityId: params.id });
+    } catch {}
     return NextResponse.json({ error: "Слагът е задължителен" }, { status: 400 });
   }
 
   if (markdown.length === 0) {
+    try {
+      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.update.validation.markdown", entity: "news", entityId: params.id });
+    } catch {}
     return NextResponse.json({ error: "Markdown съдържанието е задължително" }, { status: 400 });
   }
 
   const posts = loadNewsJson();
   const targetIndex = posts.findIndex((item) => item.id === params.id);
   if (targetIndex === -1) {
+    try {
+      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.update.notfound", entity: "news", entityId: params.id });
+    } catch {}
     return NextResponse.json({ error: "Публикацията не е намерена" }, { status: 404 });
   }
 
   const duplicate = posts.some((item) => item.id === normalizedSlug && item.id !== params.id);
   if (duplicate) {
+    try {
+      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.update.duplicate", entity: "news", entityId: normalizedSlug, details: { fromId: params.id } });
+    } catch {}
     return NextResponse.json({ error: "Новина с такъв слаг вече съществува" }, { status: 409 });
   }
 
@@ -122,6 +159,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   try {
     declaredMeta = parseDeclaredMeta(imageMetaValue);
   } catch {
+    try {
+      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.update.meta.error", entity: "news", entityId: params.id });
+    } catch {}
     return NextResponse.json({ error: "Невалидни данни за изображения" }, { status: 400 });
   }
 
@@ -137,6 +177,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 
   if (requestedFeaturedName && !declaredMeta.some((meta) => meta.name === requestedFeaturedName)) {
+    try {
+      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.update.featured.invalid", entity: "news", entityId: params.id, details: { requestedFeaturedName } });
+    } catch {}
     return NextResponse.json({ error: "Невалидно основно изображение" }, { status: 400 });
   }
 
@@ -153,6 +196,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     if (meta.origin === "existing") {
       const stored = existingImageMap.get(meta.name);
       if (!stored) {
+        try {
+          await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.update.missingExistingImage", entity: "news", entityId: params.id, details: { name: meta.name } });
+        } catch {}
         return NextResponse.json({ error: `Липсва съществуващо изображение: ${meta.name}` }, { status: 400 });
       }
       nextImages.push({
@@ -165,6 +211,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
     const file = fileMap.get(meta.name);
     if (!file) {
+      try {
+        await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.update.missingFile", entity: "news", entityId: params.id, details: { name: meta.name } });
+      } catch {}
       return NextResponse.json({ error: `Липсва файл за изображение: ${meta.name}` }, { status: 400 });
     }
 
@@ -182,6 +231,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       });
     } catch (error) {
       console.error("News image upload error", error);
+      try {
+        await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.update.imageUpload.error", entity: "news", entityId: params.id, details: { blobPath, name: meta.name } });
+      } catch {}
       return NextResponse.json({ error: "Качването на изображение се провали" }, { status: 500 });
     }
   }
@@ -231,8 +283,21 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     }
   } catch (error) {
     console.error("News update write error", error);
+    try {
+      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.update.write.error", entity: "news", entityId: params.id });
+    } catch {}
     return NextResponse.json({ error: "Неуспешно записване" }, { status: 500 });
   }
 
+  try {
+    await recordAudit({
+      req: request,
+      userId: (session.user as any)?.id as string | undefined,
+      action: "news.update",
+      entity: "news",
+      entityId: updatedPost.id,
+      details: { fromId: params.id, toId: updatedPost.id, title: updatedPost.title },
+    });
+  } catch {}
   return NextResponse.json({ post: updatedPost });
 }

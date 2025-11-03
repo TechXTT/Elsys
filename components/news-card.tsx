@@ -4,27 +4,28 @@ import { Link } from "@/i18n/routing";
 import { defaultLocale, type Locale } from "@/i18n/config";
 import { PostItem } from "@/lib/types";
 
-function resolveDateLocale(locale: Locale) {
-  switch (locale) {
-    case "bg":
-      return "bg-BG";
-    case "en":
-      return "en-GB";
-    default:
-      return locale;
-  }
+function resolveDateLocale(locale: Locale): string {
+  // Restrict to known-good BCP 47 tags and fallback to en-GB
+  if (locale === "bg") return "bg-BG";
+  if (locale === "en") return "en-GB";
+  return "en-GB";
 }
 
 function formatDateLabel(value: string | undefined, locale: Locale) {
   if (!value) return null;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
-  const formatter = new Intl.DateTimeFormat(resolveDateLocale(locale), {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-  return formatter.format(date);
+  const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "short", day: "numeric" };
+  const primary = resolveDateLocale(locale);
+  try {
+    return new Intl.DateTimeFormat(primary, options).format(date);
+  } catch {
+    try {
+      return new Intl.DateTimeFormat("en-GB", options).format(date);
+    } catch {
+      return new Intl.DateTimeFormat(undefined, options).format(date);
+    }
+  }
 }
 
 interface NewsCardProps {
