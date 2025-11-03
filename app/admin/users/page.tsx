@@ -150,7 +150,7 @@ export default function UsersAdminPage() {
                   <div className="truncate text-xs text-slate-600 dark:text-slate-400">{u.email}</div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Link href={{ pathname: "/admin/users/[id]", query: { id: u.id } }} className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800">Редакция</Link>
+                  <Link href={`/admin/users/${u.id}` as any} className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800">Редакция</Link>
                 </div>
               </li>
             ))}
