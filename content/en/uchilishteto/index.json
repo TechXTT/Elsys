@@ -1,0 +1,72 @@
+[
+  {
+    "id": "u1",
+    "title": "Mission",
+    "excerpt": "Our purpose and values",
+    "href": "/uchilishteto/misija",
+    "body": "<p>More information coming soon.</p>"
+  },
+  {
+    "id": "u2",
+    "title": "History",
+    "excerpt": "Heritage and development",
+    "href": "/uchilishteto/istorija",
+    "body": "<p>More information coming soon.</p>"
+  },
+  {
+    "id": "u3",
+    "title": "TUES in numbers",
+    "excerpt": "Key statistics",
+    "href": "/uchilishteto/tues-v-chisla",
+    "body": "<p>More information coming soon.</p>"
+  },
+  {
+    "id": "u4",
+    "title": "TUES Alumni Association",
+    "excerpt": "Our alumni community",
+    "href": "/uchilishteto/asociacija-na-zavurshilite-tues",
+    "body": "<p>More information coming soon.</p>"
+  },
+  {
+    "id": "u5",
+    "title": "Leaders who graduated from TUES",
+    "excerpt": "Success stories",
+    "href": "/uchilishteto/lideri-zavurshili-tues",
+    "body": "<p>More information coming soon.</p>"
+  },
+  {
+    "id": "u6",
+    "title": "School board",
+    "excerpt": "Role and members",
+    "href": "/uchilishteto/obshtestven-savet",
+    "body": "<p>More information coming soon.</p>"
+  },
+  {
+    "id": "u7",
+    "title": "Teaching staff",
+    "excerpt": "Our educators",
+    "href": "/uchilishteto/prepodavatelski-ekip",
+    "body": " <figure> <a href=\"/uchilishteto/prepodavatelski-ekip/obshtoobrazovatelni-prepodavateli\" title=\"General education subjects\"> <img src=\"/web/files/richeditor/fig2.png\" alt=\"General education subjects\"> </a> </figure> <h3> <a href=\"/uchilishteto/prepodavatelski-ekip/obshtoobrazovatelni-prepodavateli\" title=\"General education subjects\">General education subjects</a> </h3> <a href=\"/uchilishteto/prepodavatelski-ekip/obshtoobrazovatelni-prepodavateli\" title=\"General education subjects\">Learn more</a> "
+  },
+  {
+    "id": "u8",
+    "title": "Policies and documents",
+    "excerpt": "Official documents",
+    "href": "/uchilishteto/pravilnici-i-dokumenti",
+    "body": "<p>More information coming soon.</p>"
+  },
+  {
+    "id": "u9",
+    "title": "Gallery",
+    "excerpt": "Photos and videos",
+    "href": "/uchilishteto/galerija",
+    "body": " <figure> <a href=\"/uchilishteto/galerija/hack-tues\" title=\"Hack TUES\"> <img src=\"/web/files/richeditor////hack_tues_logo-last.png\" alt=\"Hack TUES\"> </a> </figure> <h3> <a href=\"/uchilishteto/galerija/hack-tues\" title=\"Hack TUES\">Hack TUES</a> </h3> <p><span>Hack TUES is the first and only hackathon in Bulgaria organized by students for students.</span></p> <a href=\"/uchilishteto/galerija/hack-tues\" title=\"Hack TUES\">Learn more</a> "
+  },
+  {
+    "id": "u10",
+    "title": "Contacts",
+    "excerpt": "Address and contact details",
+    "href": "/uchilishteto/kontakti",
+    "body": "<p>More information coming soon.</p>"
+  }
+]

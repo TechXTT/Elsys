@@ -1,0 +1,24 @@
+{
+  "hero": {
+    "title": "Technological School of Electronic Systems",
+    "subtitle": "Education in Computer Science and Informatics",
+    "cta": { "label": "Learn more", "href": "/uchilishteto" }
+  },
+  "tracks": [
+    { "key": "sp", "title": "Systems Programming", "description": "Deep foundations in computer systems", "href": "/obuchenie" },
+    { "key": "ai", "title": "Artificial Intelligence", "description": "Modern algorithms and machine learning", "href": "/obuchenie" },
+    { "key": "net", "title": "Computer Networks", "description": "Network administration and security", "href": "/obuchenie" }
+  ],
+  "why": [
+    { "icon": "BookOpen", "title": "Rigorous curriculum", "description": "Proven academic program" },
+    { "icon": "Handshake", "title": "Industry partnerships", "description": "Collaboration with leading companies" },
+    { "icon": "Brain", "title": "Innovation", "description": "Projects and competitions" },
+    { "icon": "Users", "title": "Community", "description": "Strong mentors and alumni" }
+  ],
+  "numbers": [
+    { "value": "1000+", "label": "Alumni" },
+    { "value": "35+", "label": "Years of experience" },
+    { "value": "50+", "label": "Partners" },
+    { "value": "95%", "label": "Graduate employment" }
+  ]
+}

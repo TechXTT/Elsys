@@ -1,0 +1,44 @@
+[
+  {
+    "id": "p1",
+    "title": "Why Choose TUES",
+    "excerpt": "Advantages and student outcomes",
+    "href": "/priem/zashto-da-izbera-tues",
+    "body": "<p>More information coming soon.</p>"
+  },
+  {
+    "id": "p2",
+    "title": "Admission Process and Requirements",
+    "excerpt": "Application steps and criteria",
+    "href": "/priem/red-i-uslovija-za-priem",
+    "body": " <figure> <a href=\"/priem/specialnost-sistemno-programirane\" title=\"Systems Programming\"> <img src=\"/web/files/richeditor/letter-C.png\" alt=\"Systems Programming\"> </a> </figure> <h3> <a href=\"/priem/specialnost-sistemno-programirane\" title=\"Systems Programming\">Systems Programming</a> </h3> <p>The most in-depth school program in Bulgaria for programming, providing a launchpad for students pursuing careers in the IT sector.</p> <a href=\"/priem/specialnost-sistemno-programirane\" title=\"Systems Programming\">Learn more</a> "
+  },
+  {
+    "id": "p3",
+    "title": "Specialty: Computer Networks",
+    "excerpt": "Profile and career perspectives",
+    "href": "/priem/specialnost-komputyrni-mreji",
+    "body": "<p>More information coming soon.</p>"
+  },
+  {
+    "id": "p4",
+    "title": "Specialty: Artificial Intelligence",
+    "excerpt": "Profile and career perspectives",
+    "href": "/priem/specialnost-programirane-na-izkustven-intelekt",
+    "body": "<p>More information coming soon.</p>"
+  },
+  {
+    "id": "p5",
+    "title": "Specialty: Systems Programming",
+    "excerpt": "Profile and career perspectives",
+    "href": "/priem/specialnost-sistemno-programirane",
+    "body": "<p>More information coming soon.</p>"
+  },
+  {
+    "id": "p6",
+    "title": "TUES Fest / Open Day",
+    "excerpt": "Event for prospective students",
+    "href": "/priem/tues-fest-den-na-otvorenite-vrati",
+    "body": "<p>More information coming soon.</p>"
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "t1",
+    "title": "General education teachers",
+    "href": "/uchilishteto/prepodavatelski-ekip/obshtoobrazovatelni-prepodavateli",
+    "body": "<p>More information coming soon.</p>"
+  },
+  {
+    "id": "t2",
+    "title": "Specialized subject teachers",
+    "href": "/uchilishteto/prepodavatelski-ekip/prepodavateli-po-specialni-predmeti",
+    "body": "<p>More information coming soon.</p>"
+  },
+  {
+    "id": "t3",
+    "title": "Former teachers",
+    "href": "/uchilishteto/prepodavatelski-ekip/bivshi-prepodavateli",
+    "body": "<p>More information coming soon.</p>"
+  }
+]

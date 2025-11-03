@@ -1,0 +1,23 @@
+[
+  {
+    "id": "up1",
+    "title": "General education subjects",
+    "excerpt": "Core curriculum",
+    "href": "/obuchenie/uchebna-programa/obshtoobrazovatelni-predmeti",
+    "body": "<p>More information coming soon.</p>"
+  },
+  {
+    "id": "up2",
+    "title": "Specialized subjects",
+    "excerpt": "Advanced specialization",
+    "href": "/obuchenie/uchebna-programa/spetsialni-predmeti",
+    "body": "<p>More information coming soon.</p>"
+  },
+  {
+    "id": "up3",
+    "title": "Industry guest lecturers",
+    "excerpt": "Experts teaching at TUES",
+    "href": "/obuchenie/uchebna-programa/prepodavali-v-tues",
+    "body": "<p>More information coming soon.</p>"
+  }
+]

@@ -1,0 +1,65 @@
+[
+  {
+    "id": "o1",
+    "title": "Vocational education",
+    "excerpt": "Specialties and programs",
+    "href": "/obuchenie/profesionalno-obrazovanie",
+    "body": "<p>More information coming soon.</p>"
+  },
+  {
+    "id": "o2",
+    "title": "Curriculum",
+    "excerpt": "Subjects and weekly schedule",
+    "href": "/obuchenie/uchebna-programa",
+    "body": "<p>More information coming soon.</p>"
+  },
+  {
+    "id": "o3",
+    "title": "Specialty internship",
+    "excerpt": "Practice and placements",
+    "href": "/obuchenie/uchebna-praktika-po-specialnostta",
+    "body": "<p>More information coming soon.</p>"
+  },
+  {
+    "id": "o4",
+    "title": "Innovative teaching approach",
+    "excerpt": "Modern teaching methods",
+    "href": "/obuchenie/inovativen-ucheben-podhod",
+    "body": "<p>More information coming soon.</p>"
+  },
+  {
+    "id": "o5",
+    "title": "Integration with TU Sofia",
+    "excerpt": "Partnership with the Technical University",
+    "href": "/obuchenie/integracija-s-tu-sofija",
+    "body": "<p>More information coming soon.</p>"
+  },
+  {
+    "id": "o6",
+    "title": "Diploma thesis",
+    "excerpt": "Capstone project",
+    "href": "/obuchenie/diplomna-rabota",
+    "body": "<p>More information coming soon.</p>"
+  },
+  {
+    "id": "o7",
+    "title": "Cisco Academy",
+    "excerpt": "Certification and training",
+    "href": "/obuchenie/cisco-akademija",
+    "body": "<p>More information coming soon.</p>"
+  },
+  {
+    "id": "o8",
+    "title": "Investech Project",
+    "excerpt": "International initiative",
+    "href": "/obuchenie/investech-project",
+    "body": "<p>More information coming soon.</p>"
+  },
+  {
+    "id": "o9",
+    "title": "Events calendar",
+    "excerpt": "Key dates and activities",
+    "href": "/obuchenie/kalendar-na-sabitijata",
+    "body": "<p>More information coming soon.</p>"
+  }
+]
