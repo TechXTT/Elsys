@@ -5,7 +5,12 @@ export interface PostItem {
   date?: string;
   href: string;
   image?: string;
-  body?: string; // optional rich text/HTML body
+  body?: string; // legacy HTML body support
+  images?: Array<{
+    name: string;
+    url: string;
+    size?: "small" | "medium" | "large" | "full";
+  }>;
 }
 
 export interface HomeHero {
