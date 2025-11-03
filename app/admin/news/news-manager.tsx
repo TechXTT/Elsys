@@ -1,8 +1,7 @@
 "use client";
 
 import { type ChangeEvent, type ComponentPropsWithoutRef, type FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "@/i18n/routing";
-import { defaultLocale } from "@/i18n/config";
+import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import type { PostItem } from "@/lib/types";
@@ -12,10 +11,10 @@ type Status = { type: "idle" } | { type: "loading" } | { type: "success"; messag
 type ImageSize = "small" | "medium" | "large" | "full";
 
 const imageSizeLabels: Record<ImageSize, string> = {
-  small: "Малък",
-  medium: "Среден",
-  large: "Голям",
-  full: "Пълен",
+  small: "Small",
+  medium: "Medium",
+  large: "Large",
+  full: "Full",
 };
 
 const imageSizeOptions: ImageSize[] = ["small", "medium", "large", "full"];
@@ -60,7 +59,7 @@ function formatDateLabel(value?: string) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString("bg-BG", { year: "numeric", month: "long", day: "numeric" });
+  return date.toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" });
 }
 
 function getTodayInputValue(): string {
@@ -187,14 +186,14 @@ export function NewsManager({ initialPosts }: Props) {
   const submitDisabled = isSubmitDisabled || status.type === "loading" || isPrefilling;
   const primaryActionLabel =
     status.type === "loading"
-      ? "Запазваме…"
+      ? "Saving…"
       : isPrefilling
-      ? "Зареждаме…"
+      ? "Loading…"
       : isEditing
-      ? "Запази промените"
-      : "Запази новината";
+      ? "Save changes"
+      : "Save post";
   const previewComponents = useMemo(() => createPreviewMarkdownComponents(images), [images]);
-  const previewTitle = title.trim() || (isEditing ? "Заглавие в редакция" : "Чернова без заглавие");
+  const previewTitle = title.trim() || (isEditing ? "Editing title" : "Untitled draft");
   const previewDateLabel = formatDateLabel(date);
   const previewExcerpt = excerpt.trim();
   const hasMarkdown = markdown.trim().length > 0;
@@ -281,7 +280,7 @@ export function NewsManager({ initialPosts }: Props) {
       const payload = (await response.json().catch(() => null)) as { post?: PostItem; markdown?: string; error?: string } | null;
 
       if (!response.ok || !payload?.post) {
-        setStatus({ type: "error", message: payload?.error ?? "Не успяхме да заредим публикацията" });
+        setStatus({ type: "error", message: payload?.error ?? "Failed to load the post" });
         return;
       }
 
@@ -311,7 +310,7 @@ export function NewsManager({ initialPosts }: Props) {
       }
     } catch (error) {
       console.error("News edit preload error", error);
-      setStatus({ type: "error", message: "Възникна грешка при зареждане" });
+      setStatus({ type: "error", message: "An error occurred while loading" });
     } finally {
       setIsPrefilling(false);
     }
@@ -414,7 +413,7 @@ export function NewsManager({ initialPosts }: Props) {
       if (!response.ok || !payload?.post) {
         setStatus({
           type: "error",
-          message: payload?.error ?? (isEditing ? "Неуспешно обновяване" : "Неуспешно създаване"),
+          message: payload?.error ?? (isEditing ? "Update failed" : "Creation failed"),
         });
         return;
       }
@@ -436,10 +435,10 @@ export function NewsManager({ initialPosts }: Props) {
 
       cleanupNewPreviews(imagesRef.current);
       resetForm();
-      setStatus({ type: "success", message: isEditing ? "Новината е обновена успешно" : "Новината е създадена успешно" });
+      setStatus({ type: "success", message: isEditing ? "Post updated successfully" : "Post created successfully" });
     } catch (error) {
       console.error("News create client error", error);
-      setStatus({ type: "error", message: isEditing ? "Грешка при обновяване" : "Възникна грешка при изпращане" });
+      setStatus({ type: "error", message: isEditing ? "Error during update" : "An error occurred during submission" });
     }
   }
 
@@ -447,41 +446,37 @@ export function NewsManager({ initialPosts }: Props) {
     <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
       <section className="space-y-4 rounded border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <header className="space-y-2">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            {isEditing ? "Редакция на публикация" : "Нова публикация"}
-          </h2>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{isEditing ? "Edit post" : "New post"}</h2>
           <p className="text-sm text-slate-600 dark:text-slate-400">
             {isEditing
-              ? "Обновете съдържанието, изображенията и метаданните. При запазване публикуваната новина ще бъде заменена."
-              : "Попълнете формата и запазете, за да добавите нова новина. Използвайте имената на изображенията в Markdown за вграждане."}
+              ? "Update content, images and metadata. Saving will replace the published post."
+              : "Fill in the form and save to add a new post. Use image filenames in Markdown to embed them."}
           </p>
         </header> 
 
         {isEditing && (
           <div className="flex flex-col gap-3 rounded border border-blue-200 bg-blue-50/80 px-4 py-3 text-sm text-blue-800 dark:border-blue-500/40 dark:bg-blue-500/10 dark:text-blue-100 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="font-medium">Редактирате: /novini/{editingId}</p>
-              <p className="text-xs text-blue-700/80 dark:text-blue-100/80">Промените в Markdown и изображенията ще заменят текущите данни.</p>
+              <p className="font-medium">Editing: /novini/{editingId}</p>
+              <p className="text-xs text-blue-700/80 dark:text-blue-100/80">Changes to Markdown and images will replace the current data.</p>
             </div>
             <button
               type="button"
               onClick={handleCancelEdit}
               className="inline-flex items-center justify-center rounded border border-blue-600 px-3 py-1 text-xs font-semibold text-blue-600 hover:bg-blue-100 dark:border-blue-300 dark:text-blue-100 dark:hover:bg-blue-500/30"
             >
-              Откажи редакцията
+              Cancel editing
             </button>
           </div>
         )}
 
         {isPrefilling && (
-          <p className="rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
-            Зареждаме съдържанието…
-          </p>
+          <p className="rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">Loading content…</p>
         )}
 
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Заглавие *</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Title *</label>
             <input
               type="text"
               value={title}
@@ -491,7 +486,7 @@ export function NewsManager({ initialPosts }: Props) {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Слаг *</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Slug *</label>
             <input
               type="text"
               value={slug}
@@ -504,7 +499,7 @@ export function NewsManager({ initialPosts }: Props) {
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">URL: /novini/{slug || "..."}</p>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Изображения (множество по избор)</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Images (optional, multiple)</label>
             <input
               ref={fileInputRef}
               type="file"
@@ -514,8 +509,8 @@ export function NewsManager({ initialPosts }: Props) {
               className="w-full text-sm text-slate-600 file:mr-3 file:rounded file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-blue-700"
             />
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Файловете се качват във Vercel Blob. Използвайте Markdown синтаксис <code>![alt](/име-на-файл)</code> или директно <code>![alt](име-на-файл)</code>;
-              имената се нормализират автоматично. След добавяне изберете предпочитан размер и отбележете кое изображение да бъде основно.
+              Files are uploaded to Vercel Blob. Use Markdown <code>![alt](/file-name)</code> or <code>![alt](file-name)</code>; filenames are normalized automatically.
+              After adding, choose the preferred display size and mark the featured image.
             </p>
             {images.length > 0 && (
               <div className="mt-3 space-y-3">
@@ -524,13 +519,11 @@ export function NewsManager({ initialPosts }: Props) {
                     <img src={img.preview} alt={img.name} className="h-16 w-16 rounded object-cover" />
                     <div className="flex-1 text-xs text-slate-600 dark:text-slate-400">
                       <p className="font-medium text-slate-700 dark:text-slate-200">{img.name}</p>
-                      <p>
-                        Позовавайте се с <code>![описание]({img.name})</code> в Markdown.
-                      </p>
+                      <p>Reference with <code>![alt]({img.name})</code> in Markdown.</p>
                       <span className="mt-2 inline-flex items-center gap-1 rounded bg-slate-200 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                        {img.origin === "existing" ? "Съществуващо изображение" : "Ново качване"}
+                        {img.origin === "existing" ? "Existing image" : "New upload"}
                       </span>
-                      <label className="mt-2 block text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500">Размер в публикация</label>
+                      <label className="mt-2 block text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500">Display size</label>
                       <select
                         value={img.size}
                         onChange={(event) => handleImageSizeChange(img.name, event.target.value as ImageSize)}
@@ -550,7 +543,7 @@ export function NewsManager({ initialPosts }: Props) {
                           onChange={() => setFeaturedImage(img.name)}
                           className="h-3 w-3 border border-slate-400 text-blue-600 focus:ring-blue-500"
                         />
-                        Основно изображение (каре)
+                        Featured image (card)
                       </label>
                     </div>
                     <button
@@ -558,7 +551,7 @@ export function NewsManager({ initialPosts }: Props) {
                       onClick={() => handleRemoveImage(img.name)}
                       className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
                     >
-                      Премахни
+                      Remove
                     </button>
                   </div>
                 ))}
@@ -566,7 +559,7 @@ export function NewsManager({ initialPosts }: Props) {
             )}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Дата</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Date</label>
             <input
               type="date"
               value={date}
@@ -575,25 +568,25 @@ export function NewsManager({ initialPosts }: Props) {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Кратко описание</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Excerpt</label>
             <textarea
               value={excerpt}
               onChange={(event) => setExcerpt(event.target.value)}
               rows={3}
               className="w-full rounded border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
-              placeholder="Въведете кратко резюме"
+              placeholder="Enter a short summary"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Съдържание (Markdown) *</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Content (Markdown) *</label>
             <textarea
               value={markdown}
               onChange={(event) => setMarkdown(event.target.value)}
               rows={6}
               className="w-full rounded border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
-              placeholder="Въведете съдържание в Markdown формат"
+              placeholder="Enter content in Markdown"
             />
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Поддържа стандартен Markdown (заглавия, списъци, връзки).</p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Supports standard Markdown (headings, lists, links).</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <button
@@ -609,7 +602,7 @@ export function NewsManager({ initialPosts }: Props) {
                 onClick={handleCancelEdit}
                 className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
               >
-                Откажи
+                Cancel
               </button>
             )}
             {status.type === "error" && <span className="text-sm text-red-600">{status.message}</span>}
@@ -618,35 +611,35 @@ export function NewsManager({ initialPosts }: Props) {
         </form>
         <div className="border-t border-dashed border-slate-200 pt-5 dark:border-slate-700">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Преглед</h3>
-            <span className="text-xs text-slate-500 dark:text-slate-400">Актуализира се автоматично</span>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Preview</h3>
+            <span className="text-xs text-slate-500 dark:text-slate-400">Auto-updates</span>
           </div>
           <article className="markdown-content mt-4 space-y-4 rounded border border-slate-200 bg-slate-50 p-4 text-slate-700 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200">
             <header className="space-y-1">
               <h4 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{previewTitle}</h4>
-              {previewDateLabel && <p className="text-xs text-slate-500 dark:text-slate-400">Планирано за {previewDateLabel}</p>}
+              {previewDateLabel && <p className="text-xs text-slate-500 dark:text-slate-400">Scheduled for {previewDateLabel}</p>}
               {previewExcerpt && <p className="pt-1 text-sm text-slate-600 dark:text-slate-300">{previewExcerpt}</p>}
             </header>
             {featuredPreviewSrc && (
               <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900/60">
-                <img src={featuredPreviewSrc} alt={previewTitle || "Представително изображение"} className="h-auto w-full object-cover" />
+                <img src={featuredPreviewSrc} alt={previewTitle || "Featured image"} className="h-auto w-full object-cover" />
               </div>
             )}
             {hasMarkdown ? (
               <ReactMarkdown components={previewComponents}>{markdown}</ReactMarkdown>
             ) : (
-              <p className="text-sm text-slate-500 dark:text-slate-400">Добавете Markdown съдържание, за да видите визуализацията тук.</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Add Markdown content to see the preview here.</p>
             )}
           </article>
         </div>
       </section>
       <section className="space-y-4 rounded border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <header>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Списък с новини</h2>
-          <p className="text-sm text-slate-600 dark:text-slate-400">Последно добавените се показват най-отгоре.</p>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">News list</h2>
+          <p className="text-sm text-slate-600 dark:text-slate-400">Most recent first.</p>
         </header>
         {posts.length === 0 ? (
-          <p className="text-sm text-slate-500 dark:text-slate-400">Все още няма публикации.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">No posts yet.</p>
         ) : (
           <ul className="space-y-3">
             {posts.map((post) => {
@@ -667,19 +660,13 @@ export function NewsManager({ initialPosts }: Props) {
                     </div>
                     {Array.isArray(post.images) && post.images.length > 0 && (
                       <span className="text-xs text-slate-500 dark:text-slate-400">
-                        {post.images.length === 1 ? "1 изображение" : `${post.images.length} изображения`}
+                        {post.images.length === 1 ? "1 image" : `${post.images.length} images`}
                       </span>
                     )}
                     {post.excerpt && <p className="text-xs text-slate-600 dark:text-slate-400">{post.excerpt}</p>}
                     <div className="flex flex-wrap items-center gap-2">
-                      <Link
-                        href={{ pathname: "/novini/[slug]", query: { slug: post.id } }}
-                        locale={defaultLocale}
-                        className="text-xs font-medium text-blue-600 hover:underline"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Виж на сайта
+                      <Link href={`/en/novini/${post.id}`} className="text-xs font-medium text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
+                        View on site
                       </Link>
                       <button
                         type="button"
@@ -687,9 +674,9 @@ export function NewsManager({ initialPosts }: Props) {
                         disabled={isPrefilling || status.type === "loading"}
                         className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 disabled:opacity-60 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
                       >
-                        Редактирай
+                        Edit
                       </button>
-                      {isActive && <span className="text-[11px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-300">В режим на редакция</span>}
+                      {isActive && <span className="text-[11px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-300">Editing</span>}
                     </div>
                   </div>
                 </li>

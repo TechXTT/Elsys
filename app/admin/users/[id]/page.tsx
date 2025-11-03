@@ -88,13 +88,13 @@ export default function EditUserPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Редакция на потребител</h1>
+        <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Edit user</h1>
       </header>
 
       {loading ? (
-        <p className="text-sm text-slate-500">Зареждане…</p>
+        <p className="text-sm text-slate-500">Loading…</p>
       ) : error ? (
-        <p className="text-sm text-red-600">Грешка: {error}</p>
+        <p className="text-sm text-red-600">Error: {error}</p>
       ) : (
         <section className="rounded border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
           <form className="grid grid-cols-1 gap-3 sm:grid-cols-2" onSubmit={onSave}>
@@ -103,15 +103,15 @@ export default function EditUserPage() {
               <input required className="rounded border border-slate-300 px-2 py-1 dark:border-slate-600" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-slate-700 dark:text-slate-200">Име</span>
+              <span className="text-slate-700 dark:text-slate-200">First name</span>
               <input className="rounded border border-slate-300 px-2 py-1 dark:border-slate-600" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-slate-700 dark:text-slate-200">Фамилия</span>
+              <span className="text-slate-700 dark:text-slate-200">Last name</span>
               <input className="rounded border border-slate-300 px-2 py-1 dark:border-slate-600" type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-slate-700 dark:text-slate-200">Клас (8-12)</span>
+              <span className="text-slate-700 dark:text-slate-200">Grade (8-12)</span>
               <select className="rounded border border-slate-300 px-2 py-1 dark:border-slate-600" value={gradeLevel} onChange={(e) => setGradeLevel(e.target.value ? Number(e.target.value) : "") }>
                 <option value="">—</option>
                 {gradeLevels.map((g) => (
@@ -120,7 +120,7 @@ export default function EditUserPage() {
               </select>
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-slate-700 dark:text-slate-200">Паралелка</span>
+              <span className="text-slate-700 dark:text-slate-200">Class</span>
               <select className="rounded border border-slate-300 px-2 py-1 dark:border-slate-600" value={gradeClass} onChange={(e) => setGradeClass((e.target.value || "") as any)}>
                 <option value="">—</option>
                 {gradeClasses.map((c) => (
@@ -129,14 +129,14 @@ export default function EditUserPage() {
               </select>
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-slate-700 dark:text-slate-200">Роля</span>
+              <span className="text-slate-700 dark:text-slate-200">Role</span>
               <select className="rounded border border-slate-300 px-2 py-1 dark:border-slate-600" value={role} onChange={(e) => setRole(e.target.value as any)}>
                 <option value="USER">USER</option>
                 <option value="ADMIN">ADMIN</option>
               </select>
             </label>
             <div className="sm:col-span-2">
-              <button disabled={saving} className="rounded bg-blue-600 px-3 py-1 text-sm font-medium text-white disabled:opacity-60">Запази</button>
+              <button disabled={saving} className="rounded bg-blue-600 px-3 py-1 text-sm font-medium text-white disabled:opacity-60">Save</button>
             </div>
           </form>
         </section>

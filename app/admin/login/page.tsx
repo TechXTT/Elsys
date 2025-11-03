@@ -21,13 +21,13 @@ export default function AdminLogin() {
     try {
       const res = await signIn("credentials", { email, password, callbackUrl, redirect: false });
       if (res?.error) {
-        setError("Невалиден имейл или парола");
+        setError("Invalid email or password");
       } else if (res?.ok) {
         window.location.href = callbackUrl;
       }
     } catch (err) {
       console.error("Login error", err);
-      setError("Възникна грешка при входа");
+      setError("An error occurred during sign in");
     } finally {
       setLoadingAction(null);
     }
@@ -35,7 +35,7 @@ export default function AdminLogin() {
 
   async function onRegister() {
     if (!email || !password) {
-      setError("Попълнете имейл и парола за регистрация");
+      setError("Enter email and password to register");
       setMessage(null);
       return;
     }
@@ -53,21 +53,21 @@ export default function AdminLogin() {
       const data = (await response.json().catch(() => null)) as { error?: string } | null;
 
       if (!response.ok) {
-        setError(data?.error ?? "Неуспешна регистрация");
+        setError(data?.error ?? "Registration failed");
         return;
       }
 
-      setMessage("Акаунтът е създаден. Пренасочваме към панела…");
+      setMessage("Account created. Redirecting to dashboard…");
       const signInResult = await signIn("credentials", { email, password, callbackUrl, redirect: false });
 
       if (!signInResult) {
-        setError("Регистрацията е успешна, но входът не бе завършен. Опитайте отново.");
+        setError("Registration succeeded but sign in did not complete. Please try again.");
         setMessage(null);
         return;
       }
 
       if (signInResult.error) {
-        setError("Регистрацията е успешна, но входът не бе завършен. Опитайте отново.");
+        setError("Registration succeeded but sign in did not complete. Please try again.");
         setMessage(null);
         return;
       }
@@ -77,7 +77,7 @@ export default function AdminLogin() {
       }
     } catch (err) {
       console.error("Register error", err);
-      setError("Възникна грешка при регистрацията");
+      setError("An error occurred during registration");
     } finally {
       setLoadingAction(null);
     }
@@ -85,10 +85,10 @@ export default function AdminLogin() {
 
   return (
     <div className="mx-auto max-w-sm">
-      <h1 className="mb-6 text-center text-2xl font-semibold">Вход за администрация</h1>
+      <h1 className="mb-6 text-center text-2xl font-semibold">Admin Sign in</h1>
       <form onSubmit={onSubmit} className="space-y-4">
         <div>
-          <label className="mb-1 block text-sm">Имейл</label>
+          <label className="mb-1 block text-sm">Email</label>
           <input
             type="email"
             value={email}
@@ -98,7 +98,7 @@ export default function AdminLogin() {
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm">Парола</label>
+          <label className="mb-1 block text-sm">Password</label>
           <input
             type="password"
             value={password}
@@ -115,7 +115,7 @@ export default function AdminLogin() {
             disabled={loadingAction !== null}
             className="w-full rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
           >
-            {loadingAction === "login" ? "Влизане…" : "Вход"}
+            {loadingAction === "login" ? "Signing in…" : "Sign in"}
           </button>
 {process.env.ALLOW_ADMIN_REGISTRATION === "true" && <button
             type="button"
@@ -123,15 +123,15 @@ export default function AdminLogin() {
             disabled={loadingAction !== null}
             className="w-full rounded border border-blue-600 px-4 py-2 text-blue-600 hover:border-blue-700 hover:text-blue-700 disabled:opacity-50"
           >
-            {loadingAction === "register" ? "Създаваме акаунт…" : "Временна регистрация"}
+            {loadingAction === "register" ? "Creating account…" : "Temporary registration"}
           </button>}
         </div>
         <p className="text-xs text-gray-500 dark:text-gray-400">
-          Премахнете бутона за регистрация след създаване на нужните акаунти.
+          Remove the registration button after creating the required accounts.
         </p>
         <div className="pt-4 text-center text-sm">
           <Link href="/" className="text-blue-600 hover:underline">
-            ↩︎ Обратно към сайта
+            ↩︎ Back to site
           </Link>
         </div>
       </form>

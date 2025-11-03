@@ -80,12 +80,12 @@ export default function UsersAdminPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Потребители</h1>
-        <p className="text-sm text-slate-600 dark:text-slate-400">Създаване и управление на потребители (ученици/админи).</p>
+        <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Users</h1>
+        <p className="text-sm text-slate-600 dark:text-slate-400">Create and manage users (students/admins).</p>
       </header>
 
       <section className="rounded border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">Създай потребител</h2>
+        <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">Create user</h2>
         <form className="grid grid-cols-1 gap-3 sm:grid-cols-2" onSubmit={onCreate}>
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-slate-700 dark:text-slate-200">Email</span>
@@ -93,17 +93,17 @@ export default function UsersAdminPage() {
           </label>
           <div className="grid grid-cols-2 gap-3 sm:col-span-2">
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-slate-700 dark:text-slate-200">Име</span>
+              <span className="text-slate-700 dark:text-slate-200">First name</span>
               <input className="rounded border border-slate-300 px-2 py-1 dark:border-slate-600" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-slate-700 dark:text-slate-200">Фамилия</span>
+              <span className="text-slate-700 dark:text-slate-200">Last name</span>
               <input className="rounded border border-slate-300 px-2 py-1 dark:border-slate-600" type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} />
             </label>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:col-span-2">
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-slate-700 dark:text-slate-200">Клас (8-12)</span>
+              <span className="text-slate-700 dark:text-slate-200">Grade (8-12)</span>
               <select className="rounded border border-slate-300 px-2 py-1 dark:border-slate-600" value={gradeLevel} onChange={(e) => setGradeLevel(e.target.value ? Number(e.target.value) : "") }>
                 <option value="">—</option>
                 {gradeLevels.map((g) => (
@@ -112,7 +112,7 @@ export default function UsersAdminPage() {
               </select>
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-slate-700 dark:text-slate-200">Паралелка</span>
+              <span className="text-slate-700 dark:text-slate-200">Class</span>
               <select className="rounded border border-slate-300 px-2 py-1 dark:border-slate-600" value={gradeClass} onChange={(e) => setGradeClass((e.target.value || "") as any)}>
                 <option value="">—</option>
                 {gradeClasses.map((c) => (
@@ -122,35 +122,35 @@ export default function UsersAdminPage() {
             </label>
           </div>
           <div className="sm:col-span-2">
-            <button disabled={creating} className="rounded bg-blue-600 px-3 py-1 text-sm font-medium text-white disabled:opacity-60">Създай</button>
+            <button disabled={creating} className="rounded bg-blue-600 px-3 py-1 text-sm font-medium text-white disabled:opacity-60">Create</button>
           </div>
         </form>
         {generatedPassword && (
           <div className="mt-4 rounded border border-green-300 bg-green-50 p-3 text-sm text-green-800 dark:border-green-700 dark:bg-green-900/30 dark:text-green-300">
-            <strong className="font-semibold">Генерирана парола:</strong> <code className="select-all">{generatedPassword}</code>
-            <p className="mt-1 text-xs opacity-80">Запишете тази парола – показва се само веднъж.</p>
+            <strong className="font-semibold">Generated password:</strong> <code className="select-all">{generatedPassword}</code>
+            <p className="mt-1 text-xs opacity-80">Save this password – it is shown only once.</p>
           </div>
         )}
       </section>
 
       <section className="space-y-4 rounded border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Списък потребители</h2>
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Users list</h2>
         {loading ? (
-          <p className="text-sm text-slate-500">Зареждане…</p>
+          <p className="text-sm text-slate-500">Loading…</p>
         ) : error ? (
-          <p className="text-sm text-red-600">Грешка: {error}</p>
+          <p className="text-sm text-red-600">Error: {error}</p>
         ) : users.length === 0 ? (
-          <p className="text-sm text-slate-500">Няма потребители.</p>
+          <p className="text-sm text-slate-500">No users.</p>
         ) : (
           <ul className="divide-y divide-slate-200 dark:divide-slate-700">
             {users.map((u) => (
               <li key={u.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">{u.name || "(без име)"}</div>
+                  <div className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">{u.name || "(no name)"}</div>
                   <div className="truncate text-xs text-slate-600 dark:text-slate-400">{u.email}</div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Link href={`/admin/users/${u.id}` as any} className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800">Редакция</Link>
+                  <Link href={`/admin/users/${u.id}` as any} className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800">Edit</Link>
                 </div>
               </li>
             ))}
