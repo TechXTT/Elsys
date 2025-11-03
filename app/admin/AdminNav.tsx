@@ -2,18 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 // Admin console is English-only and decoupled from site i18n
 
-const adminLinks = [
+type NavLink = { href: string; label: string; adminOnly?: boolean };
+const baseLinks: NavLink[] = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/news", label: "News" },
   { href: "/admin/pages", label: "Pages" },
-  { href: "/admin/admins", label: "Admins" },
-  { href: "/admin/users", label: "Users" },
-] as const;
+  { href: "/admin/settings", label: "Settings" },
+  { href: "/admin/admins", label: "Admins", adminOnly: true },
+  { href: "/admin/users", label: "Users", adminOnly: true },
+];
 
 export function AdminNav() {
   const pathname = usePathname() ?? "";
+  const { data } = useSession();
+  const isAdmin = (data?.user as any)?.role === "ADMIN";
+  const adminLinks = baseLinks.filter((l) => !l.adminOnly || isAdmin);
 
   return (
     <nav className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
