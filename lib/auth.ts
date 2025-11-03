@@ -20,13 +20,31 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials: Record<string, string> | undefined) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const user = await prisma.user.findUnique({ where: { email: credentials.email } });
-        if (!user || !user.password) return null;
+        const email = credentials.email.trim().toLowerCase();
+        const password = credentials.password;
 
-        const valid = await bcrypt.compare(credentials.password, user.password);
-        if (!valid) return null;
+        // Try existing user first
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (user?.password) {
+          const valid = await bcrypt.compare(password, user.password);
+          if (!valid) return null;
+          return { id: user.id, name: user.name ?? undefined, email: user.email ?? undefined, image: user.image ?? undefined };
+        }
 
-        return { id: user.id, name: user.name ?? undefined, email: user.email ?? undefined, image: user.image ?? undefined };
+        // Env bootstrap admin fallback: ensure admin exists if credentials match .env
+        const envAdminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+        const envAdminPass = process.env.ADMIN_PASSWORD;
+        if (envAdminEmail && envAdminPass && email === envAdminEmail && password === envAdminPass) {
+          const hash = await bcrypt.hash(envAdminPass, 10);
+          const admin = await prisma.user.upsert({
+            where: { email: envAdminEmail },
+            update: { password: hash, role: "ADMIN" } as any,
+            create: { email: envAdminEmail, password: hash, name: "Admin", role: "ADMIN" } as any,
+          });
+          return { id: admin.id, name: admin.name ?? undefined, email: admin.email ?? undefined, image: admin.image ?? undefined };
+        }
+
+        return null;
       },
     }),
   ],
