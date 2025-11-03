@@ -7,7 +7,7 @@ const Hero: React.FC<HeroProps> = ({ heading, subheading, image, cta }) => (
   <section className="relative mb-10 overflow-hidden rounded-xl bg-slate-900 text-white shadow-card">
     <div className="absolute inset-0 gradient-hero" aria-hidden="true" />
     <div className="absolute inset-0 hero-overlay" aria-hidden="true" />
-    <div className="absolute inset-0" aria-hidden="true" style={{
+    <div className="absolute inset-0 hero-pattern" aria-hidden="true" style={{
       backgroundImage: 'radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px)',
       backgroundSize: '18px 18px'
     }} />
