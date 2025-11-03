@@ -17,12 +17,18 @@ model User {
   image          String?
   // Credentials auth support
   password       String?
+  role           Role      @default(USER)
 
   accounts       Account[]
   sessions       Session[]
 
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+}
+
+enum Role {
+  USER
+  ADMIN
 }
 
 model Account {
