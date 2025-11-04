@@ -28,7 +28,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     const session = await getServerSession(authOptions);
     ensureAdmin(session);
     const body = (await req.json().catch(() => null)) as {
-      slug?: string; locale?: string; title?: string; excerpt?: string | null; bodyMarkdown?: string | null; published?: boolean;
+      slug?: string; locale?: string; title?: string; excerpt?: string | null; bodyMarkdown?: string | null; blocks?: unknown; published?: boolean;
     } | null;
     if (!body) return NextResponse.json({ error: "Missing body" }, { status: 400 });
     const data: any = {};
@@ -37,6 +37,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     if (body.title !== undefined) data.title = (body.title || "").trim();
     if (body.excerpt !== undefined) data.excerpt = body.excerpt ?? null;
     if (body.bodyMarkdown !== undefined) data.bodyMarkdown = body.bodyMarkdown ?? null;
+    if (body.blocks !== undefined) data.blocks = body.blocks as any;
     if (body.published !== undefined) data.published = !!body.published;
 
     const updated = await (prisma as any).page.update({ where: { id: params.id }, data, select: { id: true } });

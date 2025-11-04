@@ -30,6 +30,8 @@ export default function EditPage() {
   const [excerpt, setExcerpt] = useState("");
   const [body, setBody] = useState("");
   const [published, setPublished] = useState(true);
+  const [blocksText, setBlocksText] = useState<string>("");
+  const [blocksError, setBlocksError] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -45,6 +47,14 @@ export default function EditPage() {
       setExcerpt(p.excerpt ?? "");
       setBody(p.bodyMarkdown ?? "");
       setPublished(p.published);
+      // Load blocks JSON if present
+      try {
+        const full = await fetch(`/api/admin/pages/${id}`, { cache: "no-store" }).then(r => r.json());
+        const b = full?.page?.blocks;
+        setBlocksText(b ? JSON.stringify(b, null, 2) : "");
+      } catch {
+        // ignore blocks fetch error
+      }
     } catch (e: any) {
       setError(e.message || "Failed to load");
     } finally {
@@ -59,10 +69,22 @@ export default function EditPage() {
     setSaving(true);
     setError(null);
     try {
+      let blocks: unknown = undefined;
+      setBlocksError(null);
+      if (blocksText.trim()) {
+        try {
+          blocks = JSON.parse(blocksText);
+          if (!Array.isArray(blocks)) throw new Error("Blocks must be an array");
+        } catch (e: any) {
+          setBlocksError(e.message || "Invalid blocks JSON");
+          setSaving(false);
+          return;
+        }
+      }
       const res = await fetch(`/api/admin/pages/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, locale, title, excerpt, bodyMarkdown: body, published }),
+        body: JSON.stringify({ slug, locale, title, excerpt, bodyMarkdown: body, blocks, published }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Save failed");
@@ -128,6 +150,15 @@ export default function EditPage() {
             <label className="flex flex-col gap-1 text-sm sm:col-span-2">
               <span className="text-slate-700 dark:text-slate-200">Body (Markdown)</span>
               <textarea className="min-h-[240px] rounded border border-slate-300 px-2 py-1 font-mono dark:border-slate-600" value={body} onChange={(e) => setBody(e.target.value)} />
+            </label>
+            <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+              <span className="text-slate-700 dark:text-slate-200">Blocks (JSON array) — optional</span>
+              <textarea className="min-h-[160px] rounded border border-slate-300 px-2 py-1 font-mono dark:border-slate-600" value={blocksText} onChange={(e) => setBlocksText(e.target.value)} placeholder='[
+  { "type": "Hero", "props": { "heading": "Welcome" } },
+  { "type": "Markdown", "props": { "value": "**Hello**" } }
+]'
+              />
+              {blocksError && <span className="text-xs text-red-600">{blocksError}</span>}
             </label>
             <label className="flex items-center gap-2 text-sm sm:col-span-2">
               <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} />

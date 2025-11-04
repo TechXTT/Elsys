@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     ensureAdmin(session);
     const userId = (session!.user as any).id as string;
     const body = (await req.json().catch(() => null)) as {
-      slug: string; locale: string; title: string; excerpt?: string | null; bodyMarkdown?: string | null; published?: boolean;
+      slug: string; locale: string; title: string; excerpt?: string | null; bodyMarkdown?: string | null; blocks?: unknown; published?: boolean;
     } | null;
     if (!body) return NextResponse.json({ error: "Missing body" }, { status: 400 });
     const slug = (body.slug || "").trim().replace(/^\/+|\/+$/g, "");
@@ -55,6 +55,7 @@ export async function POST(req: Request) {
         title,
         excerpt: body.excerpt ?? null,
         bodyMarkdown: body.bodyMarkdown ?? null,
+        blocks: body.blocks as any,
         published: body.published ?? true,
         authorId: userId,
       },

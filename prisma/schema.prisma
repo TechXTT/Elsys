@@ -123,6 +123,7 @@ model Page {
   title        String
   excerpt      String?
   bodyMarkdown String?
+  blocks       Json?
   published    Boolean  @default(true)
 
   authorId     String?
