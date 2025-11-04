@@ -27,6 +27,7 @@ model User {
   sessions       Session[]
   auditLogs      AuditLog[]
   oneTimeSecrets OneTimeSecret[]
+  pages          Page[]
 
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -112,4 +113,24 @@ model OneTimeSecret {
   createdAt DateTime   @default(now())
 
   @@index([userId, type, createdAt])
+}
+
+/// Editable CMS pages managed via the admin console
+model Page {
+  id           String   @id @default(cuid())
+  slug         String   // e.g. "uchilishteto/some-page" or "home"
+  locale       String   // e.g. "bg" | "en"
+  title        String
+  excerpt      String?
+  bodyMarkdown String?
+  published    Boolean  @default(true)
+
+  authorId     String?
+  author       User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([slug, locale])
+  @@index([slug, locale])
 }
