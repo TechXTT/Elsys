@@ -19,7 +19,7 @@ export default async function SchoolDetail({ params }: { params: { locale: Local
         <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">{dbPage.title}</h1>
         {dbPage.excerpt && <p className="mt-2 text-slate-600 dark:text-slate-400">{dbPage.excerpt}</p>}
         {/* Render custom blocks if present */}
-        {Array.isArray(dbPage.blocks) ? renderBlocks(dbPage.blocks as any) : null}
+        {Array.isArray(dbPage.blocks) ? renderBlocks(dbPage.blocks as any, { locale }) : null}
         {dbPage.bodyMarkdown ? (
           <div className="prose prose-slate mt-6 max-w-none dark:prose-invert">
             <ReactMarkdown>{dbPage.bodyMarkdown}</ReactMarkdown>

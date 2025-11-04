@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
+import { renderBlocks } from "@/lib/cms";
 
 type PageDto = {
   id: string;
@@ -114,6 +115,16 @@ export default function EditPage() {
   }
 
   const preview = useMemo(() => body, [body]);
+  const blocksPreview = useMemo(() => {
+    if (!blocksText.trim()) return null;
+    try {
+      const parsed = JSON.parse(blocksText);
+      if (!Array.isArray(parsed)) return null;
+      return renderBlocks(parsed, { /* locale unknown in editor; show default */ });
+    } catch {
+      return null;
+    }
+  }, [blocksText]);
 
   return (
     <div className="space-y-6">
@@ -171,6 +182,7 @@ export default function EditPage() {
           </form>
           <div className="mt-6 border-t border-slate-200 pt-6 dark:border-slate-700">
             <h3 className="mb-2 text-sm font-semibold text-slate-900 dark:text-slate-100">Preview</h3>
+            {blocksPreview}
             <div className="prose prose-slate max-w-none dark:prose-invert">
               <ReactMarkdown>{preview}</ReactMarkdown>
             </div>
