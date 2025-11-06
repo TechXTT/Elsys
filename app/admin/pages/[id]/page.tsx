@@ -26,6 +26,8 @@ export default function EditPage() {
   const [deleting, setDeleting] = useState(false);
 
   const [slug, setSlug] = useState("");
+  const [useCustomSlug, setUseCustomSlug] = useState(false);
+  const [slugOptions, setSlugOptions] = useState<string[]>([]);
   const [locale, setLocale] = useState("bg");
   const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState("");
@@ -64,6 +66,16 @@ export default function EditPage() {
   }
 
   useEffect(() => { if (id) void load(); }, [id]);
+
+  // Load slug suggestions
+  useEffect(() => {
+    let aborted = false;
+    fetch("/api/admin/pages/slugs", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => { if (!aborted && Array.isArray(d?.slugs)) setSlugOptions(d.slugs); })
+      .catch(() => {});
+    return () => { aborted = true; };
+  }, []);
 
   async function onSave(e: React.FormEvent) {
     e.preventDefault();
@@ -141,7 +153,20 @@ export default function EditPage() {
           <form className="grid grid-cols-1 gap-3 sm:grid-cols-2" onSubmit={onSave}>
             <label className="flex flex-col gap-1 text-sm">
               <span className="text-slate-700 dark:text-slate-200">Slug</span>
-              <input required className="rounded border border-slate-300 px-2 py-1 dark:border-slate-600" type="text" value={slug} onChange={(e) => setSlug(e.target.value)} />
+              {useCustomSlug ? (
+                <input required className="rounded border border-slate-300 px-2 py-1 dark:border-slate-600" type="text" value={slug} onChange={(e) => setSlug(e.target.value)} />
+              ) : (
+                <select required className="rounded border border-slate-300 px-2 py-1 dark:border-slate-600" value={slug} onChange={(e) => setSlug(e.target.value)}>
+                  <option value="">Select a slug…</option>
+                  {slugOptions.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              )}
+              <label className="mt-1 flex items-center gap-2 text-xs">
+                <input type="checkbox" checked={useCustomSlug} onChange={(e) => setUseCustomSlug(e.target.checked)} />
+                <span className="text-slate-600 dark:text-slate-400">Use custom slug</span>
+              </label>
             </label>
             <label className="flex flex-col gap-1 text-sm">
               <span className="text-slate-700 dark:text-slate-200">Locale</span>

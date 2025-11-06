@@ -10,7 +10,10 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "prisma db seed",
-    "postinstall": "prisma generate --no-engine"
+    "postinstall": "prisma generate --no-engine",
+    "cms:migrate": "node scripts/migrate-content-to-cms.mjs",
+    "cms:list": "node scripts/list-cms-pages.mjs",
+    "cms:import-live": "node scripts/import-from-elsys-bg.mjs"
   },
   "dependencies": {
     "@next-auth/prisma-adapter": "^1.0.7",

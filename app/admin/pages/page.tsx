@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 type PageRow = { id: string; slug: string; locale: string; title: string; published: boolean; updatedAt: string };
@@ -8,12 +8,15 @@ type PageRow = { id: string; slug: string; locale: string; title: string; publis
 export default function PagesAdmin() {
   const [pages, setPages] = useState<PageRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetching, setFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [locale, setLocale] = useState<string>("");
   const [query, setQuery] = useState<string>("");
 
   const [creating, setCreating] = useState(false);
   const [slug, setSlug] = useState("");
+  const [useCustomSlug, setUseCustomSlug] = useState(false);
+  const [slugOptions, setSlugOptions] = useState<string[]>([]);
   const [newLocale, setNewLocale] = useState("bg");
   const [title, setTitle] = useState("");
 
@@ -35,7 +38,41 @@ export default function PagesAdmin() {
     }
   }
 
-  useEffect(() => { void load(); }, [locale, query]);
+  // Debounce search to avoid flashing on each keystroke
+  const debouncedQuery = useDebouncedValue(query, 300);
+  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    async function refetch() {
+      setFetching(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams();
+        if (locale) params.set("locale", locale);
+        if (debouncedQuery) params.set("q", debouncedQuery);
+        const res = await fetch(`/api/admin/pages?${params.toString()}`, { cache: "no-store" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Load failed");
+        setPages(data.pages as PageRow[]);
+      } catch (e: any) {
+        setError(e.message || "Failed to load pages");
+      } finally {
+        setFetching(false);
+      }
+    }
+    void refetch();
+  }, [locale, debouncedQuery]);
+
+  // Load slug suggestions once
+  useEffect(() => {
+    let aborted = false;
+    fetch("/api/admin/pages/slugs", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => {
+        if (!aborted && Array.isArray(d?.slugs)) setSlugOptions(d.slugs);
+      })
+      .catch(() => {});
+    return () => { aborted = true; };
+  }, []);
 
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -81,6 +118,7 @@ export default function PagesAdmin() {
             <span className="text-slate-700 dark:text-slate-200">Search</span>
             <input className="rounded border border-slate-300 px-2 py-1 dark:border-slate-600" type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Title or slug" />
           </label>
+          {fetching && <span className="text-xs text-slate-500">Searching…</span>}
         </div>
         <div className="mt-4 overflow-hidden rounded border border-slate-200 dark:border-slate-700">
           {loading ? (
@@ -125,7 +163,20 @@ export default function PagesAdmin() {
         <form className="grid grid-cols-1 gap-3 sm:grid-cols-3" onSubmit={onCreate}>
           <label className="flex flex-col gap-1 text-sm sm:col-span-2">
             <span className="text-slate-700 dark:text-slate-200">Slug</span>
-            <input required className="rounded border border-slate-300 px-2 py-1 dark:border-slate-600" type="text" value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="e.g. uchilishteto/some-page or home" />
+            {useCustomSlug ? (
+              <input required className="rounded border border-slate-300 px-2 py-1 dark:border-slate-600" type="text" value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="e.g. uchilishteto/some-page or home" />
+            ) : (
+              <select required className="rounded border border-slate-300 px-2 py-1 dark:border-slate-600" value={slug} onChange={(e) => setSlug(e.target.value)}>
+                <option value="">Select a slug…</option>
+                {slugOptions.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            )}
+            <label className="mt-1 flex items-center gap-2 text-xs">
+              <input type="checkbox" checked={useCustomSlug} onChange={(e) => setUseCustomSlug(e.target.checked)} />
+              <span className="text-slate-600 dark:text-slate-400">Use custom slug</span>
+            </label>
           </label>
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-slate-700 dark:text-slate-200">Locale</span>
@@ -146,4 +197,13 @@ export default function PagesAdmin() {
       </section>
     </div>
   );
+}
+
+function useDebouncedValue<T>(value: T, delay = 300) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debounced as T;
 }
