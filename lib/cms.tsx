@@ -4,7 +4,7 @@ import Hero from "@/components/Hero";
 import { Section } from "@/components/Section";
 import { NewsCard } from "@/components/news-card";
 import type { Locale } from "@/i18n/config";
-import { loadNewsJson } from "@/lib/content";
+import type { PostItem } from "@/lib/types";
 
 type Block = {
   type: string;
@@ -15,7 +15,10 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return !!v && typeof v === "object" && !Array.isArray(v);
 }
 
-export function renderBlocks(blocks: unknown, ctx?: { locale?: Locale }): React.ReactNode {
+export function renderBlocks(
+  blocks: unknown,
+  ctx?: { locale?: Locale; news?: PostItem[] }
+): React.ReactNode {
   if (!Array.isArray(blocks)) return null;
   return blocks.map((b, idx) => {
     if (!isRecord(b) || typeof b.type !== "string") return null;
@@ -44,13 +47,17 @@ export function renderBlocks(blocks: unknown, ctx?: { locale?: Locale }): React.
       case "NewsList": {
         const p = props as any;
         const locale = (ctx?.locale as Locale) ?? "bg";
-        const items = loadNewsJson(locale).slice(0, Math.max(1, Math.min(24, Number(p?.limit) || 6)));
+        const items = Array.isArray(ctx?.news) ? ctx!.news : [];
+        const limited = items.slice(0, Math.max(1, Math.min(24, Number(p?.limit) || 6)));
         return (
           <Section key={idx} title={p?.title ?? "News"} description={p?.description}>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-              {items.map((post) => (
+              {limited.map((post) => (
                 <NewsCard key={post.id ?? post.href} post={post} locale={locale} />
               ))}
+              {limited.length === 0 ? (
+                <p className="text-sm text-slate-500">No news available in this context.</p>
+              ) : null}
             </div>
           </Section>
         );
