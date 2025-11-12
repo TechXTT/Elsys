@@ -1,15 +1,17 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
-import { loadNewsJson } from "@/lib/content";
+import { defaultLocale, type Locale } from "@/i18n/config";
 import type { PostItem } from "@/lib/types";
-import { NewsManager } from "./news-manager";
+import { getNewsPosts } from "@/lib/news";
+import { NewsAdminShell } from "./NewsAdminShell";
 
-export default async function AdminNewsPage() {
+export default async function AdminNewsPage({ searchParams }: { searchParams?: { locale?: Locale } }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/admin/login");
 
-  const posts = loadNewsJson();
+  const selectedLocale = (searchParams?.locale === "bg" || searchParams?.locale === "en") ? (searchParams!.locale as Locale) : defaultLocale;
+  const posts = await getNewsPosts(selectedLocale, true);
 
   return (
     <div className="space-y-8">
@@ -21,7 +23,7 @@ export default async function AdminNewsPage() {
           The live preview updates in real time.
         </p>
       </header>
-      <NewsManager initialPosts={posts as PostItem[]} />
+      <NewsAdminShell initialPosts={posts as PostItem[]} initialLocale={selectedLocale} />
     </div>
   );
 }

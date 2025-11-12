@@ -29,7 +29,9 @@ interface SelectedImage {
 }
 
 interface Props {
-  initialPosts: PostItem[];
+  posts: PostItem[];
+  currentLocale: string;
+  onLocaleChange?: (locale: string) => void;
 }
 
 function slugify(input: string): string {
@@ -161,21 +163,81 @@ function createPreviewMarkdownComponents(images: SelectedImage[]): Components {
   };
 }
 
-export function NewsManager({ initialPosts }: Props) {
+export function NewsManager({ posts: incomingPosts, currentLocale = "bg", onLocaleChange }: Props) {
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
   const [excerpt, setExcerpt] = useState("");
   const [markdown, setMarkdown] = useState("");
   const [date, setDate] = useState(() => getTodayInputValue());
+  const [locale, setLocale] = useState(currentLocale);
+  const [published, setPublished] = useState(false);
   const [status, setStatus] = useState<Status>({ type: "idle" });
-  const [posts, setPosts] = useState<PostItem[]>(initialPosts ?? []);
+  const [posts, setPosts] = useState<PostItem[]>(incomingPosts ?? []);
   const [images, setImages] = useState<SelectedImage[]>([]);
   const [featuredImage, setFeaturedImage] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isPrefilling, setIsPrefilling] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const imagesRef = useRef<SelectedImage[]>([]);
+  const prevLocaleRef = useRef<string>(currentLocale);
+
+  type Draft = {
+    title: string;
+    slug: string;
+    slugTouched: boolean;
+    excerpt: string;
+    markdown: string;
+    date: string;
+    published: boolean;
+    images: SelectedImage[];
+    featuredImage: string | null;
+  };
+  const [draftByLocale, setDraftByLocale] = useState<Record<string, Draft>>({
+    [currentLocale]: {
+      title: "",
+      slug: "",
+      slugTouched: false,
+      excerpt: "",
+      markdown: "",
+      date: getTodayInputValue(),
+      published: false,
+      images: [],
+      featuredImage: null,
+    },
+  });
+
+  function cacheCurrentDraft(loc: string) {
+    setDraftByLocale((prev) => ({
+      ...prev,
+      [loc]: {
+        title,
+        slug,
+        slugTouched,
+        excerpt,
+        markdown,
+        date,
+        published,
+        images,
+        featuredImage,
+      },
+    }));
+  }
+
+  function loadDraft(loc: string) {
+    const draft = draftByLocale[loc];
+    if (!draft) return false;
+    setTitle(draft.title);
+    setSlug(draft.slug);
+    setSlugTouched(draft.slugTouched);
+    setExcerpt(draft.excerpt);
+    setMarkdown(draft.markdown);
+    setDate(draft.date);
+    setPublished(draft.published);
+    setImages(draft.images);
+    setFeaturedImage(draft.featuredImage);
+    return true;
+  }
 
   const isSubmitDisabled = useMemo(
     () => title.trim().length === 0 || slug.trim().length === 0 || markdown.trim().length === 0,
@@ -209,11 +271,13 @@ export function NewsManager({ initialPosts }: Props) {
     if (!slugTouched) {
       setSlug(slugify(next));
     }
+    cacheCurrentDraft(locale);
   }
 
   function handleSlugChange(next: string) {
     setSlug(slugify(next));
     setSlugTouched(true);
+    cacheCurrentDraft(locale);
   }
 
   function generateImageName(original: string, used: Set<string>) {
@@ -242,6 +306,24 @@ export function NewsManager({ initialPosts }: Props) {
         const name = generateImageName(file.name, used);
         next.push({ file, preview, name, size: "full", origin: "new" });
       });
+      // update cache with next images
+      setDraftByLocale((p) => ({
+        ...p,
+        [locale]: {
+          ...(p[locale] ?? {
+            title: "",
+            slug: "",
+            slugTouched: false,
+            excerpt: "",
+            markdown: "",
+            date: getTodayInputValue(),
+            published: false,
+            images: [],
+            featuredImage: null,
+          }),
+          images: next,
+        },
+      }));
       return next;
     });
 
@@ -263,9 +345,24 @@ export function NewsManager({ initialPosts }: Props) {
     setExcerpt("");
     setMarkdown("");
     setDate(getTodayInputValue());
+    setPublished(false);
     setImages([]);
     setEditingId(null);
     setFeaturedImage(null);
+    setDraftByLocale((prev) => ({
+      ...prev,
+      [locale]: {
+        title: "",
+        slug: "",
+        slugTouched: false,
+        excerpt: "",
+        markdown: "",
+        date: getTodayInputValue(),
+        published: false,
+        images: [],
+        featuredImage: null,
+      },
+    }));
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -276,8 +373,8 @@ export function NewsManager({ initialPosts }: Props) {
     setStatus({ type: "idle" });
 
     try {
-      const response = await fetch(`/api/admin/news/${id}`);
-      const payload = (await response.json().catch(() => null)) as { post?: PostItem; markdown?: string; error?: string } | null;
+      const response = await fetch(`/api/admin/news/${id}?locale=${encodeURIComponent(locale)}`);
+      const payload = (await response.json().catch(() => null)) as { post?: PostItem; markdown?: string; published?: boolean; error?: string } | null;
 
       if (!response.ok || !payload?.post) {
         setStatus({ type: "error", message: payload?.error ?? "Failed to load the post" });
@@ -293,6 +390,7 @@ export function NewsManager({ initialPosts }: Props) {
       setExcerpt(post.excerpt ?? "");
       setMarkdown(payload.markdown ?? "");
       setDate(post.date ? post.date.slice(0, 10) : getTodayInputValue());
+      setPublished(payload.published !== false);
       const nextImages = (post.images ?? []).map<SelectedImage>((img) => ({
         file: null,
         preview: img.url,
@@ -344,6 +442,7 @@ export function NewsManager({ initialPosts }: Props) {
 
   function handleImageSizeChange(name: string, size: ImageSize) {
     setImages((prev) => prev.map((img) => (img.name === name ? { ...img, size } : img)));
+    cacheCurrentDraft(locale);
   }
 
   useEffect(() => {
@@ -351,6 +450,69 @@ export function NewsManager({ initialPosts }: Props) {
       cleanupNewPreviews(imagesRef.current);
     };
   }, []);
+
+  // Keep list in sync with outer shell
+  useEffect(() => {
+    setPosts(incomingPosts ?? []);
+  }, [incomingPosts]);
+
+  // When outer locale changes, update form locale and, if editing, load the same slug in the new locale
+  useEffect(() => {
+    if (!currentLocale || currentLocale === locale) return;
+    // cache current locale draft when switching
+    cacheCurrentDraft(locale);
+    setLocale(currentLocale);
+    if (editingId) {
+      // Refill fields with the other locale's content of the same slug
+      (async () => {
+        setIsPrefilling(true);
+        try {
+          const response = await fetch(`/api/admin/news/${editingId}?locale=${encodeURIComponent(currentLocale)}`);
+          const payload = (await response.json().catch(() => null)) as { post?: PostItem; markdown?: string; published?: boolean; error?: string } | null;
+          if (response.ok && payload?.post) {
+            const post = payload.post;
+            setTitle(post.title ?? "");
+            setSlug(post.id ?? editingId);
+            setSlugTouched(true);
+            setExcerpt(post.excerpt ?? "");
+            setMarkdown(payload.markdown ?? "");
+            setDate(post.date ? post.date.slice(0, 10) : getTodayInputValue());
+            setPublished(payload.published !== false);
+            const nextImages = (post.images ?? []).map<SelectedImage>((img) => ({
+              file: null,
+              preview: img.url,
+              name: img.name,
+              size: img.size ?? "full",
+              origin: "existing",
+              url: img.url,
+            }));
+            setImages(nextImages);
+            const featuredByUrl = post.image ? (nextImages.find((img) => img.url === post.image) ?? null) : null;
+            const nextFeatured = featuredByUrl?.name ?? nextImages[0]?.name ?? null;
+            setFeaturedImage(nextFeatured);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+          }
+        } finally {
+          setIsPrefilling(false);
+        }
+      })();
+    } else {
+      // New post: load cached draft for the new locale or clear
+      const loaded = loadDraft(currentLocale);
+      if (!loaded) {
+        setTitle("");
+        setSlug("");
+        setSlugTouched(false);
+        setExcerpt("");
+        setMarkdown("");
+        setDate(getTodayInputValue());
+        setPublished(false);
+        setImages([]);
+        setFeaturedImage(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    }
+  }, [currentLocale]);
 
   function handleRemoveImage(name: string) {
     const removingFeatured = featuredImage === name;
@@ -371,6 +533,7 @@ export function NewsManager({ initialPosts }: Props) {
     if (removingFeatured) {
       setFeaturedImage(null);
     }
+    cacheCurrentDraft(locale);
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -386,6 +549,8 @@ export function NewsManager({ initialPosts }: Props) {
       formData.append("excerpt", excerpt);
       formData.append("markdown", markdown);
       formData.append("date", date);
+      formData.append("locale", locale);
+      formData.append("published", String(published));
       const imageMeta = images.map((img) => ({
         name: img.name,
         size: img.size,
@@ -435,6 +600,21 @@ export function NewsManager({ initialPosts }: Props) {
 
       cleanupNewPreviews(imagesRef.current);
       resetForm();
+      // clear draft cache for current locale after successful save
+      setDraftByLocale((prev) => ({
+        ...prev,
+        [locale]: {
+          title: "",
+          slug: "",
+          slugTouched: false,
+          excerpt: "",
+          markdown: "",
+          date: getTodayInputValue(),
+          published: false,
+          images: [],
+          featuredImage: null,
+        },
+      }));
       setStatus({ type: "success", message: isEditing ? "Post updated successfully" : "Post created successfully" });
     } catch (error) {
       console.error("News create client error", error);
@@ -484,6 +664,18 @@ export function NewsManager({ initialPosts }: Props) {
               required
               className="w-full rounded border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
             />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Status</label>
+            <select
+              value={published ? "published" : "draft"}
+              onChange={(e) => setPublished(e.target.value === "published")}
+              className="w-full rounded border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
+            >
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+            </select>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">New posts start as drafts by default.</p>
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Slug *</label>
@@ -605,6 +797,62 @@ export function NewsManager({ initialPosts }: Props) {
                 Cancel
               </button>
             )}
+            <button
+              type="button"
+              disabled={published || status.type === "loading" || isPrefilling}
+              onClick={async () => {
+                if (published) return; // safety guard
+                const target = locale === "bg" ? "en" : "bg";
+                setStatus({ type: "loading" });
+                try {
+                  const res = await fetch("/api/admin/news/translate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      sourceLocale: locale,
+                      targetLocale: target,
+                      title,
+                      excerpt,
+                      markdown,
+                    }),
+                  });
+                  const payload = (await res.json().catch(() => null)) as { title?: string; excerpt?: string; markdown?: string; error?: string } | null;
+                  if (!res.ok || !payload) {
+                    setStatus({ type: "error", message: payload?.error ?? "Translate failed" });
+                    return;
+                  }
+                  const nextTitle = payload.title ?? title;
+                  const nextExcerpt = payload.excerpt !== undefined ? payload.excerpt : excerpt;
+                  const nextMarkdown = payload.markdown ?? markdown;
+                  // Prepare target-locale draft with translated fields
+                  setDraftByLocale((prev) => ({
+                    ...prev,
+                    [target]: {
+                      title: nextTitle,
+                      slug, // keep same slug as base; can be edited after
+                      slugTouched,
+                      excerpt: nextExcerpt,
+                      markdown: nextMarkdown,
+                      date,
+                      published: false,
+                      images,
+                      featuredImage,
+                    },
+                  }));
+                  // Exit editing if translating an existing post; this starts a new draft in target locale
+                  if (editingId) setEditingId(null);
+                  // Trigger global locale switch so list and toolbar update; form will load cached translated draft
+                  if (onLocaleChange) onLocaleChange(target);
+                  setStatus({ type: "success", message: `Translated to ${target.toUpperCase()} (set as draft)` });
+                } catch (e) {
+                  setStatus({ type: "error", message: "Translate error" });
+                }
+              }}
+              title={published ? "Switch status to Draft to enable auto-translate" : undefined}
+              className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              Auto-translate to {locale === "bg" ? "EN" : "BG"}
+            </button>
             {status.type === "error" && <span className="text-sm text-red-600">{status.message}</span>}
             {status.type === "success" && <span className="text-sm text-green-600">{status.message}</span>}
           </div>
@@ -655,7 +903,14 @@ export function NewsManager({ initialPosts }: Props) {
                 >
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between gap-2">
-                      <strong className="text-sm text-slate-900 dark:text-slate-100">{post.title}</strong>
+                      <div className="flex items-center gap-2">
+                        <strong className="text-sm text-slate-900 dark:text-slate-100">{post.title}</strong>
+                        {post.published === false && (
+                          <span className="rounded bg-amber-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+                            Draft
+                          </span>
+                        )}
+                      </div>
                       {post.date && <span className="text-xs text-slate-500 dark:text-slate-400">{formatDateLabel(post.date)}</span>}
                     </div>
                     {Array.isArray(post.images) && post.images.length > 0 && (
@@ -665,7 +920,7 @@ export function NewsManager({ initialPosts }: Props) {
                     )}
                     {post.excerpt && <p className="text-xs text-slate-600 dark:text-slate-400">{post.excerpt}</p>}
                     <div className="flex flex-wrap items-center gap-2">
-                      <Link href={`/en/novini/${post.id}`} className="text-xs font-medium text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
+                      <Link href={`/${locale}/novini/${post.id}`} className="text-xs font-medium text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
                         View on site
                       </Link>
                       <button
@@ -676,6 +931,32 @@ export function NewsManager({ initialPosts }: Props) {
                       >
                         Edit
                       </button>
+                      {isActive && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!editingId) return;
+                            if (!confirm("Delete this post? This cannot be undone.")) return;
+                            setStatus({ type: "loading" });
+                            try {
+                              const res = await fetch(`/api/admin/news/${editingId}?locale=${locale}`, { method: "DELETE" });
+                              if (!res.ok) {
+                                const p = await res.json().catch(() => null);
+                                setStatus({ type: "error", message: p?.error ?? "Delete failed" });
+                              } else {
+                                setPosts((prev) => prev.filter((p) => p.id !== editingId));
+                                resetForm();
+                                setStatus({ type: "success", message: "Post deleted" });
+                              }
+                            } catch (e) {
+                              setStatus({ type: "error", message: "Error during delete" });
+                            }
+                          }}
+                          className="rounded border border-red-500 px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:border-red-400 dark:text-red-300 dark:hover:bg-red-900/30"
+                        >
+                          Delete
+                        </button>
+                      )}
                       {isActive && <span className="text-[11px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-300">Editing</span>}
                     </div>
                   </div>

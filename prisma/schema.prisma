@@ -28,6 +28,7 @@ model User {
   auditLogs      AuditLog[]
   oneTimeSecrets OneTimeSecret[]
   pages          Page[]
+  newsPosts      NewsPost[]
 
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -134,4 +135,33 @@ model Page {
 
   @@unique([slug, locale])
   @@index([slug, locale])
+}
+
+/// News posts previously stored in filesystem (JSON + Markdown)
+model NewsPost {
+  /// Slug used in URLs (e.g. "my-article"). Kept as `id` for backward compatibility with PostItem.
+  id            String
+  /// Locale of the post (e.g. "bg" | "en"). Defaults to project default at write time.
+  locale        String
+  title         String
+  excerpt       String?
+  /// Markdown body content
+  bodyMarkdown  String
+  /// Publish date
+  date          DateTime
+  /// Array of images: [{ name, url, size }]
+  images        Json?
+  /// Featured image URL (card cover)
+  featuredImage String?
+  /// Published status (draft=false)
+  published     Boolean  @default(true)
+
+  authorId      String?
+  author        User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@id([id, locale])
+  @@index([date])
 }

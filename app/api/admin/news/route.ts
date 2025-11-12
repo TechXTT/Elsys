@@ -1,15 +1,45 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import path from "path";
-import fs from "fs/promises";
 import { put } from "@vercel/blob";
+import path from "path";
 import { authOptions } from "@/lib/auth";
-import { getNewsFilePath, getNewsMarkdownPath, loadNewsJson } from "@/lib/content";
+import { defaultLocale } from "@/i18n/config";
+import { createNewsPost as dbCreateNewsPost, existsNewsSlug as dbExistsNewsSlug, getNewsPosts } from "@/lib/news";
 import { recordAudit } from "@/lib/audit";
 import type { PostItem } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export async function GET(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    try {
+      await recordAudit({ req, action: "newsPost.list.denied", entity: "newsPost" });
+    } catch {}
+    return NextResponse.json({ error: "Неоторизиран достъп" }, { status: 401 });
+  }
+
+  const url = new URL(req.url);
+  const localeParam = url.searchParams.get("locale");
+  const locale = localeParam === "bg" || localeParam === "en" ? localeParam : defaultLocale;
+  // Always include drafts for admin listing
+  let posts: any[] = [];
+  try {
+    posts = await getNewsPosts(locale, true);
+  } catch (error) {
+    console.error("News list fetch error", error);
+    try {
+      await recordAudit({ req, userId: (session.user as any)?.id as string | undefined, action: "newsPost.list.error", entity: "newsPost", details: { locale } });
+    } catch {}
+    return NextResponse.json({ error: "Грешка при зареждане" }, { status: 500 });
+  }
+
+  try {
+    await recordAudit({ req, userId: (session.user as any)?.id as string | undefined, action: "newsPost.list", entity: "newsPost", details: { locale, count: posts.length } });
+  } catch {}
+
+  return NextResponse.json({ posts });
+}
 
 type ImageSize = NonNullable<PostItem["images"]>[number]["size"];
 type ImageOrigin = "new" | "existing";
@@ -52,8 +82,8 @@ export async function POST(req: Request) {
     try {
       await recordAudit({
         req,
-        action: "news.create.denied",
-        entity: "news",
+        action: "newsPost.create.denied",
+        entity: "newsPost",
       });
     } catch {}
     return NextResponse.json({ error: "Неоторизиран достъп" }, { status: 401 });
@@ -68,8 +98,8 @@ export async function POST(req: Request) {
       await recordAudit({
         req,
         userId: (session.user as any)?.id as string | undefined,
-        action: "news.create.payload.error",
-        entity: "news",
+        action: "newsPost.create.payload.error",
+        entity: "newsPost",
       });
     } catch {}
     return NextResponse.json({ error: "Невалидно тяло на заявката" }, { status: 400 });
@@ -82,6 +112,8 @@ export async function POST(req: Request) {
   const dateValue = form.get("date");
   const imagesMetaValue = form.get("imageMeta");
   const featuredImageValue = form.get("featuredImage");
+  const publishedValue = form.get("published");
+  const localeValue = form.get("locale");
   const imageEntries = form.getAll("images");
 
   const normalizedTitle = typeof titleValue === "string" ? titleValue.trim() : "";
@@ -92,38 +124,40 @@ export async function POST(req: Request) {
 
   if (!normalizedTitle) {
     try {
-      await recordAudit({ req, userId: (session.user as any)?.id as string | undefined, action: "news.create.validation.title", entity: "news" });
+      await recordAudit({ req, userId: (session.user as any)?.id as string | undefined, action: "newsPost.create.validation.title", entity: "newsPost" });
     } catch {}
     return NextResponse.json({ error: "Заглавието е задължително" }, { status: 400 });
   }
 
   if (!normalizedSlug) {
     try {
-      await recordAudit({ req, userId: (session.user as any)?.id as string | undefined, action: "news.create.validation.slug", entity: "news" });
+      await recordAudit({ req, userId: (session.user as any)?.id as string | undefined, action: "newsPost.create.validation.slug", entity: "newsPost" });
     } catch {}
     return NextResponse.json({ error: "Слагът е задължителен" }, { status: 400 });
   }
 
   if (markdown.length === 0) {
     try {
-      await recordAudit({ req, userId: (session.user as any)?.id as string | undefined, action: "news.create.validation.markdown", entity: "news" });
+      await recordAudit({ req, userId: (session.user as any)?.id as string | undefined, action: "newsPost.create.validation.markdown", entity: "newsPost" });
     } catch {}
     return NextResponse.json({ error: "Markdown съдържанието е задължително" }, { status: 400 });
   }
 
   const when = typeof dateValue === "string" && dateValue.length > 0 ? new Date(dateValue) : new Date();
   const safeDate = Number.isNaN(when.getTime()) ? new Date() : when;
+  const locale = (typeof localeValue === "string" && (localeValue === "bg" || localeValue === "en")) ? (localeValue as "bg" | "en") : defaultLocale;
+  const published = publishedValue === "false" ? false : true;
 
-  const existing = loadNewsJson();
-  const duplicate = existing.find((item) => item.id === normalizedSlug || item.href.endsWith(`/${normalizedSlug}`));
+  const duplicate = await dbExistsNewsSlug(normalizedSlug, defaultLocale);
   if (duplicate) {
     try {
       await recordAudit({
         req,
         userId: (session.user as any)?.id as string | undefined,
-        action: "news.create.duplicate",
-        entity: "news",
+        action: "newsPost.create.duplicate",
+        entity: "newsPost",
         entityId: normalizedSlug,
+        details: { locale },
       });
     } catch {}
     return NextResponse.json({ error: "Новина с такъв слаг вече съществува" }, { status: 409 });
@@ -150,9 +184,10 @@ export async function POST(req: Request) {
         await recordAudit({
           req,
           userId: (session.user as any)?.id as string | undefined,
-          action: "news.create.meta.error",
-          entity: "news",
+          action: "newsPost.create.meta.error",
+          entity: "newsPost",
           entityId: normalizedSlug,
+          details: { locale },
         });
       } catch {}
       return NextResponse.json({ error: "Невалидни данни за изображения" }, { status: 400 });
@@ -166,10 +201,10 @@ export async function POST(req: Request) {
       await recordAudit({
         req,
         userId: (session.user as any)?.id as string | undefined,
-        action: "news.create.featured.invalid",
-        entity: "news",
+        action: "newsPost.create.featured.invalid",
+        entity: "newsPost",
         entityId: normalizedSlug,
-        details: { requestedFeaturedName },
+        details: { requestedFeaturedName, locale },
       });
     } catch {}
     return NextResponse.json({ error: "Невалидно основно изображение" }, { status: 400 });
@@ -202,10 +237,10 @@ export async function POST(req: Request) {
           await recordAudit({
             req,
             userId: (session.user as any)?.id as string | undefined,
-            action: "news.create.imageUpload.error",
-            entity: "news",
+            action: "newsPost.create.imageUpload.error",
+            entity: "newsPost",
             entityId: normalizedSlug,
-            details: { blobPath },
+            details: { blobPath, locale },
           });
         } catch {}
         return NextResponse.json({ error: "Качването на изображение се провали" }, { status: 500 });
@@ -223,35 +258,30 @@ export async function POST(req: Request) {
     ? finalImagesMeta.find((img) => img.name === requestedFeaturedName) ?? null
     : null;
 
-  const newPost: PostItem = {
-    id: normalizedSlug,
-    title: normalizedTitle,
-    excerpt: trimmedExcerpt,
-    href: `/novini/${normalizedSlug}`,
-    date: safeDate.toISOString(),
-    image: featuredImage?.url ?? finalImagesMeta[0]?.url,
-    images: finalImagesMeta,
-  };
-
-  const nextPosts = [newPost, ...existing];
-
+  let newPost: PostItem;
   try {
-    const targetPath = getNewsFilePath();
-    await fs.mkdir(path.dirname(targetPath), { recursive: true });
-    await fs.writeFile(targetPath, `${JSON.stringify(nextPosts, null, 2)}\n`, { encoding: "utf8" });
-
-    const markdownPath = getNewsMarkdownPath(normalizedSlug);
-    await fs.mkdir(path.dirname(markdownPath), { recursive: true });
-    await fs.writeFile(markdownPath, `${markdown}\n`, { encoding: "utf8" });
+    newPost = await dbCreateNewsPost({
+      slug: normalizedSlug,
+      locale,
+      title: normalizedTitle,
+      excerpt: trimmedExcerpt,
+      markdown,
+      date: safeDate,
+      images: finalImagesMeta,
+      featuredImage: featuredImage?.url ?? finalImagesMeta[0]?.url ?? null,
+      authorId: (session.user as any)?.id as string | undefined,
+      published,
+    });
   } catch (error) {
-    console.error("News create write error", error);
+    console.error("News create DB error", error);
     try {
       await recordAudit({
         req,
         userId: (session.user as any)?.id as string | undefined,
-        action: "news.create.write.error",
-        entity: "news",
+        action: "newsPost.create.write.error",
+        entity: "newsPost",
         entityId: normalizedSlug,
+        details: { locale },
       });
     } catch {}
     return NextResponse.json({ error: "Неуспешно записване" }, { status: 500 });
@@ -261,10 +291,10 @@ export async function POST(req: Request) {
     await recordAudit({
       req,
       userId: (session.user as any)?.id as string | undefined,
-      action: "news.create",
-      entity: "news",
+      action: "newsPost.create",
+      entity: "newsPost",
       entityId: normalizedSlug,
-      details: { title: normalizedTitle, images: finalImagesMeta.length },
+      details: { title: normalizedTitle, images: finalImagesMeta.length, locale, published },
     });
   } catch {}
 

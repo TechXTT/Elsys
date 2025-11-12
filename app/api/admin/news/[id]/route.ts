@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import fs from "fs/promises";
-import path from "path";
 import { put } from "@vercel/blob";
 import { authOptions } from "@/lib/auth";
-import { getNewsFilePath, getNewsMarkdownPath, loadNewsJson, loadNewsMarkdown } from "@/lib/content";
+import { defaultLocale } from "@/i18n/config";
+import { getNewsPost as dbGetNewsPost, updateNewsPost as dbUpdateNewsPost } from "@/lib/news";
+import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/audit";
 import type { PostItem } from "@/lib/types";
 
@@ -55,38 +55,42 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const session = await getServerSession(authOptions);
   if (!session) {
     try {
-      await recordAudit({ req: request, action: "news.open.denied", entity: "news", entityId: params.id });
+      await recordAudit({ req: request, action: "newsPost.open.denied", entity: "newsPost", entityId: params.id });
     } catch {}
     return NextResponse.json({ error: "Неоторизиран достъп" }, { status: 401 });
   }
 
-  const posts = loadNewsJson();
-  const post = posts.find((item) => item.id === params.id);
-  if (!post) {
+  const url = new URL(request.url);
+  const localeParam = url.searchParams.get("locale");
+  const locale = localeParam === "bg" || localeParam === "en" ? localeParam : defaultLocale;
+
+  const db = await dbGetNewsPost(params.id, locale, true);
+  if (!db) {
     try {
-      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.open.notfound", entity: "news", entityId: params.id });
+      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "newsPost.open.notfound", entity: "newsPost", entityId: params.id, details: { locale } });
     } catch {}
     return NextResponse.json({ error: "Публикацията не е намерена" }, { status: 404 });
   }
 
-  const markdown = loadNewsMarkdown(post.id) ?? "";
+  const { post, markdown, published } = db;
   try {
     await recordAudit({
       req: request,
       userId: (session.user as any)?.id as string | undefined,
-      action: "news.open",
-      entity: "news",
+      action: "newsPost.open",
+      entity: "newsPost",
       entityId: post.id,
+      details: { locale },
     });
   } catch {}
-  return NextResponse.json({ post, markdown });
+  return NextResponse.json({ post, markdown, published });
 }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) {
     try {
-      await recordAudit({ req: request, action: "news.update.denied", entity: "news", entityId: params.id });
+      await recordAudit({ req: request, action: "newsPost.update.denied", entity: "newsPost", entityId: params.id });
     } catch {}
     return NextResponse.json({ error: "Неоторизиран достъп" }, { status: 401 });
   }
@@ -97,7 +101,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   } catch (error) {
     console.error("News update payload error", error);
     try {
-      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.update.payload.error", entity: "news", entityId: params.id });
+      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "newsPost.update.payload.error", entity: "newsPost", entityId: params.id });
     } catch {}
     return NextResponse.json({ error: "Невалидно тяло на заявката" }, { status: 400 });
   }
@@ -109,6 +113,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   const dateValue = form.get("date");
   const imageMetaValue = form.get("imageMeta");
   const featuredImageValue = form.get("featuredImage");
+  const publishedValue = form.get("published");
+  const localeValue = form.get("locale");
   const imageEntries = form.getAll("images");
 
   const normalizedTitle = typeof titleValue === "string" ? titleValue.trim() : "";
@@ -119,38 +125,38 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
   if (!normalizedTitle) {
     try {
-      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.update.validation.title", entity: "news", entityId: params.id });
+      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "newsPost.update.validation.title", entity: "newsPost", entityId: params.id });
     } catch {}
     return NextResponse.json({ error: "Заглавието е задължително" }, { status: 400 });
   }
 
   if (!normalizedSlug) {
     try {
-      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.update.validation.slug", entity: "news", entityId: params.id });
+      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "newsPost.update.validation.slug", entity: "newsPost", entityId: params.id });
     } catch {}
     return NextResponse.json({ error: "Слагът е задължителен" }, { status: 400 });
   }
 
   if (markdown.length === 0) {
     try {
-      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.update.validation.markdown", entity: "news", entityId: params.id });
+      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "newsPost.update.validation.markdown", entity: "newsPost", entityId: params.id });
     } catch {}
     return NextResponse.json({ error: "Markdown съдържанието е задължително" }, { status: 400 });
   }
 
-  const posts = loadNewsJson();
-  const targetIndex = posts.findIndex((item) => item.id === params.id);
-  if (targetIndex === -1) {
+  const requestedLocale = typeof localeValue === "string" && (localeValue === "bg" || localeValue === "en") ? localeValue : defaultLocale;
+  const current = await dbGetNewsPost(params.id, requestedLocale, true);
+  if (!current) {
     try {
-      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.update.notfound", entity: "news", entityId: params.id });
+      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "newsPost.update.notfound", entity: "newsPost", entityId: params.id, details: { locale: requestedLocale } });
     } catch {}
     return NextResponse.json({ error: "Публикацията не е намерена" }, { status: 404 });
   }
 
-  const duplicate = posts.some((item) => item.id === normalizedSlug && item.id !== params.id);
+  const duplicate = normalizedSlug !== params.id && (await dbGetNewsPost(normalizedSlug, requestedLocale, true)) !== null;
   if (duplicate) {
     try {
-      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.update.duplicate", entity: "news", entityId: normalizedSlug, details: { fromId: params.id } });
+      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "newsPost.update.duplicate", entity: "newsPost", entityId: normalizedSlug, details: { fromId: params.id, locale: requestedLocale } });
     } catch {}
     return NextResponse.json({ error: "Новина с такъв слаг вече съществува" }, { status: 409 });
   }
@@ -160,7 +166,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     declaredMeta = parseDeclaredMeta(imageMetaValue);
   } catch {
     try {
-      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.update.meta.error", entity: "news", entityId: params.id });
+      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "newsPost.update.meta.error", entity: "newsPost", entityId: params.id });
     } catch {}
     return NextResponse.json({ error: "Невалидни данни за изображения" }, { status: 400 });
   }
@@ -178,12 +184,12 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
   if (requestedFeaturedName && !declaredMeta.some((meta) => meta.name === requestedFeaturedName)) {
     try {
-      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.update.featured.invalid", entity: "news", entityId: params.id, details: { requestedFeaturedName } });
+      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "newsPost.update.featured.invalid", entity: "newsPost", entityId: params.id, details: { requestedFeaturedName } });
     } catch {}
     return NextResponse.json({ error: "Невалидно основно изображение" }, { status: 400 });
   }
 
-  const existingPost = posts[targetIndex];
+  const existingPost = current.post;
   const existingImages = existingPost.images ?? [];
   const existingImageMap = new Map(existingImages.map((img) => [img.name, img] as const));
 
@@ -197,7 +203,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       const stored = existingImageMap.get(meta.name);
       if (!stored) {
         try {
-          await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.update.missingExistingImage", entity: "news", entityId: params.id, details: { name: meta.name } });
+          await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "newsPost.update.missingExistingImage", entity: "newsPost", entityId: params.id, details: { name: meta.name } });
         } catch {}
         return NextResponse.json({ error: `Липсва съществуващо изображение: ${meta.name}` }, { status: 400 });
       }
@@ -212,7 +218,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     const file = fileMap.get(meta.name);
     if (!file) {
       try {
-        await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.update.missingFile", entity: "news", entityId: params.id, details: { name: meta.name } });
+        await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "newsPost.update.missingFile", entity: "newsPost", entityId: params.id, details: { name: meta.name } });
       } catch {}
       return NextResponse.json({ error: `Липсва файл за изображение: ${meta.name}` }, { status: 400 });
     }
@@ -232,7 +238,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     } catch (error) {
       console.error("News image upload error", error);
       try {
-        await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.update.imageUpload.error", entity: "news", entityId: params.id, details: { blobPath, name: meta.name } });
+        await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "newsPost.update.imageUpload.error", entity: "newsPost", entityId: params.id, details: { blobPath, name: meta.name } });
       } catch {}
       return NextResponse.json({ error: "Качването на изображение се провали" }, { status: 500 });
     }
@@ -245,46 +251,31 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     ? new Date(existingPost.date)
     : new Date();
 
-  const updatedPost: PostItem = {
-    ...existingPost,
-    id: normalizedSlug,
-    title: normalizedTitle,
-    excerpt: trimmedExcerpt,
-    href: `/novini/${normalizedSlug}`,
-    date: safeDate.toISOString(),
-    image:
-      (requestedFeaturedName ? nextImages.find((img) => img.name === requestedFeaturedName)?.url : undefined) ??
-      (existingPost.image ? nextImages.find((img) => img.url === existingPost.image)?.url : undefined) ??
-      nextImages[0]?.url,
-    images: nextImages,
-  };
+  const featuredUrl =
+    (requestedFeaturedName ? nextImages.find((img) => img.name === requestedFeaturedName)?.url : undefined) ??
+    (existingPost.image ? nextImages.find((img) => img.url === existingPost.image)?.url : undefined) ??
+    nextImages[0]?.url ?? null;
 
-  const nextPosts = posts.map((item, index) => (index === targetIndex ? updatedPost : item));
-
+  const published = publishedValue === "false" ? false : true;
+  let updatedPost: PostItem;
   try {
-    const targetPath = getNewsFilePath();
-    await fs.mkdir(path.dirname(targetPath), { recursive: true });
-    await fs.writeFile(targetPath, `${JSON.stringify(nextPosts, null, 2)}\n`, { encoding: "utf8" });
-
-    const markdownPath = getNewsMarkdownPath(normalizedSlug);
-    await fs.mkdir(path.dirname(markdownPath), { recursive: true });
-    await fs.writeFile(markdownPath, `${markdown}\n`, { encoding: "utf8" });
-
-    if (normalizedSlug !== params.id) {
-      const oldMarkdownPath = getNewsMarkdownPath(params.id);
-      try {
-        await fs.unlink(oldMarkdownPath);
-      } catch (error) {
-        const typed = error as NodeJS.ErrnoException;
-        if (typed.code !== "ENOENT") {
-          console.error("News markdown cleanup error", error);
-        }
-      }
-    }
+    updatedPost = await dbUpdateNewsPost({
+      currentSlug: params.id,
+      slug: normalizedSlug,
+      locale: requestedLocale as any,
+      title: normalizedTitle,
+      excerpt: trimmedExcerpt,
+      markdown,
+      date: safeDate,
+      images: nextImages,
+      featuredImage: featuredUrl,
+      authorId: (session.user as any)?.id as string | undefined,
+      published,
+    });
   } catch (error) {
-    console.error("News update write error", error);
+    console.error("News update DB error", error);
     try {
-      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "news.update.write.error", entity: "news", entityId: params.id });
+      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "newsPost.update.write.error", entity: "newsPost", entityId: params.id });
     } catch {}
     return NextResponse.json({ error: "Неуспешно записване" }, { status: 500 });
   }
@@ -293,11 +284,39 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     await recordAudit({
       req: request,
       userId: (session.user as any)?.id as string | undefined,
-      action: "news.update",
-      entity: "news",
+      action: "newsPost.update",
+      entity: "newsPost",
       entityId: updatedPost.id,
-      details: { fromId: params.id, toId: updatedPost.id, title: updatedPost.title },
+      details: { fromId: params.id, toId: updatedPost.id, title: updatedPost.title, locale: requestedLocale },
     });
   } catch {}
   return NextResponse.json({ post: updatedPost });
+}
+
+export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    try {
+      await recordAudit({ req: request, action: "newsPost.delete.denied", entity: "newsPost", entityId: params.id });
+    } catch {}
+    return NextResponse.json({ error: "Неоторизиран достъп" }, { status: 401 });
+  }
+
+  const url = new URL(request.url);
+  const localeParam = url.searchParams.get("locale");
+  const locale = localeParam === "bg" || localeParam === "en" ? localeParam : defaultLocale;
+
+  try {
+    await (prisma as any).newsPost.delete({ where: { id_locale: { id: params.id, locale } } });
+  } catch (error) {
+    try {
+      await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "newsPost.delete.notfound", entity: "newsPost", entityId: params.id, details: { locale } });
+    } catch {}
+    return NextResponse.json({ error: "Публикацията не е намерена" }, { status: 404 });
+  }
+
+  try {
+    await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "newsPost.delete", entity: "newsPost", entityId: params.id, details: { locale } });
+  } catch {}
+  return NextResponse.json({ ok: true });
 }
