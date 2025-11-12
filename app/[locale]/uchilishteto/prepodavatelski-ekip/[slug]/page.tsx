@@ -3,7 +3,8 @@ import ReactMarkdown from "react-markdown";
 import { getTranslations } from "next-intl/server";
 
 import type { Locale } from "@/i18n/config";
-import { loadJson, loadNewsJson } from "@/lib/content";
+import { loadJson } from "@/lib/content";
+import { getNewsPosts } from "@/lib/news";
 import type { PostItem } from "@/lib/types";
 import { prisma } from "@/lib/prisma";
 import { renderBlocks } from "@/lib/cms";
@@ -22,7 +23,7 @@ export default async function TeamDetail({ params }: { params: { locale: Locale;
         <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">{dbPage.title}</h1>
         {dbPage.excerpt && <p className="mt-2 text-slate-600 dark:text-slate-400">{dbPage.excerpt}</p>}
         {/* Render custom blocks if present */}
-        {Array.isArray(dbPage.blocks) ? renderBlocks(dbPage.blocks as any, { locale, news: loadNewsJson(locale) }) : null}
+        {Array.isArray(dbPage.blocks) ? renderBlocks(dbPage.blocks as any, { locale, news: await getNewsPosts(locale) }) : null}
         {dbPage.bodyMarkdown ? (
           <div className="prose prose-slate mt-6 max-w-none dark:prose-invert">
             <ReactMarkdown>{dbPage.bodyMarkdown}</ReactMarkdown>

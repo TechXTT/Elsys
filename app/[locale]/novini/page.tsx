@@ -4,12 +4,12 @@ import { getTranslations } from "next-intl/server";
 import { NewsCard } from "@/components/news-card";
 import { Section } from "@/components/Section";
 import type { Locale } from "@/i18n/config";
-import { loadNewsJson } from "@/lib/content";
+import { getNewsPosts } from "@/lib/news";
 
 export default async function NewsIndex({ params }: { params: { locale: Locale } }) {
   const locale = params.locale;
   const t = await getTranslations({ locale, namespace: "News" });
-  const news = loadNewsJson(locale);
+  const news = await getNewsPosts(locale);
   return (
     <Section title={t("title")}>
       {news.length === 0 ? (

@@ -4,7 +4,7 @@ import type { Components } from "react-markdown";
 import { getTranslations } from "next-intl/server";
 
 import type { Locale } from "@/i18n/config";
-import { loadNewsJson, loadNewsMarkdown } from "@/lib/content";
+import { getNewsPosts, getNewsPost } from "@/lib/news";
 import type { PostItem } from "@/lib/types";
 
 function resolveInlineCode(
@@ -132,13 +132,12 @@ export default async function NewsDetail({ params }: { params: { locale: Locale;
     getTranslations({ locale, namespace: "News" }),
     getTranslations({ locale, namespace: "Common" }),
   ]);
-  const all = loadNewsJson(locale);
-  const item = all.find((p) => p.id === params.slug || p.href.endsWith(params.slug));
-  if (!item) {
+  const fromDb = await getNewsPost(params.slug, locale);
+  if (!fromDb) {
     return <div className="container-page py-20">{tNews("missing")}</div>;
   }
+  const { post: item, markdown } = fromDb;
   const displayDate = formatPublishedDate(locale, item.date);
-  const markdown = loadNewsMarkdown(item.id ?? params.slug, locale) ?? "";
   const markdownComponents = createMarkdownComponents(item.images);
   return (
     <div className="container-page py-10">
