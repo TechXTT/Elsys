@@ -2,23 +2,46 @@
   "hero": {
     "title": "Технологично училище Електронни системи",
     "subtitle": "Образование по информатика и компютърни науки",
-    "cta": { "label": "Научи повече", "href": "/uchilishteto" }
+    "cta": { "label": "Научи повече", "href": "/uchilishteto" },
+    "imageLarge": "https://tuesfest.bg/assets/apply/whytues.png"
   },
   "tracks": [
-    { "key": "sp", "title": "Системно програмиране", "description": "Дълбоки основи в компютърните системи", "href": "/obuchenie" },
-    { "key": "ai", "title": "Изкуствен интелект", "description": "Модерни алгоритми и машинно обучение", "href": "/obuchenie" },
-    { "key": "net", "title": "Компютърни мрежи", "description": "Мрежова администрация и сигурност", "href": "/obuchenie" }
+    { "key": "sp", "title": "Системно програмиране", "description": "Дълбоки основи в компютърните системи", "href": "/obuchenie", "image": "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=600&q=60" },
+    { "key": "ai", "title": "Изкуствен интелект", "description": "Модерни алгоритми и машинно обучение", "href": "/obuchenie", "image": "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=600&q=60" },
+    { "key": "net", "title": "Компютърни мрежи", "description": "Мрежова администрация и сигурност", "href": "/obuchenie", "image": "https://images.unsplash.com/photo-1581092808364-99fa3c87eb0d?auto=format&fit=crop&w=600&q=60" }
   ],
   "why": [
-    { "icon": "BookOpen", "title": "Силна програма", "description": "Проверена учебна програма" },
-    { "icon": "Handshake", "title": "Бизнес партньорства", "description": "Работа с водещи компании" },
-    { "icon": "Brain", "title": "Иновации", "description": "Проекти и състезания" },
-    { "icon": "Users", "title": "Общност", "description": "Силни ментори и алумни" }
+    { "icon": "BookOpen", "title": "Силна програма", "description": "Проверена учебна програма", "image": "https://images.unsplash.com/photo-1517404215738-15263e9f9174?auto=format&fit=crop&w=600&q=60" },
+    { "icon": "Handshake", "title": "Бизнес партньорства", "description": "Работа с водещи компании", "image": "https://images.unsplash.com/photo-1521790945508-bf2a36314e85?auto=format&fit=crop&w=600&q=60" },
+    { "icon": "Brain", "title": "Иновации", "description": "Проекти и състезания", "image": "https://images.unsplash.com/photo-1550399105-c4db5fb85c18?auto=format&fit=crop&w=600&q=60" },
+    { "icon": "Users", "title": "Общност", "description": "Силни ментори и алумни", "image": "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=600&q=60" }
   ],
   "numbers": [
     { "value": "1000+", "label": "Алумни" },
     { "value": "35+", "label": "Години опит" },
     { "value": "50+", "label": "Партньори" },
     { "value": "95%", "label": "Реализация" }
-  ]
+  ],
+  "admissions": {
+    "title": "Как да се запишеш",
+    "description": "Ясни стъпки от кандидатстването до първия учебен ден.",
+    "steps": [
+      { "title": "Опознай ТУЕС", "description": "Прочети за специалностите и учебния модел, посети събития.", "icon": "Compass", "cta": { "label": "Виж приема", "href": "/priem" } },
+      { "title": "Подготви документите", "description": "Следи указанията и събери нужните оценки и сертификати.", "icon": "FileText" },
+      { "title": "Готви се целенасочено", "description": "Упражнявай математика и БЕЛ, решавай примерни задачи и симулирани тестове.", "icon": "Pencil" },
+      { "title": "НВО изпити", "description": "Дай най-доброто на изпитите по БЕЛ и математика – основа на бала.", "dateHint": "май–юни", "icon": "GraduationCap" },
+      { "title": "Класиране и бал", "description": "Провери резултатите, изчисли бала си (БЕЛ НВО + 3× Математика НВО + оценка математика + оценка физика) и подай предпочитания.", "dateHint": "юли", "icon": "BarChart3", "cta": { "label": "Условия за прием", "href": "/priem/red-i-uslovija-za-priem" } },
+      { "title": "Записване и старт", "description": "Завърши регистрацията, ориентация, клубове и първи проекти.", "dateHint": "август–септември", "icon": "Rocket" }
+    ],
+    "cta": { "label": "Кандидатствай сега", "href": "/priem" }
+  },
+  "testimonials": {
+    "title": "Истории на ученици",
+    "subtitle": "Как ТУЕС помага да изградиш умения и приятелства.",
+    "items": [
+      { "name": "Мария", "role": "11 клас, ИИ", "quote": "Проектните предмети ме научиха да работя в екип и да презентирам уверено.", "image": "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=160&q=80" },
+      { "name": "Иван", "role": "Випуск '22", "quote": "Стажът ми стана първа работа. Общността е най-голямото богатство.", "image": "https://images.unsplash.com/photo-1502767089025-6572583495b4?auto=format&fit=crop&w=160&q=80" },
+      { "name": "Никола", "role": "10 клас, Мрежи", "quote": "Клубовете след часовете правят училището втори дом.", "image": "https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=160&q=80" }
+    ]
+  }
 }

@@ -1,6 +1,11 @@
 import "./globals.css";
 import React from "react";
 import { cookies } from "next/headers";
+import { Inter, Manrope } from "next/font/google";
+
+// Fonts must be initialized at module scope
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const manrope = Manrope({ subsets: ["latin"], variable: "--font-display" });
 
 const themeInitializer = `(() => {
   try {
@@ -53,7 +58,7 @@ export default async function RootLayout({
   const initialDataTheme = initialTheme ?? undefined;
 
   return (
-    <html className={initialHtmlClass} data-theme={initialDataTheme} suppressHydrationWarning>
+    <html className={[initialHtmlClass, inter.variable, manrope.variable].filter(Boolean).join(" ")} data-theme={initialDataTheme} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitializer }} />
       </head>

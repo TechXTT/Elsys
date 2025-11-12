@@ -2,23 +2,46 @@
   "hero": {
     "title": "Technological School of Electronic Systems",
     "subtitle": "Education in Computer Science and Informatics",
-    "cta": { "label": "Learn more", "href": "/uchilishteto" }
+    "cta": { "label": "Learn more", "href": "/uchilishteto" },
+    "imageLarge": "https://tuesfest.bg/assets/apply/whytues.png"
   },
   "tracks": [
-    { "key": "sp", "title": "Systems Programming", "description": "Deep foundations in computer systems", "href": "/obuchenie" },
-    { "key": "ai", "title": "Artificial Intelligence", "description": "Modern algorithms and machine learning", "href": "/obuchenie" },
-    { "key": "net", "title": "Computer Networks", "description": "Network administration and security", "href": "/obuchenie" }
+    { "key": "sp", "title": "Systems Programming", "description": "Deep foundations in computer systems", "href": "/obuchenie", "image": "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=600&q=60" },
+    { "key": "ai", "title": "Artificial Intelligence", "description": "Modern algorithms and machine learning", "href": "/obuchenie", "image": "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=600&q=60" },
+    { "key": "net", "title": "Computer Networks", "description": "Network administration and security", "href": "/obuchenie", "image": "https://images.unsplash.com/photo-1581092808364-99fa3c87eb0d?auto=format&fit=crop&w=600&q=60" }
   ],
   "why": [
-    { "icon": "BookOpen", "title": "Rigorous curriculum", "description": "Proven academic program" },
-    { "icon": "Handshake", "title": "Industry partnerships", "description": "Collaboration with leading companies" },
-    { "icon": "Brain", "title": "Innovation", "description": "Projects and competitions" },
-    { "icon": "Users", "title": "Community", "description": "Strong mentors and alumni" }
+    { "icon": "BookOpen", "title": "Rigorous curriculum", "description": "Proven academic program", "image": "https://images.unsplash.com/photo-1517404215738-15263e9f9174?auto=format&fit=crop&w=600&q=60" },
+    { "icon": "Handshake", "title": "Industry partnerships", "description": "Collaboration with leading companies", "image": "https://images.unsplash.com/photo-1521790945508-bf2a36314e85?auto=format&fit=crop&w=600&q=60" },
+    { "icon": "Brain", "title": "Innovation", "description": "Projects and competitions", "image": "https://images.unsplash.com/photo-1550399105-c4db5fb85c18?auto=format&fit=crop&w=600&q=60" },
+    { "icon": "Users", "title": "Community", "description": "Strong mentors and alumni", "image": "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=600&q=60" }
   ],
   "numbers": [
     { "value": "1000+", "label": "Alumni" },
     { "value": "35+", "label": "Years of experience" },
     { "value": "50+", "label": "Partners" },
     { "value": "95%", "label": "Graduate employment" }
-  ]
+  ],
+  "admissions": {
+    "title": "How to Apply",
+    "description": "A clear path from application to your first day.",
+    "steps": [
+      { "title": "Explore TUES", "description": "Read about programs and the learning model; join open events.", "icon": "Compass", "cta": { "label": "View admission", "href": "/priem" } },
+      { "title": "Prepare paperwork", "description": "Track guidelines and gather required grades & certificates.", "icon": "FileText" },
+      { "title": "Study with purpose", "description": "Practice Math & Bulgarian; solve sample problems and timed mock tests.", "icon": "Pencil" },
+      { "title": "National exams", "description": "Do your best at Bulgarian and Math – core of the score.", "dateHint": "May–June", "icon": "GraduationCap" },
+      { "title": "Ranking & score", "description": "Check results; score = Bulgarian exam + 3× Math exam + Math grade + Physics grade; submit preferences on time.", "dateHint": "July", "icon": "BarChart3", "cta": { "label": "Admission conditions", "href": "/priem/red-i-uslovija-za-priem" } },
+      { "title": "Enroll & begin", "description": "Finalize registration, orientation, clubs and first projects.", "dateHint": "Aug–Sep", "icon": "Rocket" }
+    ],
+    "cta": { "label": "Apply now", "href": "/priem" }
+  },
+  "testimonials": {
+    "title": "Student stories",
+    "subtitle": "How ELSYS helps you grow skills and friendships.",
+    "items": [
+      { "name": "Maria", "role": "11th grade, AI", "quote": "Project-based subjects taught me teamwork and confident presenting.", "image": "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=160&q=80" },
+      { "name": "Ivan", "role": "Class of '22", "quote": "My internship became my first job. The community is priceless.", "image": "https://images.unsplash.com/photo-1502767089025-6572583495b4?auto=format&fit=crop&w=160&q=80" },
+      { "name": "Nikola", "role": "10th grade, Networks", "quote": "After-class clubs make school feel like a second home.", "image": "https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=160&q=80" }
+    ]
+  }
 }
