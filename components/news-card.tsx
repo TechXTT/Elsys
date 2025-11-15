@@ -1,6 +1,5 @@
 import React from "react";
-
-import { Link } from "@/i18n/routing";
+import NextLink from "next/link";
 import { defaultLocale, type Locale } from "@/i18n/config";
 import { PostItem } from "@/lib/types";
 
@@ -36,10 +35,13 @@ interface NewsCardProps {
 export const NewsCard: React.FC<NewsCardProps> = ({ post, locale = defaultLocale }) => {
   const displayDate = formatDateLabel(post.date, locale);
   const coverImage = post.image ?? post.images?.[0]?.url;
+  // Build a locale-prefixed href that works in both App Router and Pages Router contexts
+  const rawHref = post.href || "/";
+  const hasLocalePrefix = /^\/(?:bg|en)(?:\/|$)/.test(rawHref);
+  const href = hasLocalePrefix ? rawHref : `/${locale}${rawHref.startsWith('/') ? '' : '/'}${rawHref.replace(/^\//, '')}`;
   return (
-    <Link
-      href={post.href}
-      locale={locale}
+    <NextLink
+      href={href}
       className="hover-lift block overflow-hidden rounded-lg border border-slate-200 bg-white transition dark:border-slate-700 dark:bg-slate-800"
     >
       {coverImage && (
@@ -52,6 +54,6 @@ export const NewsCard: React.FC<NewsCardProps> = ({ post, locale = defaultLocale
         <h3 className="mt-1 font-semibold text-slate-900 dark:text-slate-100">{post.title}</h3>
         {post.excerpt && <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{post.excerpt}</p>}
       </div>
-    </Link>
+    </NextLink>
   );
 };
