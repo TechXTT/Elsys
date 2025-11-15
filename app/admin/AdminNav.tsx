@@ -10,7 +10,8 @@ type NavLink = { href: string; label: string; adminOnly?: boolean };
 const baseLinks: NavLink[] = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/news", label: "News" },
-  { href: "/admin/pages", label: "Pages" },
+  // Pages editing is managed through Navigation UI; expose it as "Pages"
+  { href: "/admin/navigation", label: "Pages" },
   { href: "/admin/settings", label: "Settings" },
   { href: "/admin/users", label: "Users", adminOnly: true },
   { href: "/admin/audit", label: "Audit", adminOnly: true },
