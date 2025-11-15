@@ -5,6 +5,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import "dotenv/config";
+import fetch from "node-fetch";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -282,21 +284,22 @@ async function upsertPageEN(p: PageBlocks) {
   const segmentsBG = fullSlugBG.split("/").filter(Boolean);
   const val = validateBlocks(p.blocks);
   if (!val.ok) console.warn(`[warn][en] ${fullSlugBG} block issues:`, val.errors.join("; "));
+  const blocksEN = await translateBlocksToEN(val.normalized);
 
   // Resolve English slugs for folder+leaf
   if (fullSlugBG === "home" || segmentsBG.length === 0) {
     const existingHome = await prisma.page.findUnique({ where: { slug_locale: { slug: "home", locale } }, include: { currentVersion: true } });
-    const title = deriveTitle(val.normalized, "home", "home", locale);
+    const title = deriveTitle(blocksEN, "home", "home", locale);
     if (!existingHome) {
-      const created = await prisma.page.create({ data: { slug: "home", locale, title, navLabel: title, published: true, kind: "PAGE", blocks: val.normalized as any, order: 0, visible: true }, select: { id: true } });
+      const created = await prisma.page.create({ data: { slug: "home", locale, title, navLabel: title, published: true, kind: "PAGE", blocks: blocksEN as any, order: 0, visible: true }, select: { id: true } });
       const version = await getNextVersion(created.id);
-      const pv = await prisma.pageVersion.create({ data: { pageId: created.id, version, title, published: true, blocks: val.normalized as any } });
+      const pv = await prisma.pageVersion.create({ data: { pageId: created.id, version, title, published: true, blocks: blocksEN as any } });
       await prisma.page.update({ where: { id: created.id }, data: { currentVersionId: pv.id } });
       return { id: created.id, created: true };
     }
     const version = await getNextVersion(existingHome.id);
-    const pv = await prisma.pageVersion.create({ data: { pageId: existingHome.id, version, title, published: true, blocks: val.normalized as any } });
-    await prisma.page.update({ where: { id: existingHome.id }, data: { title, navLabel: title, blocks: val.normalized as any, currentVersionId: pv.id, published: true } });
+    const pv = await prisma.pageVersion.create({ data: { pageId: existingHome.id, version, title, published: true, blocks: blocksEN as any } });
+    await prisma.page.update({ where: { id: existingHome.id }, data: { title, navLabel: title, blocks: blocksEN as any, currentVersionId: pv.id, published: true } });
     return { id: existingHome.id, created: false };
   }
 
@@ -316,24 +319,24 @@ async function upsertPageEN(p: PageBlocks) {
   const legacyFull = await prisma.page.findUnique({ where: { slug_locale: { slug: fullSlug, locale } } });
   const existingLeaf = await prisma.page.findUnique({ where: { slug_locale: { slug: leafEnSlug, locale } }, include: { currentVersion: true } });
 
-  const title = deriveTitle(val.normalized, fullSlug, leafEnSlug, locale);
+  const title = deriveTitle(blocksEN, fullSlug, leafEnSlug, locale);
   if (legacyFull && !existingLeaf) {
     const version = await getNextVersion(legacyFull.id);
-    const pv = await prisma.pageVersion.create({ data: { pageId: legacyFull.id, version, title, published: true, blocks: val.normalized as any } });
-    await prisma.page.update({ where: { id: legacyFull.id }, data: { slug: leafEnSlug, parentId, title, navLabel: title, kind: "PAGE", blocks: val.normalized as any, currentVersionId: pv.id, published: true } });
+    const pv = await prisma.pageVersion.create({ data: { pageId: legacyFull.id, version, title, published: true, blocks: blocksEN as any } });
+    await prisma.page.update({ where: { id: legacyFull.id }, data: { slug: leafEnSlug, parentId, title, navLabel: title, kind: "PAGE", blocks: blocksEN as any, currentVersionId: pv.id, published: true } });
     return { id: legacyFull.id, created: false };
   }
 
   if (!existingLeaf) {
-    const created = await prisma.page.create({ data: { slug: leafEnSlug, locale, title, navLabel: title, parentId, published: true, kind: "PAGE", blocks: val.normalized as any, order: 0, visible: true }, select: { id: true } });
+    const created = await prisma.page.create({ data: { slug: leafEnSlug, locale, title, navLabel: title, parentId, published: true, kind: "PAGE", blocks: blocksEN as any, order: 0, visible: true }, select: { id: true } });
     const version = await getNextVersion(created.id);
-    const pv = await prisma.pageVersion.create({ data: { pageId: created.id, version, title, published: true, blocks: val.normalized as any } });
+    const pv = await prisma.pageVersion.create({ data: { pageId: created.id, version, title, published: true, blocks: blocksEN as any } });
     await prisma.page.update({ where: { id: created.id }, data: { currentVersionId: pv.id } });
     return { id: created.id, created: true };
   }
   const version = await getNextVersion(existingLeaf.id);
-  const pv = await prisma.pageVersion.create({ data: { pageId: existingLeaf.id, version, title, published: true, blocks: val.normalized as any } });
-  await prisma.page.update({ where: { id: existingLeaf.id }, data: { title, navLabel: title, parentId, blocks: val.normalized as any, currentVersionId: pv.id, published: true } });
+  const pv = await prisma.pageVersion.create({ data: { pageId: existingLeaf.id, version, title, published: true, blocks: blocksEN as any } });
+  await prisma.page.update({ where: { id: existingLeaf.id }, data: { title, navLabel: title, parentId, blocks: blocksEN as any, currentVersionId: pv.id, published: true } });
   return { id: existingLeaf.id, created: false };
 }
 
@@ -365,6 +368,72 @@ function deriveTitle(blocks: BlockInstance[], fullSlug: string, leafSlug: string
 
   // 3) Beautify the slug as a fallback
   return beautifySlug(leafSlug || fullSlug) || "Untitled";
+}
+
+// DeepL-powered translation (optional; no-op if DEEPL_API_KEY missing)
+const deeplKey = process.env.DEEPL_API_KEY?.trim();
+const deeplEndpoint = deeplKey?.endsWith(":fx") ? "https://api-free.deepl.com" : "https://api.deepl.com";
+const translateCache = new Map<string, string>();
+
+async function translateText(text: string, from: "BG" | "AUTO" = "BG", to: "EN" | "EN-GB" | "EN-US" = "EN-GB"): Promise<string> {
+  if (!text) return text;
+  if (!deeplKey) return text;
+  const cacheKey = `${from}:${to}:${text}`;
+  const cached = translateCache.get(cacheKey);
+  if (cached) return cached;
+  try {
+    const body = new URLSearchParams();
+    body.append("text", text);
+    body.append("target_lang", to);
+    if (from !== "AUTO") body.append("source_lang", from);
+    const res = await fetch(`${deeplEndpoint}/v2/translate`, {
+      method: "POST",
+      headers: {
+        "Authorization": `DeepL-Auth-Key ${deeplKey}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body,
+    });
+    if (!res.ok) {
+      const msg = await res.text().catch(() => res.statusText);
+      console.warn(`[deepl] translate failed ${res.status}: ${msg?.slice(0, 200)}`);
+      return text;
+    }
+    const data = await res.json() as { translations?: Array<{ text: string }> };
+    const out = data.translations?.[0]?.text ?? text;
+    translateCache.set(cacheKey, out);
+    return out;
+  } catch (e) {
+    console.warn(`[deepl] translate error`, e);
+    return text;
+  }
+}
+
+async function translateBlocksToEN(blocks: BlockInstance[]): Promise<BlockInstance[]> {
+  const out: BlockInstance[] = [];
+  for (const b of blocks) {
+    if (!b?.props || typeof b.props !== "object") { out.push(b); continue; }
+    const props = { ...(b.props as Record<string, unknown>) };
+    if (b.type === "Hero") {
+      if (typeof props.heading === "string") props.heading = await translateText(props.heading as string);
+      out.push({ type: b.type, props });
+      continue;
+    }
+    if (b.type === "Markdown") {
+      if (typeof props.value === "string") props.value = await translateText(props.value as string);
+      out.push({ type: b.type, props });
+      continue;
+    }
+    if (b.type === "Section") {
+      if (typeof props.title === "string") props.title = await translateText(props.title as string);
+      if (typeof props.description === "string") props.description = await translateText(props.description as string);
+      if (typeof props.markdown === "string") props.markdown = await translateText(props.markdown as string);
+      out.push({ type: b.type, props });
+      continue;
+    }
+    out.push({ type: b.type, props });
+  }
+  return out;
 }
 
 async function run() {
