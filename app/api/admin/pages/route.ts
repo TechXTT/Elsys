@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { recordAudit } from "@/lib/audit";
+import { invalidatePageCache } from "@/lib/cms/compile";
 
 function ensureAdmin(session: any): asserts session is { user: { id: string; role?: string } } {
   if (!session || !(session.user as any)?.id || (session.user as any)?.role !== "ADMIN") {
@@ -48,6 +50,20 @@ export async function POST(req: Request) {
     const title = (body.title || "").trim();
     if (!slug || !locale || !title) return NextResponse.json({ error: "slug, locale and title are required" }, { status: 400 });
 
+    // reserved top-level segments
+    const reserved = new Set(["api", "admin", "one-time", "auth"]);
+    const top = slug.split("/")[0];
+    if (reserved.has(top)) return NextResponse.json({ error: `Slug top-level segment '${top}' is reserved` }, { status: 400 });
+
+    // prevent collision with news URLs (/novini/:id)
+    if (slug.startsWith("novini/")) {
+      const newsId = slug.split("/")[1];
+      if (newsId) {
+        const exists = await (prisma as any).newsPost.findUnique({ where: { id_locale: { id: newsId, locale } } });
+        if (exists) return NextResponse.json({ error: "Slug collides with an existing news article" }, { status: 409 });
+      }
+    }
+
     const created = await (prisma as any).page.create({
       data: {
         slug,
@@ -61,6 +77,32 @@ export async function POST(req: Request) {
       },
       select: { id: true },
     } as any);
+    // Create initial version snapshot
+    try {
+      const versionCount = await (prisma as any).pageVersion.count({ where: { pageId: created.id } });
+      const version = versionCount + 1;
+      const pv = await (prisma as any).pageVersion.create({
+        data: {
+          pageId: created.id,
+          version,
+          title,
+          excerpt: body.excerpt ?? null,
+          bodyMarkdown: body.bodyMarkdown ?? null,
+          blocks: (body.blocks as any) ?? null,
+          published: !!(body.published ?? true),
+          createdById: userId,
+        },
+        select: { id: true, published: true },
+      });
+      if (pv.published) {
+        await (prisma as any).page.update({ where: { id: created.id }, data: { currentVersionId: pv.id } });
+      }
+      await recordAudit({ req, userId, action: "PAGE_CREATE", entity: "Page", entityId: created.id, details: { slug, locale, version } });
+    } catch (e) {
+      console.error("create page version snapshot failed", e);
+    }
+    // Invalidate compile cache for this slug/locale
+    try { invalidatePageCache(slug, locale as any); } catch {}
     return NextResponse.json({ id: created.id }, { status: 201 });
   } catch (err: any) {
     if (err instanceof Response) return err;
