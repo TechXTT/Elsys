@@ -41,7 +41,7 @@ export const NewsCard: React.FC<NewsCardProps> = ({ post, locale = defaultLocale
   const href = hasLocalePrefix ? rawHref : `/${locale}${rawHref.startsWith('/') ? '' : '/'}${rawHref.replace(/^\//, '')}`;
   return (
     <NextLink
-      href={href}
+      href={href as unknown as any}
       className="hover-lift block overflow-hidden rounded-lg border border-slate-200 bg-white transition dark:border-slate-700 dark:bg-slate-800"
     >
       {coverImage && (

@@ -85,7 +85,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       await (prisma as any).page.update({ where: { id: params.id }, data: perLocale });
     }
     // Normalize orders per locale for affected parents
-    const locales = Array.from(new Set(siblings.map((s:any)=>s.locale)));
+    const locales: string[] = Array.from(new Set(siblings.map((s:any)=>s.locale)));
     // Normalize new parent
     for (const loc of locales) {
       const parentId = parentGroupId === null ? null : (parentGroupId ? (await (prisma as any).page.findFirst({ where: { groupId: parentGroupId, locale: loc }, select: { id: true } }))?.id ?? null : null);
@@ -116,13 +116,16 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     const groupId = existing.groupId;
     // Delete subtree across locales: find all nodes whose groupId is in the subtree
-    const all = await (prisma as any).page.findMany({ select: { id: true, parentId: true, groupId: true } });
-    const byId = new Map(all.map((p:any)=>[p.id,p]));
+    const all: any[] = await (prisma as any).page.findMany({ select: { id: true, parentId: true, groupId: true } });
+    const byId = new Map<string, any>(all.map((p:any)=>[p.id,p]));
     const toDeleteGroupIds = new Set<string>();
     function collectGroups(id: string) {
-      const node = byId.get(id); if (!node) return;
+      const node = byId.get(id) as any;
+      if (!node) return;
       toDeleteGroupIds.add(node.groupId);
-      for (const child of all) { if (child.parentId === id) collectGroups(child.id); }
+      for (const child of all) {
+        if (child.parentId === id) collectGroups(child.id);
+      }
     }
     collectGroups(params.id);
     await (prisma as any).page.deleteMany({ where: { groupId: { in: Array.from(toDeleteGroupIds) } } });

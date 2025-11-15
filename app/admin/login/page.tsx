@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 
 export default function AdminLogin() {
   const params = useSearchParams();
-  const callbackUrl = params.get("callbackUrl") || "/admin";
+  const callbackUrl = params?.get("callbackUrl") || "/admin";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
