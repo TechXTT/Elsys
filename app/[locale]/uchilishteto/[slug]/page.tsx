@@ -11,9 +11,12 @@ import { renderBlocks } from "@/lib/cms";
 export default async function SchoolDetail({ params }: { params: { locale: Locale; slug: string } }) {
   const locale = params.locale;
   const tCommon = await getTranslations({ locale, namespace: "Common" });
-  // DB override: if a Page exists for this route, render it
+  // DB override: try full-path slug, then fall back to leaf slug for this locale
   const key = `uchilishteto/${params.slug}`;
-  const dbPage = await (prisma as any).page.findUnique({ where: { slug_locale: { slug: key, locale } } }).catch(() => null);
+  let dbPage: any = await (prisma as any).page.findUnique({ where: { slug_locale: { slug: key, locale } } }).catch(() => null);
+  if (!dbPage) {
+    dbPage = await (prisma as any).page.findFirst({ where: { locale, slug: params.slug } }).catch(() => null);
+  }
   if (dbPage && dbPage.published) {
     return (
       <div className="container-page py-10">

@@ -15,6 +15,7 @@ import { loadBlogJson, loadHome } from "@/lib/content";
 import { getNewsPosts } from "@/lib/news";
 import type { HomeContent } from "@/lib/types";
 import type { Locale } from "@/i18n/config";
+import { compilePage } from "@/lib/cms/compile";
 
 const iconMap: Record<string, React.ComponentType<any>> = {
   BookOpen: BookOpen,
@@ -30,6 +31,11 @@ export default async function HomePage({ params }: { params: { locale: Locale } 
     getTranslations({ locale, namespace: "Home" }),
     getTranslations({ locale, namespace: "Common" }),
   ]);
+  // DB-first: if there's a CMS home page with blocks, render it
+  const compiled = await compilePage({ slug: "home", locale, includeDrafts: false, withData: true }).catch(() => null);
+  if (compiled && compiled.blocks && compiled.blocks.length > 0) {
+    return <>{compiled.element}</>;
+  }
   const home = loadHome(locale) as unknown as HomeContent | null;
   const news = (await getNewsPosts(locale)).slice(0, 4);
   const blog = loadBlogJson(locale).slice(0, 4);

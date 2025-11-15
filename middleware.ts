@@ -31,6 +31,28 @@ export async function middleware(req: NextRequest) {
     }
     return NextResponse.next();
   }
+  // Dynamic alias rewrite: /:locale/<alias> -> /:locale/<routePath[slug]>
+  // Only when locale prefix is present and not admin/api/_next/static assets.
+  const m = pathname.match(/^\/(bg|en)\/(.+)$/);
+  if (m) {
+    const locale = m[1];
+    const rest = m[2].replace(/^\/+|\/+$/g, "");
+    if (rest && !rest.startsWith("api/") && !rest.startsWith("_next/") && !rest.includes(".")) {
+      try {
+        const url = new URL(`/api/route-alias?locale=${encodeURIComponent(locale)}&path=${encodeURIComponent(rest)}`, req.url);
+        const res = await fetch(url.toString(), { headers: { accept: 'application/json' } });
+        if (res.ok) {
+          const data = await res.json().catch(() => null) as { target?: string | null } | null;
+          const target = data?.target?.replace(/^\/+|\/+$/g, "");
+          if (target && target !== rest) {
+            // Rewrite to the real route WITH locale prefix so App Router [locale] matches.
+            const rewriteTo = new URL(`/${locale}/${target}`, req.url);
+            return NextResponse.rewrite(rewriteTo);
+          }
+        }
+      } catch {}
+    }
+  }
   return intlMiddleware(req);
 }
 
