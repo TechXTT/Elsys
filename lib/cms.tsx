@@ -1,10 +1,13 @@
 import React from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import Hero from "@/components/Hero";
 import { Section } from "@/components/Section";
 import { NewsCard } from "@/components/news-card";
 import type { Locale } from "@/i18n/config";
 import type { PostItem } from "@/lib/types";
+import { getBlockDefinition, renderBlockInstance, validateBlocks } from "@/lib/blocks/registry";
 
 type Block = {
   type: string;
@@ -20,9 +23,23 @@ export function renderBlocks(
   ctx?: { locale?: Locale; news?: PostItem[] }
 ): React.ReactNode {
   if (!Array.isArray(blocks)) return null;
+  // Try new registry-driven path first
+  const result = validateBlocks(blocks);
+  if (result.valid) {
+    // Insert a line break between blocks to improve readability during editing/preview
+    const out: React.ReactNode[] = [];
+    result.normalized.forEach((inst, idx) => {
+      out.push(<React.Fragment key={`b-${idx}`}>{renderBlockInstance(inst, ctx)}</React.Fragment>);
+      if (idx < result.normalized.length - 1) out.push(<br key={`br-${idx}`} />);
+    });
+    return out;
+  }
+  // Fallback to legacy switch rendering if validation fails or types missing
   return blocks.map((b, idx) => {
     if (!isRecord(b) || typeof b.type !== "string") return null;
     const props = isRecord(b.props) ? b.props : {};
+    const def = getBlockDefinition(b.type);
+    if (def) return <React.Fragment key={idx}>{def.render(props as any, ctx)}</React.Fragment>;
     switch (b.type) {
       case "Hero": {
         const p = props as any;
@@ -32,7 +49,11 @@ export function renderBlocks(
         const p = props as any;
         return (
           <Section key={idx} title={p.title ?? "Untitled"} description={p.description}>
-            {typeof p.markdown === "string" ? <div className="prose prose-slate max-w-none dark:prose-invert"><ReactMarkdown>{p.markdown}</ReactMarkdown></div> : null}
+            {typeof p.markdown === "string" ? (
+              <div className="prose prose-slate max-w-none dark:prose-invert">
+                <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{p.markdown}</ReactMarkdown>
+              </div>
+            ) : null}
           </Section>
         );
       }
@@ -40,7 +61,9 @@ export function renderBlocks(
         const p = props as any;
         return (
           <div key={idx} className="container-page my-6 prose prose-slate max-w-none dark:prose-invert">
-            <ReactMarkdown>{typeof p?.value === "string" ? p.value : ""}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+              {typeof p?.value === "string" ? p.value : ""}
+            </ReactMarkdown>
           </div>
         );
       }
