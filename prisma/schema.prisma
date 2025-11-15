@@ -29,6 +29,7 @@ model User {
   oneTimeSecrets OneTimeSecret[]
   pages          Page[]
   newsPosts      NewsPost[]
+  pageVersionsCreated PageVersion[]
 
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -119,22 +120,45 @@ model OneTimeSecret {
 /// Editable CMS pages managed via the admin console
 model Page {
   id           String   @id @default(cuid())
-  slug         String   // e.g. "uchilishteto/some-page" or "home"
+  // Slug now represents only the local path segment (not full path)
+  slug         String   // e.g. "home" or "some-page"
   locale       String   // e.g. "bg" | "en"
+  /// Group identifier to link the same logical node across locales (temporarily optional for backfill)
+  groupId      String?
   title        String
   excerpt      String?
   bodyMarkdown String?
   blocks       Json?
   published    Boolean  @default(true)
 
+  // Navigation hierarchy & presentation (merged from NavigationItem)
+  parentId     String?
+  parent       Page?    @relation("PageHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children     Page[]   @relation("PageHierarchy")
+  order        Int      @default(0)
+  visible      Boolean  @default(true)
+  externalUrl  String?  // When set and kind=LINK, treat as external navigation link
+  routePath    String?  // When kind=ROUTE, base route path (e.g. "pages/news") without locale prefix
+  routeOverride String? // Optional absolute/relative route to override href building
+  accessRole   Role?    // Optional role gating for visibility
+  navLabel     String?  // Optional override label separate from title
+  kind         PageKind @default(PAGE)
+
   authorId     String?
   author       User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  // Versioning (optional): current published version pointer and all versions
+  currentVersionId String?
+  currentVersion   PageVersion? @relation("CurrentPageVersion", fields: [currentVersionId], references: [id])
+  versions         PageVersion[]
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   @@unique([slug, locale])
   @@index([slug, locale])
+  @@index([groupId])
+  @@index([parentId, order])
 }
 
 /// News posts previously stored in filesystem (JSON + Markdown)
@@ -164,4 +188,55 @@ model NewsPost {
 
   @@id([id, locale])
   @@index([date])
+}
+
+/// Version snapshots of pages (drafts or published)
+model PageVersion {
+  id            String   @id @default(cuid())
+  pageId        String
+  page          Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  version       Int
+  title         String
+  excerpt       String?
+  bodyMarkdown  String?
+  blocks        Json?
+  published     Boolean  @default(false)
+  createdById   String?
+  createdBy     User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+
+  // Back-reference: some pages may point to this as currentVersion via a named relation
+  Page          Page[]   @relation("CurrentPageVersion")
+
+  @@index([pageId, version])
+}
+
+/// Editable navigation items (tree structure)
+model NavigationItem {
+  id          String   @id @default(cuid())
+  parentId    String?
+  parent      NavigationItem? @relation("NavToChildren", fields: [parentId], references: [id], onDelete: SetNull)
+  children    NavigationItem[] @relation("NavToChildren")
+  order       Int      @default(0)
+  // Internal link slug (like a page slug) or external URL
+  slug        String?
+  externalUrl String?
+  visible     Boolean  @default(true)
+  accessRole  Role?
+  // Localized labels: { "bg": "Начало", "en": "Home" }
+  labels      Json
+  meta        Json?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([parentId, order])
+}
+
+/// Page kind clarifies how a page participates in navigation / content
+enum PageKind {
+  PAGE    // Standard content page (editable blocks/markdown)
+  LINK    // External URL (no content body)
+  FOLDER  // Structural grouping without content (can still have locale variants for label)
+  ROUTE   // References an existing app route; uses routePath for href (supports subpaths)
 }
