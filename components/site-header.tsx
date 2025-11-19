@@ -20,9 +20,11 @@ interface MobileSectionProps { label: string; children: React.ReactNode }
   );
 };
 
-type UiNavNode = { label: string; href?: string; external?: boolean; children?: UiNavNode[] };
+export type UiNavNode = { label: string; href?: string; external?: boolean; children?: UiNavNode[] };
 
-export const SiteHeader: React.FC = () => {
+interface SiteHeaderProps { initialNav?: UiNavNode[] }
+
+export const SiteHeader: React.FC<SiteHeaderProps> = ({ initialNav }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<number | null>(null);
   const openTimer = useRef<number | null>(null);
@@ -30,7 +32,7 @@ export const SiteHeader: React.FC = () => {
   const pathname = usePathname();
   const tHeader = useTranslations("Header");
   const brandLabel = tHeader("brandShort");
-  const [navItems, setNavItems] = useState<UiNavNode[] | null>(null);
+  const [navItems, setNavItems] = useState<UiNavNode[] | null>(initialNav ?? null);
   const [navError, setNavError] = useState<string | null>(null);
   const locale = useLocale();
 
@@ -59,9 +61,10 @@ export const SiteHeader: React.FC = () => {
 
   useEffect(() => () => clearTimers(), []);
   useEffect(() => {
+    if (initialNav) return; // Provided by server, skip client fetch
     let aborted = false;
     const qp = locale ? `?locale=${encodeURIComponent(locale)}` : "";
-    fetch(`/api/navigation${qp}`, { cache: "no-store" })
+    fetch(`/api/navigation${qp}`, { cache: "force-cache" })
       .then(async (r) => {
         const d = await r.json();
         if (!r.ok) throw new Error(d.error || "Failed");
@@ -69,7 +72,7 @@ export const SiteHeader: React.FC = () => {
       })
       .catch((e) => { if (!aborted) setNavError(e.message || "nav failed"); });
     return () => { aborted = true; };
-  }, [locale]);
+  }, [locale, initialNav]);
   const nav = navItems ?? [];
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-700 dark:bg-slate-900/80">

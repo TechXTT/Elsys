@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { invalidateNavigationCache } from "@/app/api/navigation/route";
+import { invalidateNavigationTree } from "@/lib/navigation-build";
 
 function ensureAdmin(session: any): asserts session is { user: { id: string; role?: string } } {
   if (!session || !(session.user as any)?.id || (session.user as any)?.role !== "ADMIN") {
@@ -41,6 +43,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       if (body.routePath !== undefined) data.routePath = body.routePath;
       if (body.routeOverride !== undefined) data.routeOverride = body.routeOverride;
       await (prisma as any).page.update({ where: { id: params.id }, data });
+      invalidateNavigationCache(existing.locale);
+      await invalidateNavigationTree(existing.locale);
       return NextResponse.json({ ok: true });
     }
 
@@ -83,6 +87,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       if (body.routePath !== undefined) perLocale.routePath = body.routePath;
       if (body.routeOverride !== undefined) perLocale.routeOverride = body.routeOverride;
       await (prisma as any).page.update({ where: { id: params.id }, data: perLocale });
+      invalidateNavigationCache(existing.locale);
+      await invalidateNavigationTree(existing.locale);
     }
     // Normalize orders per locale for affected parents
     const locales: string[] = Array.from(new Set(siblings.map((s:any)=>s.locale)));
@@ -99,6 +105,11 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         const parentId = oldParentGroupId === null ? null : (oldParentGroupId ? (await (prisma as any).page.findFirst({ where: { groupId: oldParentGroupId, locale: loc }, select: { id: true } }))?.id ?? null : null);
         await normalizeParentOrders(parentId, loc);
       }
+    }
+    const affectedLocales = Array.from(new Set<string>(siblings.map((s:any)=>String(s.locale))));
+    for (const loc of affectedLocales) {
+      invalidateNavigationCache(loc);
+      await invalidateNavigationTree(loc);
     }
     return NextResponse.json({ ok: true });
   } catch (err: any) {
@@ -129,6 +140,8 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     }
     collectGroups(params.id);
     await (prisma as any).page.deleteMany({ where: { groupId: { in: Array.from(toDeleteGroupIds) } } });
+    invalidateNavigationCache();
+    await invalidateNavigationTree();
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     if (err instanceof Response) return err;

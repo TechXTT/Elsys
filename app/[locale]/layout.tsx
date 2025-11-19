@@ -3,8 +3,10 @@ import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import type { AbstractIntlMessages } from "next-intl";
 
-import { AppShell } from "../AppShell";
 import { locales, type Locale } from "@/i18n/config";
+import { getNavigationTree } from "@/lib/navigation-build";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -32,9 +34,12 @@ export default async function LocaleLayout({
     notFound();
   }
 
+  const navigation = await getNavigationTree(locale);
   return (
     <NextIntlClientProvider locale={locale} messages={messages} timeZone="Europe/Sofia">
-      <AppShell>{children}</AppShell>
+      <SiteHeader initialNav={navigation.items} />
+      {children}
+      <SiteFooter />
     </NextIntlClientProvider>
   );
 }

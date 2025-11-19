@@ -15,7 +15,7 @@ export default async function AdminDashboard() {
 
       <div className="grid gap-4 md:grid-cols-2">
         <Link href="/admin/news" className="rounded border p-4 hover:bg-gray-50 dark:hover:bg-gray-800">News management</Link>
-        <Link href={"/admin/pages" as any} className="rounded border p-4 hover:bg-gray-50 dark:hover:bg-gray-800">
+        <Link href={"/admin/navigation" as any} className="rounded border p-4 hover:bg-gray-50 dark:hover:bg-gray-800">
           Static pages (coming soon)
         </Link>
       </div>

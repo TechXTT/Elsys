@@ -2,6 +2,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { defaultLocale } from "@/i18n/config";
 
+// Simple per-locale navigation cache (tree + legacy flag)
+interface NavCacheEntry { items: any[]; legacy: boolean; expires: number }
+const NAV_CACHE = new Map<string, NavCacheEntry>();
+const NAV_TTL_MS = 60_000; // 60s; tune based on update frequency
+export function invalidateNavigationCache(locale?: string) {
+  if (locale) NAV_CACHE.delete(locale); else NAV_CACHE.clear();
+}
+
 // Build hierarchical tree from unified Page rows (single locale)
 function buildPageTree(pages: any[]) {
   const byId = new Map<string, any>();
@@ -24,6 +32,10 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const localeParam = searchParams.get("locale");
     const locale = (localeParam || defaultLocale) as string;
+    const cached = NAV_CACHE.get(locale);
+    if (cached && Date.now() < cached.expires) {
+      return NextResponse.json({ items: cached.items, legacy: cached.legacy, cached: true });
+    }
     // Fetch locale-specific pages and build tree (unified model). Fallback to legacy NavigationItem if no pages yet.
     const pages = await (prisma as any).page.findMany({
       where: { locale },
@@ -111,7 +123,8 @@ export async function GET(req: Request) {
     }
 
     const tree = visibleTree.map((n: any) => mapWithPath(n, [], false, null));
-    return NextResponse.json({ items: tree, legacy: usingLegacy });
+    NAV_CACHE.set(locale, { items: tree, legacy: usingLegacy, expires: Date.now() + NAV_TTL_MS });
+    return NextResponse.json({ items: tree, legacy: usingLegacy, cached: false });
   } catch (err: any) {
     console.error("/api/navigation GET error", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
