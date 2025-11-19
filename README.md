@@ -1,87 +1,77 @@
 # Elsys Website
 
-A multilingual (bg/en) school website built with Next.js 15 App Router, TypeScript, Tailwind CSS, and Prisma. Content is stored as local JSON/Markdown and rendered through localized routes.
+Elsys is a multilingual (Bulgarian/English) school website built with the Next.js App Router. It combines a localized content strategy (JSON/Markdown) with a lightweight admin surface, Prisma-backed persistence, and modern frontend tooling.
 
-## Stack
-- Next.js (App Router) + React
-- TypeScript
-- Tailwind CSS
-- NextAuth.js (Auth)
-- Prisma + SQLite (dev) / adapt for your DB
-- pnpm workspace
+**Core features**
+- Multilingual site routing (`app/[locale]/...`) with server-side localized rendering
+- CMS-style content stored in `content/{bg|en}` (JSON + Markdown)
+- Admin UI for pages, navigation and news under `app/admin`
+- Navigation tree caching with server-side hydration to improve first-load performance
+- Auth via NextAuth for admin flows
+- Prisma ORM for DB access and migrations
+- Tailwind CSS + TypeScript for modern frontend DX
 
-## Project structure
-- `app/` – App Router pages. Localized under `app/[locale]/...`
-- `components/` – UI components
-- `content/` – Localized content in `bg/` and `en/` (JSON + Markdown)
-- `i18n/` – i18n routing/config
-- `lib/` – helpers (content loader, auth, Prisma client, etc.)
-- `messages/` – translation messages per locale
-- `prisma/` – Prisma schema, migrations, and seed
-- `scripts/` – content utilities
+## Quick Setup
 
-## Prerequisites
-- Node 18+
-- pnpm 9+
+Prerequisites:
+- Node 18+ (or compatible LTS)
+- `pnpm` (recommended) — v7+ works, v9+ preferred
 
-## Getting started
-1) Install dependencies
-```sh
+1. Install dependencies
+```bash
 pnpm install
 ```
 
-2) Configure environment variables
-- Copy `.env.example` to `.env`
-- Fill required secrets (NextAuth, DB URL, etc.)
+2. Environment
+- Copy the example environment file and update values:
+```bash
+cp .env.example .env
+```
+- Make sure to set `DATABASE_URL`, NextAuth secrets and any other required variables.
 
-3) Setup database (Prisma)
-```sh
-pnpm prisma migrate dev
+3. Database (Prisma)
+```bash
+pnpm prisma generate
+pnpm prisma migrate dev --name init
 pnpm prisma db seed
 ```
 
-4) Run the dev server
-```sh
+4. Run the dev server
+```bash
 pnpm dev
 ```
-App runs on http://localhost:3000
+Open http://localhost:3000
 
-## Content model
-- News, pages, and other sections live under `content/{bg|en}/...`
-- Lists typically have an `index.json`
-- News posts can be Markdown (e.g., `content/bg/news/*.md`) with front‑matter parsed by the app
+## Project Layout (high level)
+- `app/` – Next.js App Router routes, localized layouts under `app/[locale]`
+- `components/` – UI components and admin widgets
+- `content/` – localized content files (`bg/`, `en/`)
+- `lib/` – runtime helpers (Prisma client, content loader, navigation builder)
+- `prisma/` – schema, migrations and seed scripts
+- `scripts/` – content import / maintenance utilities
 
-## i18n routing
-- Localized routes are served from `app/[locale]/...`
-- Middleware handles locale detection and redirects
-- Switch locales via the `LocaleSwitcher` component
+## Admin & API
+- Admin UI: `app/admin` (requires authentication)
+- API routes live under `app/api/*`, including admin endpoints that update content and invalidate navigation caches
 
-## Admin and API
-- Admin UI under `app/admin`
-- News API routes under `app/api/admin/news`
-- Auth via NextAuth at `app/api/auth/[...nextauth]`
+## Common Commands
+- Install: `pnpm install`
+- Dev: `pnpm dev`
+- Build: `pnpm build`
+- Start (production): `pnpm start`
+- Prisma: `pnpm prisma generate`, `pnpm prisma migrate dev`, `pnpm prisma db seed`
+- Lint: `pnpm lint`
 
-## Useful scripts
-- `scripts/scrape-content.*` – content import utilities
-- `scripts/set-placeholder-bodies.mjs` – fill body placeholders
-- `scripts/update-team-index.mjs` – regenerate team index
+## Deployment
+This project is designed for Vercel (App Router) but can be deployed to any Node host. Ensure environment variables are set and the database is accessible from your deployment target.
 
-## Build and deploy
-```sh
-pnpm build
-pnpm start
-```
-- Designed to deploy easily to Vercel (or any Node host)
+## Troubleshooting & notes
+- If you see missing Prisma types: `pnpm prisma generate`
+- For local dev, use a local SQLite or Postgres DB and ensure `DATABASE_URL` is correct
+- When changing navigation or admin data, APIs will invalidate server caches — if UI appears stale, restarting dev server or clearing build cache helps during development
 
-## Linting
-```sh
-pnpm lint
-```
-
-## Troubleshooting
-- If Prisma types are missing, run `pnpm prisma generate`
-- If migrations drift, run `pnpm prisma migrate reset` (dev only – drops data)
-- Ensure `.env` matches your local DB setup
+## Contributing
+- Fork and open a PR. Keep changes focused and add migration/seed updates when altering the schema.
 
 ## License
-MIT (c) project authors
+MIT
