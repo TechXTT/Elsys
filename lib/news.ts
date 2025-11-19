@@ -2,6 +2,20 @@ import { prisma } from "./prisma";
 import { defaultLocale, type Locale } from "@/i18n/config";
 import type { PostItem } from "@/lib/types";
 
+// Lightweight in-memory TTL cache for list queries to reduce DB load
+interface CacheEntry<T> { value: T; expires: number }
+const LIST_CACHE = new Map<string, CacheEntry<PostItem[]>>();
+const LIST_TTL_MS = 60_000; // 60s
+function cacheGet(key: string): PostItem[] | null {
+  const entry = LIST_CACHE.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expires) { LIST_CACHE.delete(key); return null; }
+  return entry.value;
+}
+function cacheSet(key: string, value: PostItem[]) {
+  LIST_CACHE.set(key, { value, expires: Date.now() + LIST_TTL_MS });
+}
+
 type ImageMeta = NonNullable<PostItem["images"]>[number];
 
 interface NewsRow {
@@ -24,7 +38,7 @@ function toPostItem(row: NewsRow): PostItem {
     title: row.title,
     excerpt: row.excerpt ?? undefined,
     date: row.date?.toISOString?.() ?? undefined,
-    href: `/novini/${row.id}`,
+    href: `/news/${row.id}`,
     image,
     images,
     published: row.published,
@@ -33,34 +47,34 @@ function toPostItem(row: NewsRow): PostItem {
 
 export async function getNewsPosts(locale?: Locale, includeDrafts = false): Promise<PostItem[]> {
   const loc = (locale ?? defaultLocale) as string;
-  // query for requested locale first
-  const items: NewsRow[] = await (prisma as any).newsPost.findMany({
-    where: { locale: loc, ...(includeDrafts ? {} : { published: true }) },
+  const cacheKey = `${loc}|${includeDrafts ? 'all' : 'pub'}`;
+  const cached = cacheGet(cacheKey);
+  if (cached) return cached;
+
+  const localesToFetch = loc === defaultLocale ? [loc] : [loc, defaultLocale];
+  const rows: NewsRow[] = await (prisma as any).newsPost.findMany({
+    where: { locale: { in: localesToFetch }, ...(includeDrafts ? {} : { published: true }) },
     orderBy: { date: "desc" },
+    select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, date: true, images: true, featuredImage: true, published: true },
   });
-  if (items.length > 0) return items.map(toPostItem);
-  if (locale && locale !== defaultLocale) {
-    const fallback: NewsRow[] = await (prisma as any).newsPost.findMany({
-      where: { locale: defaultLocale, ...(includeDrafts ? {} : { published: true }) },
-      orderBy: { date: "desc" },
-    });
-    return fallback.map(toPostItem);
-  }
-  return [];
+  const primary = rows.filter(r => r.locale === loc);
+  const effective = primary.length > 0 ? primary : rows.filter(r => r.locale === defaultLocale);
+  const out = effective.map(toPostItem);
+  cacheSet(cacheKey, out);
+  return out;
 }
 
 export async function getNewsPost(slug: string, locale?: Locale, includeDrafts = false): Promise<{ post: PostItem; markdown: string; published: boolean } | null> {
   const loc = (locale ?? defaultLocale) as string;
-  const row: NewsRow | null = await (prisma as any).newsPost.findUnique({
-    where: { id_locale: { id: slug, locale: loc } },
+  const localesToFetch = loc === defaultLocale ? [loc] : [loc, defaultLocale];
+  const rows: NewsRow[] = await (prisma as any).newsPost.findMany({
+    where: { id: slug, locale: { in: localesToFetch } },
+    select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, date: true, images: true, featuredImage: true, published: true },
   });
-  if (row && (includeDrafts || row.published)) return { post: toPostItem(row), markdown: row.bodyMarkdown, published: row.published };
-  if (locale && locale !== defaultLocale) {
-    const fb: NewsRow | null = await (prisma as any).newsPost.findUnique({
-      where: { id_locale: { id: slug, locale: defaultLocale } },
-    });
-    if (fb && (includeDrafts || fb.published)) return { post: toPostItem(fb), markdown: fb.bodyMarkdown, published: fb.published };
-  }
+  const primary = rows.find(r => r.locale === loc);
+  if (primary && (includeDrafts || primary.published)) return { post: toPostItem(primary), markdown: primary.bodyMarkdown, published: primary.published };
+  const fb = rows.find(r => r.locale === defaultLocale);
+  if (fb && (includeDrafts || fb.published)) return { post: toPostItem(fb), markdown: fb.bodyMarkdown, published: fb.published };
   return null;
 }
 

@@ -188,6 +188,8 @@ model NewsPost {
 
   @@id([id, locale])
   @@index([date])
+  /// Composite index to speed locale + published + date queries
+  @@index([locale, published, date])
 }
 
 /// Version snapshots of pages (drafts or published)
