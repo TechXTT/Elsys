@@ -38,7 +38,7 @@ export const NewsCard: React.FC<NewsCardProps> = ({ post, locale = defaultLocale
   // Build a locale-prefixed href that works in both App Router and Pages Router contexts
   const rawHref = post.href || "/";
   const hasLocalePrefix = /^\/(?:bg|en)(?:\/|$)/.test(rawHref);
-  const href = hasLocalePrefix ? rawHref : `/${locale}${rawHref.startsWith('/') ? '' : '/'}${rawHref.replace(/^\//, '')}`;
+  const href = hasLocalePrefix ? rawHref : `/${locale}/${rawHref.startsWith('/') ? '' : '/'}${rawHref.replace(/^\//, '')}`;
   return (
     <NextLink
       href={href as unknown as any}
