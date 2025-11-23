@@ -140,10 +140,37 @@ const PAGE_SLUGS_EN: Record<string, string> = {
   "tues-talks": "tues-talks",
 };
 
+const folderGroupCache = new Map<string, string>();
+const pageGroupCache = new Map<string, string>();
+
 interface BlockInstance { type: string; props?: Record<string, unknown> }
 interface PageBlocks { slug: string; url: string; blocks: BlockInstance[] }
 
 function gid(prefix = "G|page") { return `${prefix}|${crypto.randomUUID()}`; }
+
+type EnsureFolderOptions = {
+  groupKey?: string;
+  aliases?: string[];
+};
+
+async function ensurePageGroupId(fullSlug: string, bgLeafSlug: string, enLeafSlug: string): Promise<string> {
+  const key = fullSlug || "home";
+  if (pageGroupCache.has(key)) return pageGroupCache.get(key)!;
+  const slugCandidates = Array.from(new Set([fullSlug, bgLeafSlug, enLeafSlug].filter(Boolean)));
+  if (!slugCandidates.length) slugCandidates.push("home");
+  const related = await prisma.page.findMany({
+    where: { slug: { in: slugCandidates } },
+    select: { id: true, groupId: true },
+  });
+  let groupId = related.find((r) => r.groupId)?.groupId ?? gid();
+  const updates = related.filter((r) => r.groupId !== groupId).map((r) =>
+    prisma.page.update({ where: { id: r.id }, data: { groupId } })
+  );
+  if (updates.length) await Promise.all(updates);
+  pageGroupCache.set(key, groupId);
+  return groupId;
+}
+
 function isRecord(v: unknown): v is Record<string, unknown> { return !!v && typeof v === "object" && !Array.isArray(v); }
 
 // Minimal validation mirroring registry (subset)
@@ -187,14 +214,36 @@ async function getNextVersion(pageId: string): Promise<number> {
   return (latest?.version ?? 0) + 1;
 }
 
-async function ensureFolder(segment: string, locale: string): Promise<{ id: string }> {
-  // FOLDER pages are globally unique by slug+locale under current schema.
-  const existing = await prisma.page.findUnique({ where: { slug_locale: { slug: segment, locale } }, select: { id: true, title: true, navLabel: true } });
-  const label = (locale === 'en' ? (FOLDER_LABELS_EN[segment] ?? beautifySlug(segment)) : (FOLDER_LABELS[segment] ?? beautifySlug(segment)));
+async function ensureFolder(segment: string, locale: string, options?: EnsureFolderOptions): Promise<{ id: string }> {
+  const canonicalKey = options?.groupKey ?? segment;
+  const slugCandidates = Array.from(new Set([segment, canonicalKey, ...(options?.aliases ?? [])].filter(Boolean)));
+  const related = await prisma.page.findMany({
+    where: { slug: { in: slugCandidates } },
+    select: { id: true, slug: true, locale: true, groupId: true, title: true, navLabel: true, kind: true },
+  });
+  let groupId = folderGroupCache.get(canonicalKey)
+    ?? related.find((r) => r.groupId)?.groupId
+    ?? gid('G|folder');
+  folderGroupCache.set(canonicalKey, groupId);
+  const groupUpdates = related
+    .filter((r) => r.groupId !== groupId)
+    .map((r) => prisma.page.update({ where: { id: r.id }, data: { groupId } }));
+  if (groupUpdates.length) await Promise.all(groupUpdates);
+
+  const label = (locale === 'en'
+    ? (FOLDER_LABELS_EN[canonicalKey] ?? FOLDER_LABELS_EN[segment] ?? beautifySlug(segment))
+    : (FOLDER_LABELS[canonicalKey] ?? FOLDER_LABELS[segment] ?? beautifySlug(segment)));
+  const existing = related.find((r) => r.slug === segment && r.locale === locale) ?? null;
   if (existing) {
-    // Ensure existing folders also have friendly labels
+    const updateData: Record<string, unknown> = {};
+    if (!existing.groupId || existing.groupId !== groupId) updateData.groupId = groupId;
     if ((existing.title ?? "") !== label || (existing.navLabel ?? "") !== label) {
-      await prisma.page.update({ where: { id: existing.id }, data: { title: label, navLabel: label } });
+      updateData.title = label;
+      updateData.navLabel = label;
+    }
+    if (existing.kind !== 'FOLDER') updateData.kind = 'FOLDER';
+    if (Object.keys(updateData).length) {
+      await prisma.page.update({ where: { id: existing.id }, data: updateData });
     }
     return { id: existing.id };
   }
@@ -204,13 +253,13 @@ async function ensureFolder(segment: string, locale: string): Promise<{ id: stri
       locale,
       title: label,
       navLabel: label,
-      kind: "FOLDER",
+      kind: 'FOLDER',
       published: true,
       order: 0,
       visible: true,
-      // groupId optional for folder; omit to satisfy schema if field wasn't added
+      groupId,
     },
-    select: { id: true }
+    select: { id: true },
   });
   return created;
 }
@@ -221,13 +270,16 @@ async function upsertPageBG(p: PageBlocks) {
   const segments = fullSlug.split("/").filter(Boolean);
   const val = validateBlocks(p.blocks);
   if (!val.ok) console.warn(`[warn] ${fullSlug} block issues:`, val.errors.join("; "));
+  const leafSlug = segments.length ? segments[segments.length - 1] : "home";
+  const enLeafCandidate = PAGE_SLUGS_EN[fullSlug] ?? leafSlug;
+  const groupId = await ensurePageGroupId(fullSlug, leafSlug, enLeafCandidate);
 
   // Homepage special case
   if (fullSlug === "home" || segments.length === 0) {
     const existingHome = await prisma.page.findUnique({ where: { slug_locale: { slug: "home", locale } }, include: { currentVersion: true } });
     const title = deriveTitle(val.normalized, "home", "home", locale);
     if (!existingHome) {
-      const created = await prisma.page.create({ data: { slug: "home", locale, title, navLabel: title, published: true, kind: "PAGE", blocks: val.normalized as any, order: 0, visible: true }, select: { id: true } });
+      const created = await prisma.page.create({ data: { slug: "home", locale, title, navLabel: title, published: true, kind: "PAGE", blocks: val.normalized as any, order: 0, visible: true, groupId }, select: { id: true } });
       const version = await getNextVersion(created.id);
       const pv = await prisma.pageVersion.create({ data: { pageId: created.id, version, title, published: true, blocks: val.normalized as any } });
       await prisma.page.update({ where: { id: created.id }, data: { currentVersionId: pv.id } });
@@ -236,7 +288,7 @@ async function upsertPageBG(p: PageBlocks) {
     // Update existing home
     const version = await getNextVersion(existingHome.id);
     const pv = await prisma.pageVersion.create({ data: { pageId: existingHome.id, version, title, published: true, blocks: val.normalized as any } });
-    await prisma.page.update({ where: { id: existingHome.id }, data: { title, navLabel: title, blocks: val.normalized as any, currentVersionId: pv.id, published: true } });
+    await prisma.page.update({ where: { id: existingHome.id }, data: { title, navLabel: title, blocks: val.normalized as any, currentVersionId: pv.id, published: true, groupId } });
     return { id: existingHome.id, created: false };
   }
 
@@ -245,10 +297,9 @@ async function upsertPageBG(p: PageBlocks) {
   if (segments.length > 1) {
     // Only create top-level folder segment; deeper nesting would conflict with uniqueness constraint anyway.
     const folderSeg = segments[0];
-    const folder = await ensureFolder(folderSeg, locale);
+    const folder = await ensureFolder(folderSeg, locale, { groupKey: folderSeg });
     parentId = folder.id;
   }
-  const leafSlug = segments[segments.length - 1];
 
   // Detect existing page stored previously as full path (legacy) and migrate it.
   const legacyFull = await prisma.page.findUnique({ where: { slug_locale: { slug: fullSlug, locale } } });
@@ -259,14 +310,14 @@ async function upsertPageBG(p: PageBlocks) {
     const title = deriveTitle(val.normalized, fullSlug, leafSlug, locale);
     const version = await getNextVersion(legacyFull.id);
     const pv = await prisma.pageVersion.create({ data: { pageId: legacyFull.id, version, title, published: true, blocks: val.normalized as any } });
-    await prisma.page.update({ where: { id: legacyFull.id }, data: { slug: leafSlug, parentId, title, navLabel: title, kind: "PAGE", blocks: val.normalized as any, currentVersionId: pv.id, published: true } });
+    await prisma.page.update({ where: { id: legacyFull.id }, data: { slug: leafSlug, parentId, title, navLabel: title, kind: "PAGE", blocks: val.normalized as any, currentVersionId: pv.id, published: true, groupId } });
     return { id: legacyFull.id, created: false };
   }
 
   const page = existingLeaf;
   const title = deriveTitle(val.normalized, fullSlug, leafSlug, locale);
   if (!page) {
-    const created = await prisma.page.create({ data: { slug: leafSlug, locale, title, navLabel: title, parentId, published: true, kind: "PAGE", blocks: val.normalized as any, order: 0, visible: true }, select: { id: true } });
+    const created = await prisma.page.create({ data: { slug: leafSlug, locale, title, navLabel: title, parentId, published: true, kind: "PAGE", blocks: val.normalized as any, order: 0, visible: true, groupId }, select: { id: true } });
     const version = await getNextVersion(created.id);
     const pv = await prisma.pageVersion.create({ data: { pageId: created.id, version, title, published: true, blocks: val.normalized as any } });
     await prisma.page.update({ where: { id: created.id }, data: { currentVersionId: pv.id } });
@@ -274,7 +325,7 @@ async function upsertPageBG(p: PageBlocks) {
   }
   const version = await getNextVersion(page.id);
   const pv = await prisma.pageVersion.create({ data: { pageId: page.id, version, title, published: true, blocks: val.normalized as any } });
-  await prisma.page.update({ where: { id: page.id }, data: { title, navLabel: title, parentId, blocks: val.normalized as any, currentVersionId: pv.id, published: true } });
+  await prisma.page.update({ where: { id: page.id }, data: { title, navLabel: title, parentId, blocks: val.normalized as any, currentVersionId: pv.id, published: true, groupId } });
   return { id: page.id, created: false };
 }
 
@@ -285,13 +336,16 @@ async function upsertPageEN(p: PageBlocks) {
   const val = validateBlocks(p.blocks);
   if (!val.ok) console.warn(`[warn][en] ${fullSlugBG} block issues:`, val.errors.join("; "));
   const blocksEN = await translateBlocksToEN(val.normalized);
+  const leafBg = segmentsBG.length ? segmentsBG[segmentsBG.length - 1] : "home";
+  const leafEnSlug = PAGE_SLUGS_EN[fullSlugBG] ?? leafBg;
+  const groupId = await ensurePageGroupId(fullSlugBG, leafBg, leafEnSlug);
 
   // Resolve English slugs for folder+leaf
   if (fullSlugBG === "home" || segmentsBG.length === 0) {
     const existingHome = await prisma.page.findUnique({ where: { slug_locale: { slug: "home", locale } }, include: { currentVersion: true } });
     const title = deriveTitle(blocksEN, "home", "home", locale);
     if (!existingHome) {
-      const created = await prisma.page.create({ data: { slug: "home", locale, title, navLabel: title, published: true, kind: "PAGE", blocks: blocksEN as any, order: 0, visible: true }, select: { id: true } });
+      const created = await prisma.page.create({ data: { slug: "home", locale, title, navLabel: title, published: true, kind: "PAGE", blocks: blocksEN as any, order: 0, visible: true, groupId }, select: { id: true } });
       const version = await getNextVersion(created.id);
       const pv = await prisma.pageVersion.create({ data: { pageId: created.id, version, title, published: true, blocks: blocksEN as any } });
       await prisma.page.update({ where: { id: created.id }, data: { currentVersionId: pv.id } });
@@ -299,7 +353,7 @@ async function upsertPageEN(p: PageBlocks) {
     }
     const version = await getNextVersion(existingHome.id);
     const pv = await prisma.pageVersion.create({ data: { pageId: existingHome.id, version, title, published: true, blocks: blocksEN as any } });
-    await prisma.page.update({ where: { id: existingHome.id }, data: { title, navLabel: title, blocks: blocksEN as any, currentVersionId: pv.id, published: true } });
+    await prisma.page.update({ where: { id: existingHome.id }, data: { title, navLabel: title, blocks: blocksEN as any, currentVersionId: pv.id, published: true, groupId } });
     return { id: existingHome.id, created: false };
   }
 
@@ -308,12 +362,10 @@ async function upsertPageEN(p: PageBlocks) {
   if (segmentsBG.length > 1) {
     const folderBg = segmentsBG[0];
     const folderEnSlug = FOLDER_SLUGS_EN[folderBg] ?? folderBg;
-    const folder = await ensureFolder(folderEnSlug, locale);
+    const folder = await ensureFolder(folderEnSlug, locale, { groupKey: folderBg });
     parentId = folder.id;
   }
   const fullSlug = fullSlugBG; // key into maps
-  const leafBg = segmentsBG[segmentsBG.length - 1];
-  const leafEnSlug = PAGE_SLUGS_EN[fullSlug] ?? leafBg;
 
   // Migration from legacy full-path English (unlikely); try both
   const legacyFull = await prisma.page.findUnique({ where: { slug_locale: { slug: fullSlug, locale } } });
@@ -323,12 +375,12 @@ async function upsertPageEN(p: PageBlocks) {
   if (legacyFull && !existingLeaf) {
     const version = await getNextVersion(legacyFull.id);
     const pv = await prisma.pageVersion.create({ data: { pageId: legacyFull.id, version, title, published: true, blocks: blocksEN as any } });
-    await prisma.page.update({ where: { id: legacyFull.id }, data: { slug: leafEnSlug, parentId, title, navLabel: title, kind: "PAGE", blocks: blocksEN as any, currentVersionId: pv.id, published: true } });
+    await prisma.page.update({ where: { id: legacyFull.id }, data: { slug: leafEnSlug, parentId, title, navLabel: title, kind: "PAGE", blocks: blocksEN as any, currentVersionId: pv.id, published: true, groupId } });
     return { id: legacyFull.id, created: false };
   }
 
   if (!existingLeaf) {
-    const created = await prisma.page.create({ data: { slug: leafEnSlug, locale, title, navLabel: title, parentId, published: true, kind: "PAGE", blocks: blocksEN as any, order: 0, visible: true }, select: { id: true } });
+    const created = await prisma.page.create({ data: { slug: leafEnSlug, locale, title, navLabel: title, parentId, published: true, kind: "PAGE", blocks: blocksEN as any, order: 0, visible: true, groupId }, select: { id: true } });
     const version = await getNextVersion(created.id);
     const pv = await prisma.pageVersion.create({ data: { pageId: created.id, version, title, published: true, blocks: blocksEN as any } });
     await prisma.page.update({ where: { id: created.id }, data: { currentVersionId: pv.id } });
@@ -336,7 +388,7 @@ async function upsertPageEN(p: PageBlocks) {
   }
   const version = await getNextVersion(existingLeaf.id);
   const pv = await prisma.pageVersion.create({ data: { pageId: existingLeaf.id, version, title, published: true, blocks: blocksEN as any } });
-  await prisma.page.update({ where: { id: existingLeaf.id }, data: { title, navLabel: title, parentId, blocks: blocksEN as any, currentVersionId: pv.id, published: true } });
+  await prisma.page.update({ where: { id: existingLeaf.id }, data: { title, navLabel: title, parentId, blocks: blocksEN as any, currentVersionId: pv.id, published: true, groupId } });
   return { id: existingLeaf.id, created: false };
 }
 

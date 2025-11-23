@@ -17,6 +17,9 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     ensureAdmin(session);
     const existing = await (prisma as any).page.findUnique({ where: { id: params.id }, select: { parentId: true, locale: true, groupId: true } });
     if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    const existingParentGroupId = existing.parentId
+      ? (await (prisma as any).page.findUnique({ where: { id: existing.parentId }, select: { groupId: true } }))?.groupId ?? null
+      : null;
     const body = (await req.json().catch(() => null)) as {
       parentId?: string | null;
       order?: number;
@@ -50,22 +53,26 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
     // Structural update: propagate to all locales in the same group
     const siblings = await (prisma as any).page.findMany({ where: { groupId: existing.groupId }, select: { id: true, locale: true, parentId: true } });
-    // If parentId changes, map to per-locale parent using its groupId
-    let parentGroupId: string | null = null;
+    // Track target parent group for new placement (if parentId provided)
+    let parentGroupIdForMapping: string | null | undefined = undefined;
+    let parentGroupIdForNormalization: string | null = existingParentGroupId;
     if (Object.prototype.hasOwnProperty.call(body, 'parentId')) {
       if (body.parentId) {
         const parent = await (prisma as any).page.findUnique({ where: { id: body.parentId }, select: { groupId: true } });
-        parentGroupId = parent?.groupId ?? null;
+        parentGroupIdForMapping = parent?.groupId ?? null;
+        parentGroupIdForNormalization = parentGroupIdForMapping ?? null;
       } else {
-        parentGroupId = null;
+        parentGroupIdForMapping = null;
+        parentGroupIdForNormalization = null;
       }
     }
     await (prisma as any).$transaction(async (tx: any) => {
       for (const s of siblings) {
         let mappedParentId: string | null | undefined = undefined;
-        if (Object.prototype.hasOwnProperty.call(body, 'parentId')) {
-          if (parentGroupId === null) mappedParentId = null; else {
-            const parentLoc = await tx.page.findFirst({ where: { groupId: parentGroupId, locale: s.locale }, select: { id: true } });
+        if (parentGroupIdForMapping !== undefined) {
+          if (parentGroupIdForMapping === null) mappedParentId = null;
+          else {
+            const parentLoc = await tx.page.findFirst({ where: { groupId: parentGroupIdForMapping, locale: s.locale }, select: { id: true } });
             mappedParentId = parentLoc?.id ?? null;
           }
         }
@@ -92,18 +99,25 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     }
     // Normalize orders per locale for affected parents
     const locales: string[] = Array.from(new Set(siblings.map((s:any)=>s.locale)));
-    // Normalize new parent
+    const resolveParentId = async (groupId: string | null, loc: string) => {
+      if (groupId === null) return null;
+      if (!groupId) return null;
+      const parentLoc = await (prisma as any).page.findFirst({ where: { groupId, locale: loc }, select: { id: true } });
+      return parentLoc?.id ?? null;
+    };
+    // Normalize current parent (existing or newly selected)
     for (const loc of locales) {
-      const parentId = parentGroupId === null ? null : (parentGroupId ? (await (prisma as any).page.findFirst({ where: { groupId: parentGroupId, locale: loc }, select: { id: true } }))?.id ?? null : null);
+      const parentId = parentGroupIdForNormalization === null ? null : await resolveParentId(parentGroupIdForNormalization, loc);
       await normalizeParentOrders(parentId, loc);
     }
-    // Normalize old parent as well (if parent changed)
+    // Normalize previous parent if it differs from the new target
     if (Object.prototype.hasOwnProperty.call(body, 'parentId')) {
-      const oldParent = existing.parentId ? await (prisma as any).page.findUnique({ where: { id: existing.parentId }, select: { groupId: true } }) : null;
-      const oldParentGroupId = oldParent?.groupId ?? null;
-      for (const loc of locales) {
-        const parentId = oldParentGroupId === null ? null : (oldParentGroupId ? (await (prisma as any).page.findFirst({ where: { groupId: oldParentGroupId, locale: loc }, select: { id: true } }))?.id ?? null : null);
-        await normalizeParentOrders(parentId, loc);
+      const oldParentGroupId = existingParentGroupId;
+      if (oldParentGroupId !== parentGroupIdForNormalization) {
+        for (const loc of locales) {
+          const parentId = oldParentGroupId === null ? null : await resolveParentId(oldParentGroupId, loc);
+          await normalizeParentOrders(parentId, loc);
+        }
       }
     }
     const affectedLocales = Array.from(new Set<string>(siblings.map((s:any)=>String(s.locale))));
@@ -152,8 +166,18 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
 
 async function normalizeParentOrders(parentId: string | null, locale: string) {
   const where = parentId === null ? { parentId: null as any, locale } : { parentId, locale };
-  const siblings = await (prisma as any).page.findMany({ where, orderBy: { order: 'asc' }, select: { id: true } });
+  const siblings = await (prisma as any).page.findMany({
+    where,
+    orderBy: [
+      { order: 'asc' },
+      { updatedAt: 'desc' },
+      { id: 'asc' },
+    ],
+    select: { id: true },
+  });
   const tx: any[] = [];
-  siblings.forEach((s: any, i: number) => { tx.push((prisma as any).page.update({ where: { id: s.id }, data: { order: i } })); });
+  siblings.forEach((s: any, i: number) => {
+    tx.push((prisma as any).page.update({ where: { id: s.id }, data: { order: i } }));
+  });
   if (tx.length) await (prisma as any).$transaction(tx);
 }

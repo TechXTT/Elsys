@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useMemo, useState, DragEvent, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useState, DragEvent, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { locales as supportedLocales, defaultLocale } from "@/i18n/config";
 
 type PageNode = {
   id: string;
@@ -15,18 +16,26 @@ type PageNode = {
   accessRole: string | null;
   navLabel: string | null;
   kind: string; // PAGE | LINK | FOLDER | ROUTE
+  locale?: string;
   idsByLocale?: Record<string, string>;
   slugByLocale?: Record<string, string | null>;
   labelByLocale?: Record<string, string | null>;
   routeOverrideByLocale?: Record<string, string | null>;
+  routePathByLocale?: Record<string, string | null>;
+  externalUrlByLocale?: Record<string, string | null>;
   children: PageNode[];
 };
 
 type DropMode = "inside" | "above" | "below";
 
+const NAV_LOCALES = Array.from(supportedLocales);
+const PRIMARY_LOCALE = defaultLocale && NAV_LOCALES.includes(defaultLocale)
+  ? defaultLocale
+  : (NAV_LOCALES[0] ?? "bg");
+
 export default function NavigationAdminPage() {
   const router = useRouter();
-  const [locale, setLocale] = useState<string>("bg");
+  const [locale, setLocale] = useState<string>(PRIMARY_LOCALE);
   const [tree, setTree] = useState<PageNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,20 +47,20 @@ export default function NavigationAdminPage() {
   const [saving, setSaving] = useState(false);
 
   const [newParent, setNewParent] = useState<string>("");
-  const [newSlug, setNewSlug] = useState<string>("");
-  const [newExternal, setNewExternal] = useState<string>("");
-  const [newRoutePath, setNewRoutePath] = useState<string>("");
-  const [newRouteSlug, setNewRouteSlug] = useState<string>("");
-  const [newRouteOverride, setNewRouteOverride] = useState<string>("");
-  const [newNavLabel, setNewNavLabel] = useState<string>("");
+  const [newSlug, setNewSlug] = useState<Record<string, string>>({ bg: "", en: "" });
+  const [newExternal, setNewExternal] = useState<Record<string, string>>({ bg: "", en: "" });
+  const [newRoutePath, setNewRoutePath] = useState<Record<string, string>>({ bg: "", en: "" });
+  const [newRouteSlug, setNewRouteSlug] = useState<Record<string, string>>({ bg: "", en: "" });
+  const [newRouteOverride, setNewRouteOverride] = useState<Record<string, string>>({ bg: "", en: "" });
+  const [newNavLabel, setNewNavLabel] = useState<Record<string, string>>({ bg: "", en: "" });
   const [newKind, setNewKind] = useState<string>("PAGE");
-  const [createAllLocales, setCreateAllLocales] = useState<boolean>(false);
 
-  async function load() {
+  const load = useCallback(async (fetchLocale: string = PRIMARY_LOCALE) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/navigation`, { cache: "no-store" });
+      const search = fetchLocale ? `?locale=${encodeURIComponent(fetchLocale)}` : "";
+      const res = await fetch(`/api/admin/navigation${search}`, { cache: "no-store" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Load failed");
       setTree(data.items as PageNode[]);
@@ -60,8 +69,8 @@ export default function NavigationAdminPage() {
     } finally {
       setLoading(false);
     }
-  }
-  useEffect(() => { void load(); }, []);
+  }, []);
+  useEffect(() => { void load(); }, [load]);
 
   const flat = useMemo(() => {
     const out: PageNode[] = [];
@@ -77,20 +86,26 @@ export default function NavigationAdminPage() {
     try {
       const payload: any = {
         parentId: newParent || null,
-        slug: newKind === 'LINK' ? null : (newKind === 'ROUTE' ? (newRouteSlug || null) : (newSlug || null)),
-        externalUrl: newKind === 'LINK' ? (newExternal || null) : null,
-        routePath: newKind === 'ROUTE' ? (newRoutePath || newSlug || null) : null,
-        routeOverride: newRouteOverride || null,
-        navLabel: newNavLabel || newSlug || newExternal || null,
+        slugByLocale: Object.fromEntries(NAV_LOCALES.map((code) => [code, newSlug[code] || null])),
+        externalByLocale: Object.fromEntries(NAV_LOCALES.map((code) => [code, newExternal[code] || null])),
+        routePathByLocale: Object.fromEntries(NAV_LOCALES.map((code) => [code, newRoutePath[code] || null])),
+        routeSlugByLocale: Object.fromEntries(NAV_LOCALES.map((code) => [code, newRouteSlug[code] || null])),
+        routeOverrideByLocale: Object.fromEntries(NAV_LOCALES.map((code) => [code, newRouteOverride[code] || null])),
+        navLabelByLocale: Object.fromEntries(NAV_LOCALES.map((code) => [code, newNavLabel[code] || null])),
         kind: newKind,
         visible: true,
-        createAllLocales: createAllLocales || undefined
       };
       const res = await fetch('/api/admin/navigation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Create failed');
-      setNewParent(''); setNewSlug(''); setNewExternal(''); setNewRoutePath(''); setNewRouteSlug(''); setNewRouteOverride(''); setNewNavLabel(''); setNewKind('PAGE');
-      setCreateAllLocales(false);
+      setNewParent('');
+      setNewSlug({ bg: "", en: "" });
+      setNewExternal({ bg: "", en: "" });
+      setNewRoutePath({ bg: "", en: "" });
+      setNewRouteSlug({ bg: "", en: "" });
+      setNewRouteOverride({ bg: "", en: "" });
+      setNewNavLabel({ bg: "", en: "" });
+      setNewKind('PAGE');
       await load();
     } catch (e: any) {
       setError(e.message || 'Failed to create');
@@ -124,17 +139,31 @@ export default function NavigationAdminPage() {
             if (node.id === id) {
               Object.assign(node, patch);
               // Also sync aggregated maps if patch contains localized fields
+              const baseLocale = node.locale ?? PRIMARY_LOCALE;
               if ('navLabel' in patch) {
-                node.labelByLocale = { ...(node.labelByLocale||{}), ['bg']: patch.navLabel as any };
-                node.navLabel = patch.navLabel as any;
+                const value = (patch.navLabel ?? null) as string | null;
+                node.labelByLocale = { ...(node.labelByLocale || {}), [baseLocale]: value };
+                node.navLabel = value;
               }
               if ('slug' in patch) {
-                node.slugByLocale = { ...(node.slugByLocale||{}), ['bg']: patch.slug as any };
-                node.slug = patch.slug as any;
+                const value = (patch.slug ?? null) as string | null;
+                node.slugByLocale = { ...(node.slugByLocale || {}), [baseLocale]: value };
+                node.slug = value;
               }
               if ('routeOverride' in patch) {
-                node.routeOverrideByLocale = { ...(node.routeOverrideByLocale||{}), ['bg']: patch.routeOverride as any };
-                node.routeOverride = patch.routeOverride as any;
+                const value = (patch.routeOverride ?? null) as string | null;
+                node.routeOverrideByLocale = { ...(node.routeOverrideByLocale || {}), [baseLocale]: value };
+                node.routeOverride = value;
+              }
+              if ('routePath' in patch) {
+                const value = (patch.routePath ?? null) as string | null;
+                node.routePathByLocale = { ...(node.routePathByLocale || {}), [baseLocale]: value };
+                node.routePath = value;
+              }
+              if ('externalUrl' in patch) {
+                const value = (patch.externalUrl ?? null) as string | null;
+                node.externalUrlByLocale = { ...(node.externalUrlByLocale || {}), [baseLocale]: value };
+                node.externalUrl = value;
               }
               return true;
             }
@@ -142,17 +171,31 @@ export default function NavigationAdminPage() {
             if (node.idsByLocale) {
               for (const [loc, locId] of Object.entries(node.idsByLocale)) {
                 if (locId === id) {
+                  const baseLocale = node.locale ?? PRIMARY_LOCALE;
                   if ('navLabel' in patch) {
-                    node.labelByLocale = { ...(node.labelByLocale||{}), [loc]: patch.navLabel as any };
-                    if (loc === 'bg') node.navLabel = patch.navLabel as any;
+                    const value = (patch.navLabel ?? null) as string | null;
+                    node.labelByLocale = { ...(node.labelByLocale || {}), [loc]: value };
+                    if (loc === baseLocale) node.navLabel = value;
                   }
                   if ('slug' in patch) {
-                    node.slugByLocale = { ...(node.slugByLocale||{}), [loc]: patch.slug as any };
-                    if (loc === 'bg') node.slug = patch.slug as any;
+                    const value = (patch.slug ?? null) as string | null;
+                    node.slugByLocale = { ...(node.slugByLocale || {}), [loc]: value };
+                    if (loc === baseLocale) node.slug = value;
                   }
                   if ('routeOverride' in patch) {
-                    node.routeOverrideByLocale = { ...(node.routeOverrideByLocale||{}), [loc]: patch.routeOverride as any };
-                    if (loc === 'bg') node.routeOverride = patch.routeOverride as any;
+                    const value = (patch.routeOverride ?? null) as string | null;
+                    node.routeOverrideByLocale = { ...(node.routeOverrideByLocale || {}), [loc]: value };
+                    if (loc === baseLocale) node.routeOverride = value;
+                  }
+                  if ('routePath' in patch) {
+                    const value = (patch.routePath ?? null) as string | null;
+                    node.routePathByLocale = { ...(node.routePathByLocale || {}), [loc]: value };
+                    if (loc === baseLocale) node.routePath = value;
+                  }
+                  if ('externalUrl' in patch) {
+                    const value = (patch.externalUrl ?? null) as string | null;
+                    node.externalUrlByLocale = { ...(node.externalUrlByLocale || {}), [loc]: value };
+                    if (loc === baseLocale) node.externalUrl = value;
                   }
                   return true;
                 }
@@ -231,24 +274,57 @@ export default function NavigationAdminPage() {
     let cur: PageNode | null = node;
     function getById(id: string | null): PageNode | null { if(!id) return null; return findNode(tree,id); }
     while (cur) {
-      const seg = (cur.slugByLocale?.[loc ?? ''] ?? cur.slug);
+      const seg = loc ? (cur.slugByLocale?.[loc] ?? cur.slug) : (cur.slug ?? null);
       if (seg) path.unshift(seg);
       cur = getById(cur.parentId);
     }
     return path.join('/');
   }
 
+  function handleLocaleSwitch(next: string) {
+    if (next === locale) return;
+    setLocale(next);
+  }
+
   return (
     <div className="space-y-6">
+      <div className="fixed left-2 bottom-8 z-50 pointer-events-none">
+        <div className="relative inline-block">
+          <div
+            role="group"
+            aria-label="Locale switcher"
+            className="inline-flex overflow-hidden rounded-xl border border-slate-200/60 bg-white/80 text-xs backdrop-blur-sm shadow-sm dark:border-slate-700/50 dark:bg-slate-800/70 pointer-events-auto"
+          >
+            {(["bg", "en"] as const).map((code) => (
+              <button
+                key={code}
+                type="button"
+                onClick={() => handleLocaleSwitch(code)}
+                aria-pressed={locale === code}
+                className={`px-3 py-1.5 font-semibold uppercase tracking-wide outline-none transition-colors focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                  locale === code
+                    ? "bg-white text-blue-600 shadow-sm dark:bg-slate-900 dark:text-blue-300"
+                    : "bg-transparent text-slate-600 hover:bg-white/70 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700/60 dark:hover:text-slate-100"
+                }`}
+              >
+                {code}
+              </button>
+            ))}
+          </div>
+          {(loading || error) && (
+            <div className="absolute left-0 right-0 top-full mt-1 pl-1 text-xs leading-5 pointer-events-none">
+              {loading && <div className="text-slate-600 dark:text-slate-400 animate-pulse">Loading…</div>}
+              {error && <div className="text-red-600 font-medium">{error}</div>}
+            </div>
+          )}
+        </div>
+      </div>
       <header className="flex flex-col gap-3">
         <div>
           <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Navigation</h1>
           <p className="text-sm text-slate-600 dark:text-slate-400">Unified hierarchical Pages (per-locale tree).</p>
         </div>
         <div className="flex flex-wrap gap-2 items-center">
-          {['bg','en'].map(l => (
-            <button key={l} onClick={()=>setLocale(l)} className={`rounded px-3 py-1 text-xs font-medium border ${locale===l? 'bg-blue-600 text-white border-blue-600':'border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200'}`}>{l}</button>
-          ))}
           <div className="ml-auto flex items-center gap-2">
             <button
               onClick={saveAll}
@@ -305,7 +381,7 @@ export default function NavigationAdminPage() {
       </section>
 
       <section className="rounded border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-slate-100">Create Item</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-slate-100">Create Item ({locale.toUpperCase()})</h2>
         <form onSubmit={createItem} className="grid grid-cols-1 gap-3 sm:grid-cols-4">
           <label className="flex flex-col gap-1 text-xs">
             <span>Parent</span>
@@ -323,32 +399,42 @@ export default function NavigationAdminPage() {
               <option value="ROUTE">ROUTE</option>
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-xs">
-            <span>{newKind==='LINK' ? 'Segment' : (newKind==='ROUTE' ? 'Route path (e.g. pages/news or pages/news/[slug])' : 'Segment')}</span>
-            <input disabled={newKind==='LINK'} value={newKind==='ROUTE' ? newRoutePath : newSlug} onChange={e=>{ if(newKind==='ROUTE') setNewRoutePath(e.target.value); else setNewSlug(e.target.value); }} className="rounded border px-2 py-1 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" placeholder={newKind==='ROUTE' ? 'pages/news or pages/news/[slug]' : 'e.g. priem'} />
-          </label>
-          {newKind==='ROUTE' && (
-            <label className="flex flex-col gap-1 text-xs">
-              <span>Route slug (fills [slug] or appends)</span>
-              <input value={newRouteSlug} onChange={e=>setNewRouteSlug(e.target.value)} className="rounded border px-2 py-1 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" placeholder="e.g. my-article or foo/bar" />
+          {NAV_LOCALES.map((code: string) => (
+            <label key={`segment-${code}`} className="flex flex-col gap-1 text-xs">
+              <span>{code.toUpperCase()} {newKind==='LINK' ? 'URL' : (newKind==='ROUTE' ? 'Route path' : 'Segment')}</span>
+              <input
+                disabled={newKind==='LINK'}
+                value={newKind==='ROUTE' ? newRoutePath[code] : newSlug[code]}
+                onChange={e=>{ const val = e.target.value; setNewRoutePath(prev => ({ ...prev, [code]: newKind==='ROUTE'?val:prev[code] })); setNewSlug(prev => ({ ...prev, [code]: newKind==='ROUTE'?prev[code]:val })); }}
+                className="rounded border px-2 py-1 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600"
+                placeholder={newKind==='ROUTE' ? 'pages/news or pages/news/[slug]' : 'e.g. priem'}
+              />
             </label>
-          )}
-          <label className="flex flex-col gap-1 text-xs">
-            <span>External URL</span>
-            <input disabled={newKind!=='LINK'} value={newExternal} onChange={e=>setNewExternal(e.target.value)} className="rounded border px-2 py-1 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" placeholder="https://..." />
-          </label>
-          <label className="flex flex-col gap-1 text-xs sm:col-span-4">
-            <span>Label</span>
-            <input value={newNavLabel} onChange={e=>setNewNavLabel(e.target.value)} className="rounded border px-2 py-1 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" placeholder="Display label" />
-          </label>
-          <label className="flex flex-col gap-1 text-xs sm:col-span-4">
-            <span>Route override (optional)</span>
-            <input value={newRouteOverride} onChange={e=>setNewRouteOverride(e.target.value)} className="rounded border px-2 py-1 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" placeholder="e.g. pages/news or /custom/path (supports [slug])" />
-          </label>
-          <label className="flex items-center gap-2 text-xs sm:col-span-4 mt-2">
-            <input type="checkbox" className="accent-blue-600" checked={createAllLocales} onChange={e=>setCreateAllLocales(e.target.checked)} />
-            <span>Create entries for all locales</span>
-          </label>
+          ))}
+          {newKind==='ROUTE' && NAV_LOCALES.map((code) => (
+            <label key={`route-slug-${code}`} className="flex flex-col gap-1 text-xs">
+              <span>{code.toUpperCase()} Route slug</span>
+              <input value={newRouteSlug[code]} onChange={e=>setNewRouteSlug(prev=>({ ...prev, [code]: e.target.value }))} className="rounded border px-2 py-1 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" placeholder="e.g. my-article or foo/bar" />
+            </label>
+          ))}
+          {NAV_LOCALES.map((code) => (
+            <label key={`external-${code}`} className="flex flex-col gap-1 text-xs">
+              <span>{code.toUpperCase()} External URL</span>
+              <input disabled={newKind!=='LINK'} value={newExternal[code]} onChange={e=>setNewExternal(prev=>({ ...prev, [code]: e.target.value }))} className="rounded border px-2 py-1 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" placeholder="https://..." />
+            </label>
+          ))}
+          {NAV_LOCALES.map((code) => (
+            <label key={`label-${code}`} className="flex flex-col gap-1 text-xs sm:col-span-2">
+              <span>{code.toUpperCase()} Label</span>
+              <input value={newNavLabel[code]} onChange={e=>setNewNavLabel(prev=>({ ...prev, [code]: e.target.value }))} className="rounded border px-2 py-1 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" placeholder="Display label" />
+            </label>
+          ))}
+          {NAV_LOCALES.map((code) => (
+            <label key={`override-${code}`} className="flex flex-col gap-1 text-xs sm:col-span-2">
+              <span>{code.toUpperCase()} Route override</span>
+              <input value={newRouteOverride[code]} onChange={e=>setNewRouteOverride(prev=>({ ...prev, [code]: e.target.value }))} className="rounded border px-2 py-1 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" placeholder="e.g. pages/news or /custom/path" />
+            </label>
+          ))}
           <div className="sm:col-span-4">
             <button disabled={creating} className="rounded bg-blue-600 px-3 py-1 text-sm font-medium text-white disabled:opacity-60">Create</button>
           </div>
@@ -575,7 +661,7 @@ function NavTree({ nodes, fullTree, flatNodes, parentId, draggingId, dropTargetI
 function NavItem({ node: n, fullTree, flatNodes, draggingId, dropTargetId, dropMode, setDraggingId, setDropTargetId, setDropMode, onDragStart, onDragOverItem, onDrop, onUpdate, onDelete, locale, buildHierarchicalSlug }: {
   node: PageNode; fullTree: PageNode[]; flatNodes: PageNode[]; draggingId: string | null; dropTargetId: string | null; dropMode: DropMode; setDraggingId: (id:string|null)=>void; setDropTargetId:(id:string|null)=>void; setDropMode:(m:DropMode)=>void; onDragStart:(e:DragEvent<HTMLDivElement>,id:string,el?:HTMLElement|null)=>void; onDragOverItem:(id:string,mode:DropMode, clientY: number | null)=>void; onDrop:()=>void; onUpdate:(id:string,patch:Partial<PageNode>)=>void; onDelete:(id:string)=>void; locale:string; buildHierarchicalSlug:(n:PageNode,t:PageNode[], loc?: string)=>string }) {
   const router = useRouter();
-  const [expanded,setExpanded]=useState(true);
+  const [expanded,setExpanded]=useState(false);
   const liRef = useRef<HTMLLIElement|null>(null);
   const hasChildren = n.children.length>0;
   const siblings = n.parentId? (find(fullTree,n.parentId)?.children||[]) : fullTree;
@@ -583,6 +669,11 @@ function NavItem({ node: n, fullTree, flatNodes, draggingId, dropTargetId, dropM
   const ordered = [...siblings].sort((a,b)=>a.order-b.order);
   const idx = ordered.findIndex(s=>s.id===n.id);
   const atTop = idx<=0; const atBottom = idx===ordered.length-1;
+  const displayLabel = n.labelByLocale?.[locale] ?? n.navLabel ?? null;
+  const displaySlug = n.slugByLocale?.[locale] ?? n.slug ?? null;
+  const displayRouteOverride = n.routeOverrideByLocale?.[locale] ?? n.routeOverride ?? null;
+  const displayRoutePath = n.routePathByLocale?.[locale] ?? n.routePath ?? null;
+  const displayExternal = n.externalUrlByLocale?.[locale] ?? n.externalUrl ?? null;
   async function moveUp(){ if(atTop) return; const prev=ordered[idx-1]; onUpdate(n.id,{order:prev.order}); onUpdate(prev.id,{order:n.order}); }
   async function moveDown(){ if(atBottom) return; const next=ordered[idx+1]; onUpdate(n.id,{order:next.order}); onUpdate(next.id,{order:n.order}); }
   function hierarchical(){ return buildHierarchicalSlug(n, fullTree); }
@@ -618,30 +709,30 @@ function NavItem({ node: n, fullTree, flatNodes, draggingId, dropTargetId, dropM
       <div className="flex flex-wrap items-center gap-2 text-sm">
         {hasChildren ? <button type="button" onClick={()=>setExpanded(!expanded)} className="rounded border border-slate-300 px-2 py-0.5 text-[18px] font-semibold">{expanded?'▾':'▸'}</button> : <span className="px-2 py-0.5 text-[10px] text-slate-400">•</span>}
         <div className="cursor-grab rounded border border-slate-300 px-2 py-0.5 text-[10px] font-semibold" draggable onDragStart={e=>onDragStart(e,n.id,liRef.current)}>::</div>
-        <span className="font-medium text-slate-900 dark:text-slate-100">{(n.labelByLocale?.[locale] ?? n.navLabel) || (n.slugByLocale?.[locale] ?? n.slug) || n.externalUrl || n.id}</span>
+        <span className="font-medium text-slate-900 dark:text-slate-100">{displayLabel || displaySlug || displayExternal || n.id}</span>
         <span className="text-xs text-slate-500">{
           n.kind==='LINK'
-            ? (n.externalUrl||'')
-            : (n.routeOverride ? (n.routeOverride.startsWith('/')? n.routeOverride : `/${n.routeOverride}`)
-               : (n.kind==='ROUTE' ? (n.routePath ? `/${n.routePath}` : '') : ((n.slugByLocale?.[locale] ?? n.slug) ? `/${n.slugByLocale?.[locale] ?? n.slug}` : '')))
+            ? (displayExternal || '')
+            : (displayRouteOverride ? (displayRouteOverride.startsWith('/')? displayRouteOverride : `/${displayRouteOverride}`)
+               : (n.kind==='ROUTE' ? (displayRoutePath ? `/${displayRoutePath}` : '') : (displaySlug ? `/${displaySlug}` : '')))
         }</span>
         <label className="ml-auto flex items-center gap-1 text-xs"><input type="checkbox" className="accent-blue-600" checked={n.visible} onChange={e=>onUpdate(n.id,{visible:e.target.checked})} /><span>Visible</span></label>
-        {n.kind==='PAGE' && n.slug && <><button className="rounded border px-2 py-0.5 text-xs" onClick={edit}>Edit</button><button className="rounded border px-2 py-0.5 text-xs" onClick={preview}>Preview</button></>}
+        {n.kind==='PAGE' && (displaySlug || n.slug) && <><button className="rounded border px-2 py-0.5 text-xs" onClick={edit}>Edit</button><button className="rounded border px-2 py-0.5 text-xs" onClick={preview}>Preview</button></>}
         <button className="rounded border px-2 py-0.5 text-xs" disabled={atTop} onClick={moveUp}>Up</button>
         <button className="rounded border px-2 py-0.5 text-xs" disabled={atBottom} onClick={moveDown}>Down</button>
         <button className="rounded border border-red-300 px-2 py-0.5 text-xs text-red-700" onClick={()=>onDelete(n.id)}>Delete</button>
       </div>
       <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <label className="text-xs"><span className="text-slate-600 dark:text-slate-300">Label</span><input className="w-full rounded border px-2 py-1 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" value={n.labelByLocale?.[locale] ?? n.navLabel ?? ''} onChange={e=>{ const targetId = n.idsByLocale?.[locale] || n.id; onUpdate(targetId,{navLabel:e.target.value}); }} /></label>
+        <label className="text-xs"><span className="text-slate-600 dark:text-slate-300">Label</span><input className="w-full rounded border px-2 py-1 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" value={displayLabel ?? ''} onChange={e=>{ const targetId = n.idsByLocale?.[locale] || n.id; onUpdate(targetId,{navLabel:e.target.value}); }} /></label>
         {n.kind==='ROUTE' ? (
           <>
-            <label className="text-xs"><span className="text-slate-600 dark:text-slate-300">Route path</span><input className="w-full rounded border px-2 py-1 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" value={n.routePath || ''} onChange={e=>{ const v=e.target.value; const targetId = n.idsByLocale?.[locale] || n.id; onUpdate(targetId,{routePath:v}); }} placeholder="pages/news or pages/news/[slug]" /></label>
+            <label className="text-xs"><span className="text-slate-600 dark:text-slate-300">Route path</span><input className="w-full rounded border px-2 py-1 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" value={displayRoutePath ?? ''} onChange={e=>{ const v=e.target.value; const targetId = n.idsByLocale?.[locale] || n.id; onUpdate(targetId,{routePath:v}); }} placeholder="pages/news or pages/news/[slug]" /></label>
             <label className="text-xs"><span className="text-slate-600 dark:text-slate-300">Route slug</span><input className="w-full rounded border px-2 py-1 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" value={(n.slugByLocale?.[locale] ?? n.slug) || ''} onChange={e=>{ const v=e.target.value; const targetId = n.idsByLocale?.[locale] || n.id; onUpdate(targetId,{slug:v}); }} placeholder="fills [slug] or appends" /></label>
           </>
         ) : (
-          <label className="text-xs"><span className="text-slate-600 dark:text-slate-300">Segment / URL</span><input className="w-full rounded border px-2 py-1 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" value={n.kind==='LINK' ? (n.externalUrl || '') : ((n.slugByLocale?.[locale] ?? n.slug) || '')} onChange={e=>{ const v=e.target.value; const targetId = n.idsByLocale?.[locale] || n.id; if(n.kind==='LINK'){ onUpdate(targetId,{externalUrl:v,slug:null}); } else { if(v.startsWith('http')) onUpdate(targetId,{kind:'LINK',externalUrl:v,slug:null}); else if (v.includes('/')) onUpdate(targetId,{kind:'ROUTE',routePath:v,slug:null,externalUrl:null}); else onUpdate(targetId,{slug:v}); } }} /></label>
+          <label className="text-xs"><span className="text-slate-600 dark:text-slate-300">Segment / URL</span><input className="w-full rounded border px-2 py-1 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" value={n.kind==='LINK' ? (displayExternal ?? '') : (displaySlug ?? '')} onChange={e=>{ const v=e.target.value; const targetId = n.idsByLocale?.[locale] || n.id; if(n.kind==='LINK'){ onUpdate(targetId,{externalUrl:v,slug:null}); } else { if(v.startsWith('http')) onUpdate(targetId,{kind:'LINK',externalUrl:v,slug:null}); else if (v.includes('/')) onUpdate(targetId,{kind:'ROUTE',routePath:v,slug:null,externalUrl:null}); else onUpdate(targetId,{slug:v}); } }} /></label>
         )}
-        <label className="text-xs sm:col-span-3"><span className="text-slate-600 dark:text-slate-300">Route override (optional)</span><input className="w-full rounded border px-2 py-1 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" value={(n.routeOverrideByLocale?.[locale] ?? n.routeOverride) || ''} onChange={e=>{ const v=e.target.value; const targetId = n.idsByLocale?.[locale] || n.id; onUpdate(targetId, { routeOverride: v || null }); }} placeholder="e.g. pages/news or /custom/path (supports [slug])" /></label>
+        <label className="text-xs sm:col-span-3"><span className="text-slate-600 dark:text-slate-300">Route override (optional)</span><input className="w-full rounded border px-2 py-1 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" value={displayRouteOverride ?? ''} onChange={e=>{ const v=e.target.value; const targetId = n.idsByLocale?.[locale] || n.id; onUpdate(targetId, { routeOverride: v || null }); }} placeholder="e.g. pages/news or /custom/path (supports [slug])" /></label>
         <label className="text-xs"><span className="text-slate-600 dark:text-slate-300">Kind</span><select className="w-full rounded border px-2 py-1 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" value={n.kind} onChange={e=>onUpdate(n.id,{kind:e.target.value})}><option value="PAGE">PAGE</option><option value="LINK">LINK</option><option value="FOLDER">FOLDER</option><option value="ROUTE">ROUTE</option></select></label>
         <label className="text-xs sm:col-span-3"><span className="text-slate-600 dark:text-slate-300">Parent</span><select className="w-full rounded border px-2 py-1 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" value={n.parentId||''} onChange={e=>onUpdate(n.id,{parentId:e.target.value||null,order:0})}><option value="">(root)</option>{flatNodes.filter(p=>p.id!==n.id && p.kind!=='LINK').map(p=> <option key={p.id} value={p.id}>{p.navLabel||p.slug||p.id}</option>)}</select></label>
       </div>

@@ -10,20 +10,69 @@ export function invalidateNavigationCache(locale?: string) {
   if (locale) NAV_CACHE.delete(locale); else NAV_CACHE.clear();
 }
 
-// Build hierarchical tree from unified Page rows (single locale)
-function buildPageTree(pages: any[]) {
-  const byId = new Map<string, any>();
+type PageRow = {
+  id: string;
+  groupId: string | null;
+  parentId: string | null;
+  order: number;
+  slug: string | null;
+  visible: boolean;
+  externalUrl: string | null;
+  routePath: string | null;
+  routeOverride: string | null;
+  navLabel: string | null;
+  kind: string;
+  locale: string;
+};
+
+function buildGroupedTree(rows: PageRow[], locale: string) {
+  if (!rows.length) return [] as any[];
+  const byId = new Map<string, PageRow>(rows.map((row) => [row.id, row]));
+  const groups = new Map<string, { nodes: PageRow[]; parentGroupId: string | null }>();
+  for (const row of rows) {
+    const gid = row.groupId ?? row.id;
+    if (!groups.has(gid)) groups.set(gid, { nodes: [], parentGroupId: null });
+    groups.get(gid)!.nodes.push(row);
+  }
+  for (const row of rows) {
+    const gid = row.groupId ?? row.id;
+    const parent = row.parentId ? byId.get(row.parentId) : null;
+    const parentGroupId = parent ? (parent.groupId ?? parent.id) : null;
+    const info = groups.get(gid)!;
+    if (parentGroupId && info.parentGroupId === null) info.parentGroupId = parentGroupId;
+  }
+  const canonicalOrder = new Map<string, number>();
+  for (const row of rows) {
+    const gid = row.groupId ?? row.id;
+    if (row.locale === defaultLocale) {
+      canonicalOrder.set(gid, row.order);
+    } else if (!canonicalOrder.has(gid)) {
+      canonicalOrder.set(gid, row.order);
+    }
+  }
+  const nodesByGroup = new Map<string, any>();
+  for (const [gid, info] of groups) {
+    const variant = info.nodes.find((n) => n.locale === locale)
+      ?? info.nodes.find((n) => n.locale === defaultLocale)
+      ?? info.nodes[0];
+    const order = canonicalOrder.get(gid) ?? variant.order ?? 0;
+    nodesByGroup.set(gid, { ...variant, order, children: [] as any[] });
+  }
   const roots: any[] = [];
-  pages.forEach((p) => byId.set(p.id, { ...p, children: [] as any[] }));
-  pages.forEach((p) => {
-    const node = byId.get(p.id)!;
-    if (p.parentId && byId.has(p.parentId)) byId.get(p.parentId)!.children.push(node); else roots.push(node);
-  });
-  const sortTree = (nodes: any[]) => {
+  for (const [gid, info] of groups) {
+    const node = nodesByGroup.get(gid)!;
+    const parentGroupId = info.parentGroupId;
+    if (parentGroupId && nodesByGroup.has(parentGroupId)) {
+      nodesByGroup.get(parentGroupId)!.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+  const sort = (nodes: any[]) => {
     nodes.sort((a, b) => a.order - b.order);
-    nodes.forEach((n) => sortTree(n.children));
+    nodes.forEach((child) => sort(child.children));
   };
-  sortTree(roots);
+  sort(roots);
   return roots;
 }
 
@@ -37,16 +86,17 @@ export async function GET(req: Request) {
       return NextResponse.json({ items: cached.items, legacy: cached.legacy, cached: true });
     }
     // Fetch locale-specific pages and build tree (unified model). Fallback to legacy NavigationItem if no pages yet.
+    const localesToFetch = locale === defaultLocale ? [locale] : [locale, defaultLocale];
     const pages = await (prisma as any).page.findMany({
-      where: { locale },
+      where: { locale: { in: localesToFetch } },
       orderBy: [ { parentId: "asc" }, { order: "asc" } ],
-      select: { id: true, parentId: true, order: true, slug: true, visible: true, externalUrl: true, routePath: true, routeOverride: true, navLabel: true, kind: true }
+      select: { id: true, groupId: true, parentId: true, order: true, slug: true, visible: true, externalUrl: true, routePath: true, routeOverride: true, navLabel: true, kind: true, locale: true }
     });
 
     let roots: any[] = [];
     let usingLegacy = false;
     if (pages.length) {
-      roots = buildPageTree(pages);
+      roots = buildGroupedTree(pages, locale);
     } else {
       // Transitional legacy support
       usingLegacy = true;

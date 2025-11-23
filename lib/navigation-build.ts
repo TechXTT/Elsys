@@ -1,4 +1,4 @@
-import { locales } from "@/i18n/config";
+import { defaultLocale, locales } from "@/i18n/config";
 import { prisma } from "@/lib/prisma";
 import { getRedisClient, type RedisClient } from "@/lib/redis";
 
@@ -52,15 +52,68 @@ async function writeRedisEntry(redis: RedisClient | null, key: string, result: N
 function sanitizeSegment(s?: string | null) { return (s || "").trim().replace(/^\/+|\/+$/g, ""); }
 function normalizeRouteBasePath(p: string) { const s = sanitizeSegment(p); return s.replace(/^(app|pages)\//, ""); }
 
-function buildPageTree(pages: any[]) {
-  const byId = new Map<string, any>();
+type PageRow = {
+  id: string;
+  groupId: string | null;
+  parentId: string | null;
+  order: number;
+  slug: string | null;
+  visible: boolean;
+  externalUrl: string | null;
+  routePath: string | null;
+  routeOverride: string | null;
+  navLabel: string | null;
+  kind: string;
+  locale: string;
+};
+
+function buildGroupedTree(rows: PageRow[], locale: string) {
+  if (!rows.length) return [] as any[];
+  const byId = new Map<string, PageRow>(rows.map((row) => [row.id, row]));
+  const groups = new Map<string, { nodes: PageRow[]; parentGroupId: string | null }>();
+  for (const row of rows) {
+    const gid = row.groupId ?? row.id;
+    if (!groups.has(gid)) groups.set(gid, { nodes: [], parentGroupId: null });
+    groups.get(gid)!.nodes.push(row);
+  }
+  for (const row of rows) {
+    const gid = row.groupId ?? row.id;
+    const parent = row.parentId ? byId.get(row.parentId) : null;
+    const parentGroupId = parent ? (parent.groupId ?? parent.id) : null;
+    const info = groups.get(gid)!;
+    if (parentGroupId && info.parentGroupId === null) info.parentGroupId = parentGroupId;
+  }
+  const canonicalOrder = new Map<string, number>();
+  for (const row of rows) {
+    const gid = row.groupId ?? row.id;
+    if (row.locale === defaultLocale) {
+      canonicalOrder.set(gid, row.order);
+    } else if (!canonicalOrder.has(gid)) {
+      canonicalOrder.set(gid, row.order);
+    }
+  }
+  const nodesByGroup = new Map<string, any>();
+  for (const [gid, info] of groups) {
+    const variant = info.nodes.find((n) => n.locale === locale)
+      ?? info.nodes.find((n) => n.locale === defaultLocale)
+      ?? info.nodes[0];
+    const order = canonicalOrder.get(gid) ?? variant.order ?? 0;
+    nodesByGroup.set(gid, { ...variant, order, children: [] as any[] });
+  }
   const roots: any[] = [];
-  pages.forEach((p) => byId.set(p.id, { ...p, children: [] as any[] }));
-  pages.forEach((p) => {
-    const node = byId.get(p.id)!;
-    if (p.parentId && byId.has(p.parentId)) byId.get(p.parentId)!.children.push(node); else roots.push(node);
-  });
-  const sortChildren = (nodes: any[]) => { nodes.sort((a,b)=>a.order-b.order); nodes.forEach(n=>sortChildren(n.children)); };
+  for (const [gid, info] of groups) {
+    const node = nodesByGroup.get(gid)!;
+    const parentGroupId = info.parentGroupId;
+    if (parentGroupId && nodesByGroup.has(parentGroupId)) {
+      nodesByGroup.get(parentGroupId)!.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+  const sortChildren = (nodes: any[]) => {
+    nodes.sort((a, b) => a.order - b.order);
+    nodes.forEach((child) => sortChildren(child.children));
+  };
   sortChildren(roots);
   return roots;
 }
@@ -96,13 +149,14 @@ function mapWithPath(n: any, parentSegments: string[], inRoute: boolean, routeBa
 }
 
 async function buildNavigation(locale: string): Promise<NavigationResult> {
+  const localesToFetch = locale === defaultLocale ? [locale] : [locale, defaultLocale];
   const pages = await (prisma as any).page.findMany({
-    where: { locale },
+    where: { locale: { in: localesToFetch } },
     orderBy: [{ parentId: 'asc' }, { order: 'asc' }],
-    select: { id: true, parentId: true, order: true, slug: true, visible: true, externalUrl: true, routePath: true, routeOverride: true, navLabel: true, kind: true }
+    select: { id: true, groupId: true, parentId: true, order: true, slug: true, visible: true, externalUrl: true, routePath: true, routeOverride: true, navLabel: true, kind: true, locale: true }
   });
   if (pages.length) {
-    const tree = filterVisible(buildPageTree(pages)).map((n:any)=>mapWithPath(n, [], false, null));
+    const tree = filterVisible(buildGroupedTree(pages, locale)).map((n:any)=>mapWithPath(n, [], false, null));
     return { items: tree, legacy: false };
   }
   const legacyItems = await (prisma as any).navigationItem.findMany({ orderBy: [{ parentId: 'asc' }, { order: 'asc' }] });
