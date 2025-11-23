@@ -16,22 +16,43 @@ export function LocaleSwitcher() {
   const currentIndex = locales.findIndex((item) => item === locale);
   const nextLocale = locales[(currentIndex + 1) % locales.length];
 
+  async function resolveTargetPath(relativePath: string): Promise<string | null> {
+    const trimmed = relativePath.replace(/^\/+/g, "").replace(/\/+$/g, "");
+    if (!trimmed) return "";
+    const params = new URLSearchParams({ from: locale, to: nextLocale, path: trimmed });
+    try {
+      const res = await fetch(`/api/locale-path?${params.toString()}`, { cache: "no-store" });
+      if (!res.ok) return null;
+      const data = await res.json().catch(() => null) as { target?: string | null } | null;
+      if (typeof data?.target === "string") return data.target;
+      if (data?.target === "") return "";
+    } catch {
+      // ignore fetch errors and fall back to same slug
+    }
+    return null;
+  }
+
   const handleToggle = () => {
     if (isPending) return;
     startTransition(() => {
       const stripped = pathname.replace(/^\/(?:bg|en)(?=\/|$)/, "");
-      const normalized = stripped === "" ? "/" : stripped;
-      // Use router.replace with locale option instead of manually prefixing the path.
-      // When using next-intl's createNavigation with localePrefix="always" the router
-      // will add the correct locale prefix. Passing a path that already contains a
-      // locale can produce duplicates (e.g. /bg/en/...). So pass the stripped path
-      // and let the router set the locale.
-      const targetPath = normalized === "/" ? "/" : normalized;
-      // Persist the chosen locale for routes that don't include a locale segment (e.g., /admin)
-      try {
-        document.cookie = `NEXT_LOCALE=${nextLocale}; path=/; max-age=31536000`;
-      } catch {}
-      router.replace(targetPath, { locale: nextLocale });
+      const relative = stripped.replace(/^\/+/g, "").replace(/\/+$/g, "");
+      (async () => {
+        let nextPath = relative;
+        if (relative) {
+          const translated = await resolveTargetPath(relative);
+          if (translated !== null && translated !== undefined) {
+            nextPath = translated;
+          }
+        } else {
+          nextPath = "";
+        }
+        const targetPath = nextPath ? `/${nextPath}` : "/";
+        try {
+          document.cookie = `NEXT_LOCALE=${nextLocale}; path=/; max-age=31536000`;
+        } catch {}
+        router.replace(targetPath, { locale: nextLocale });
+      })();
     });
   };
 
