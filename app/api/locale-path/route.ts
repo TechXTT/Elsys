@@ -42,7 +42,7 @@ async function buildSlugPath(node: { id: string; slug: string | null; parentId: 
   while (cursor && safety++ < MAX_PARENT_TRAVERSAL) {
     if (cursor.slug) segments.push(cursor.slug);
     if (!cursor.parentId) break;
-    const parent = await (prisma as any).page.findUnique({
+    const parent: { id: string; slug: string | null; parentId: string | null } | null = await (prisma as any).page.findUnique({
       where: { id: cursor.parentId },
       select: { id: true, slug: true, parentId: true },
     }).catch(() => null);
@@ -58,7 +58,7 @@ async function findHierarchicalMatch(locale: string, segments: string[]) {
   let parentId: string | null = null;
   let last: { id: string; groupId: string | null } | null = null;
   for (const seg of segments) {
-    const node = await (prisma as any).page.findFirst({
+    const node: { id: string; groupId: string | null } | null = await (prisma as any).page.findFirst({
       where: { locale, parentId, slug: seg },
       select: { id: true, groupId: true },
     }).catch(() => null);

@@ -1,14 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { defaultLocale } from "@/i18n/config";
-
-// Simple per-locale navigation cache (tree + legacy flag)
-interface NavCacheEntry { items: any[]; legacy: boolean; expires: number }
-const NAV_CACHE = new Map<string, NavCacheEntry>();
-const NAV_TTL_MS = 60_000; // 60s; tune based on update frequency
-export function invalidateNavigationCache(locale?: string) {
-  if (locale) NAV_CACHE.delete(locale); else NAV_CACHE.clear();
-}
+import { getCachedNavigation, storeNavigationCache } from "@/lib/navigation-cache";
 
 type PageRow = {
   id: string;
@@ -81,8 +74,8 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const localeParam = searchParams.get("locale");
     const locale = (localeParam || defaultLocale) as string;
-    const cached = NAV_CACHE.get(locale);
-    if (cached && Date.now() < cached.expires) {
+    const cached = getCachedNavigation(locale);
+    if (cached) {
       return NextResponse.json({ items: cached.items, legacy: cached.legacy, cached: true });
     }
     // Fetch locale-specific pages and build tree (unified model). Fallback to legacy NavigationItem if no pages yet.
@@ -173,7 +166,7 @@ export async function GET(req: Request) {
     }
 
     const tree = visibleTree.map((n: any) => mapWithPath(n, [], false, null));
-    NAV_CACHE.set(locale, { items: tree, legacy: usingLegacy, expires: Date.now() + NAV_TTL_MS });
+    storeNavigationCache(locale, { items: tree, legacy: usingLegacy });
     return NextResponse.json({ items: tree, legacy: usingLegacy, cached: false });
   } catch (err: any) {
     console.error("/api/navigation GET error", err);

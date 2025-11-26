@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { locales as supportedLocales, defaultLocale } from "@/i18n/config";
-import { invalidateNavigationCache } from "@/app/api/navigation/route";
+import { invalidateNavigationCache } from "@/lib/navigation-cache";
 import { invalidateNavigationTree } from "@/lib/navigation-build";
 
 const NAV_LOCALES = Array.from(supportedLocales);

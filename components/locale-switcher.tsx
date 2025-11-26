@@ -25,7 +25,6 @@ export function LocaleSwitcher() {
       if (!res.ok) return null;
       const data = await res.json().catch(() => null) as { target?: string | null } | null;
       if (typeof data?.target === "string") return data.target;
-      if (data?.target === "") return "";
     } catch {
       // ignore fetch errors and fall back to same slug
     }
