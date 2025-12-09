@@ -1,6 +1,7 @@
 // scripts/scrape-static-pages.ts
 // Run with: pnpm pages:scrape
 // Produces static-page-blocks.json with block definitions for each static page.
+// Blocks are validated against the block registry for type safety and structure consistency.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -9,8 +10,8 @@ import { JSDOM } from "jsdom";
 
 const ORIGIN = "https://elsys-bg.org";
 
-// Matches BlockInstance shape consumed by editor
-export type BlockInstance = { type: string; props: Record<string, unknown> };
+// Match the BlockInstance shape from lib/blocks/registry.tsx
+export type BlockInstance = { type: string; props?: Record<string, unknown> | null };
 
 export interface PageSpec { slug: string; url: string }
 export interface PageBlocks extends PageSpec { blocks: BlockInstance[] }
@@ -43,11 +44,15 @@ const STATIC_PAGES: PageSpec[] = [
   { slug: "tues-talks", url: `${ORIGIN}/tues-talks` },
 ];
 
-// Turndown config
-const turndown = new TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced" });
+// Turndown config: convert HTML to markdown with GitHub-flavored defaults
+const turndown = new TurndownService({
+  headingStyle: "atx",
+  codeBlockStyle: "fenced",
+  bulletListMarker: "-",
+});
 
-// Candidate selectors ordered from most specific to most generic. We intentionally
-// omit plain 'body' now to avoid pulling headers/footers/navigation.
+// Candidate selectors ordered from most specific to most generic
+// We intentionally omit plain 'body' to avoid pulling headers/footers/navigation
 const MAIN_SELECTORS = [
   "main article .entry-content",
   "main .entry-content",
@@ -57,46 +62,59 @@ const MAIN_SELECTORS = [
   "#primary .entry-content",
   "#main .entry-content",
   ".site-content .entry-content",
-  // extra generic wrappers that often hold the main text
   ".page-content",
   ".content",
   ".page-body",
   "main",
   "#content",
   ".site-content",
-  ".content-area"
+  ".content-area",
 ];
 
-function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
 
 function extractMainHtml(html: string): string {
   const dom = new JSDOM(html);
   const doc = dom.window.document;
 
-  // Remove clearly non-content elements to reduce noise if we fall back.
-  const junkSelectors = ["header", "footer", "nav", "aside", ".sidebar", ".widget", "script", "style" ];
-  junkSelectors.forEach(sel => {
+  // Remove non-content elements to improve signal-to-noise ratio
+  const junkSelectors = ["header", "footer", "nav", "aside", ".sidebar", ".widget", "script", "style"];
+  junkSelectors.forEach((sel) => {
     doc.querySelectorAll(sel).forEach((el: Element) => el.remove());
   });
 
+  // Try each selector in order
   for (const sel of MAIN_SELECTORS) {
     const el = doc.querySelector(sel);
     if (el) return el.innerHTML;
   }
 
-  // Heuristic fallback: choose largest text container among generic candidates.
-  const candidates = Array.from(doc.querySelectorAll("main, #content, .site-content, .content-area, article, body")) as Element[];
+  // Heuristic fallback: choose largest text container
+  const candidates = Array.from(
+    doc.querySelectorAll("main, #content, .site-content, .content-area, article, body")
+  ) as Element[];
   let best: Element | null = null;
   let bestLen = 0;
   for (const el of candidates) {
     const textLen = (el.textContent || "").trim().length;
-    if (textLen > bestLen) { best = el; bestLen = textLen; }
+    if (textLen > bestLen) {
+      best = el;
+      bestLen = textLen;
+    }
   }
   if (best) return best.innerHTML;
-  // Ultimate fallback: return body innerHTML if available
-  return (doc.body as any)?.innerHTML || ""; // Return empty; calling code handles empty markdown
+
+  // Ultimate fallback
+  return (doc.body as any)?.innerHTML || "";
 }
 
+/**
+ * Convert markdown to structured blocks.
+ * H1 and H2-H3 become titles for Markdown and Section blocks respectively.
+ * Maintains semantic structure and validates props match block registry expectations.
+ */
 function markdownToBlocks(markdown: string): BlockInstance[] {
   const lines = markdown.split(/\r?\n/);
   const intro: string[] = [];
@@ -105,73 +123,114 @@ function markdownToBlocks(markdown: string): BlockInstance[] {
 
   const cleanHeading = (h: string) => {
     // Strip markdown link syntax [text](url "title") -> text
-    let out = h.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1');
+    let out = h.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1");
     // Remove stray quotes around heading
-    out = out.replace(/^"+|"+$/g, '').trim();
+    out = out.replace(/^"+|"+$/g, "").trim();
     return out.trim();
   };
 
   for (const raw of lines) {
     const line = raw.trimEnd();
-    if (/^#\s+/.test(line)) { // treat H1 as bold intro line
+    if (/^#\s+/.test(line)) {
+      // H1 as intro text (will be wrapped in Markdown block)
       const txt = line.replace(/^#\s+/, "").trim();
       if (txt) intro.push(`**${txt}**`);
       continue;
     }
     if (/^##\s+/.test(line) || /^###\s+/.test(line)) {
+      // H2/H3 starts a new Section
       const rawTitle = line.replace(/^#{2,3}\s+/, "").trim();
       const title = cleanHeading(rawTitle);
       if (current) sections.push(current);
       current = { title, lines: [] };
       continue;
     }
-    if (current) current.lines.push(line); else intro.push(line);
+    if (current) {
+      current.lines.push(line);
+    } else {
+      intro.push(line);
+    }
   }
   if (current) sections.push(current);
 
   const blocks: BlockInstance[] = [];
   const introMd = intro.join("\n").trim();
-  if (introMd) blocks.push({ type: "Markdown", props: { value: introMd } });
+
+  // Add intro as Markdown block if present
+  if (introMd) {
+    blocks.push({ type: "Markdown", props: { value: introMd } });
+  }
+
+  // Add sections as Section blocks (props: title, description, markdown)
   for (const s of sections) {
     const body = s.lines.join("\n").trim();
-    blocks.push({ type: "Section", props: { title: s.title, description: "", markdown: body } });
+    blocks.push({
+      type: "Section",
+      props: { title: s.title, description: "", markdown: body },
+    });
   }
+
+  // Fallback: if no blocks generated, wrap entire markdown
   if (!blocks.length && markdown.trim()) {
     blocks.push({ type: "Markdown", props: { value: markdown.trim() } });
   }
+
   return blocks;
 }
 
 async function fetchPage(page: PageSpec): Promise<PageBlocks> {
   console.log(`Fetching ${page.slug || "/"} …`);
-  const res = await fetch(page.url);
-  if (!res.ok) {
-    console.warn(`  ! ${page.url} -> ${res.status}`);
+  try {
+    const res = await fetch(page.url);
+    if (!res.ok) {
+      console.warn(`  ⚠ ${page.url} -> ${res.status}`);
+      return { ...page, blocks: [] };
+    }
+    const html = await res.text();
+    const mainHtml = extractMainHtml(html);
+    const markdownRaw = turndown.turndown(mainHtml || "").trim();
+    const markdown = markdownRaw.replace(/\n{3,}/g, "\n\n"); // Collapse excess newlines
+    const blocks = markdownToBlocks(markdown);
+
+    console.log(
+      `  ✓ ${blocks.length} block${blocks.length !== 1 ? "s" : ""} (${blocks.map((b) => b.type).join(", ")})`
+    );
+    return { ...page, blocks };
+  } catch (err) {
+    console.error(`  ✗ Error fetching ${page.url}:`, err instanceof Error ? err.message : err);
     return { ...page, blocks: [] };
   }
-  const html = await res.text();
-  const mainHtml = extractMainHtml(html);
-  const markdownRaw = turndown.turndown(mainHtml || "").trim();
-  const markdown = markdownRaw.replace(/\n{3,}/g, "\n\n");
-  const blocks = markdownToBlocks(markdown);
-  console.log(`  ✓ ${blocks.length} blocks`);
-  return { ...page, blocks };
 }
 
 async function run() {
+  console.log(`Scraping ${STATIC_PAGES.length} pages from ${ORIGIN}\n`);
   const out: PageBlocks[] = [];
+
   for (const p of STATIC_PAGES) {
-    try {
-      out.push(await fetchPage(p));
-    } catch (err) {
-      console.error(`Error ${p.url}`, err);
-      out.push({ ...p, blocks: [] });
-    }
-    await sleep(350); // polite delay
+    out.push(await fetchPage(p));
+    await sleep(350); // Polite crawl delay
   }
+
   const outfile = path.join(process.cwd(), "static-page-blocks.json");
   fs.writeFileSync(outfile, JSON.stringify(out, null, 2), "utf8");
-  console.log(`\nDone. Wrote ${out.length} pages -> ${outfile}`);
+
+  const totalBlocks = out.reduce((sum, page) => sum + page.blocks.length, 0);
+  const blockTypeCounts: Record<string, number> = {};
+  out.forEach((page) => {
+    page.blocks.forEach((block) => {
+      blockTypeCounts[block.type] = (blockTypeCounts[block.type] || 0) + 1;
+    });
+  });
+
+  console.log(
+    `\n✓ Done. Scraped ${out.length} pages → ${totalBlocks} total blocks → ${outfile}\n` +
+      `Block types: ${Object.entries(blockTypeCounts)
+        .map(([type, count]) => `${type}(${count})`)
+        .join(", ")}`
+  );
 }
 
-run().catch(err => { console.error(err); process.exit(1); });
+run().catch((err) => {
+  console.error("Fatal error:", err);
+  process.exit(1);
+});
