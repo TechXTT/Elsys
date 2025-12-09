@@ -101,6 +101,100 @@
     "toLight": "Светла",
     "toDark": "Тъмна",
     "toggleAria": "Превключване на тема"
+  },
+  "Admin": {
+    "title": "Админ конзола",
+    "greeting": {
+      "morning": "Добро утро",
+      "afternoon": "Добър ден",
+      "evening": "Добър вечер"
+    },
+    "subtitle": "Ето какво се случва със съдържанието ви днес.",
+    "refresh": "Обнови",
+    "nav": {
+      "dashboard": "Табло",
+      "news": "Новини",
+      "pages": "Страници",
+      "users": "Потребители",
+      "audit": "Одит лог",
+      "settings": "Настройки",
+      "viewSite": "Виж сайта",
+      "signOut": "Изход"
+    },
+    "stats": {
+      "totalNews": "Общо новини",
+      "totalPages": "Общо страници",
+      "registeredUsers": "Регистрирани потребители",
+      "draftContent": "Чернови",
+      "published": "{count} публикувани",
+      "admins": "{count} администратори",
+      "awaitingPublish": "Очакват публикуване",
+      "last30Days": "последните 30 дни"
+    },
+    "quickActions": {
+      "title": "Бързи действия",
+      "newPost": "Нова публикация",
+      "newPostDesc": "Създай новина",
+      "managePages": "Управление на страници",
+      "managePagesDesc": "Редактирай структурата на сайта",
+      "manageUsers": "Управление на потребители",
+      "manageUsersDesc": "Добави или редактирай потребители",
+      "settings": "Настройки",
+      "settingsDesc": "Настройки на акаунта"
+    },
+    "recentNews": {
+      "title": "Последни новини",
+      "viewAll": "Виж всички",
+      "empty": "Все още няма новини"
+    },
+    "recentActivity": {
+      "title": "Последна активност",
+      "viewAll": "Виж всички",
+      "empty": "Няма скорошна активност",
+      "showDetails": "Покажи детайли"
+    },
+    "systemStatus": {
+      "title": "Системен статус",
+      "frontend": "Next.js Frontend",
+      "frontendDesc": "Работи на localhost:3000",
+      "database": "База данни",
+      "databaseDesc": "PostgreSQL чрез Prisma"
+    },
+    "signOutModal": {
+      "title": "Изход",
+      "message": "Сигурни ли сте, че искате да излезете от админ конзолата?",
+      "cancel": "Отказ",
+      "confirm": "Изход"
+    },
+    "login": {
+      "title": "Админ конзола",
+      "subtitle": "Влезте, за да управлявате съдържанието",
+      "email": "Имейл адрес",
+      "password": "Парола",
+      "signIn": "Вход",
+      "signingIn": "Влизане…",
+      "createAccount": "Създай акаунт",
+      "creatingAccount": "Създаване на акаунт…",
+      "backToSite": "Обратно към сайта"
+    },
+    "badge": {
+      "admin": "Админ",
+      "published": "Публикувано",
+      "draft": "Чернова"
+    },
+    "time": {
+      "justNow": "току-що",
+      "minutesAgo": "преди {count} минута",
+      "minutesAgoPlural": "преди {count} минути",
+      "hoursAgo": "преди {count} час",
+      "hoursAgoPlural": "преди {count} часа",
+      "daysAgo": "преди {count} ден",
+      "daysAgoPlural": "преди {count} дни",
+      "weeksAgo": "преди {count} седмица",
+      "weeksAgoPlural": "преди {count} седмици",
+      "monthsAgo": "преди {count} месец",
+      "monthsAgoPlural": "преди {count} месеца"
+    }
   }
 }
 

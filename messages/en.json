@@ -101,6 +101,100 @@
     "toLight": "Light",
     "toDark": "Dark",
     "toggleAria": "Toggle theme"
+  },
+  "Admin": {
+    "title": "Admin Console",
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "subtitle": "Here's what's happening with your content today.",
+    "refresh": "Refresh",
+    "nav": {
+      "dashboard": "Dashboard",
+      "news": "News",
+      "pages": "Pages",
+      "users": "Users",
+      "audit": "Audit Log",
+      "settings": "Settings",
+      "viewSite": "View Site",
+      "signOut": "Sign out"
+    },
+    "stats": {
+      "totalNews": "Total News Posts",
+      "totalPages": "Total Pages",
+      "registeredUsers": "Registered Users",
+      "draftContent": "Draft Content",
+      "published": "{count} published",
+      "admins": "{count} admins",
+      "awaitingPublish": "Awaiting publish",
+      "last30Days": "last 30 days"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "newPost": "New Post",
+      "newPostDesc": "Create a news article",
+      "managePages": "Manage Pages",
+      "managePagesDesc": "Edit site structure",
+      "manageUsers": "Manage Users",
+      "manageUsersDesc": "Add or edit users",
+      "settings": "Settings",
+      "settingsDesc": "Your account settings"
+    },
+    "recentNews": {
+      "title": "Recent News",
+      "viewAll": "View all",
+      "empty": "No news posts yet"
+    },
+    "recentActivity": {
+      "title": "Recent Activity",
+      "viewAll": "View all",
+      "empty": "No recent activity",
+      "showDetails": "Show details"
+    },
+    "systemStatus": {
+      "title": "System Status",
+      "frontend": "Next.js Frontend",
+      "frontendDesc": "Running on localhost:3000",
+      "database": "Database",
+      "databaseDesc": "PostgreSQL via Prisma"
+    },
+    "signOutModal": {
+      "title": "Sign out",
+      "message": "Are you sure you want to sign out of the admin console?",
+      "cancel": "Cancel",
+      "confirm": "Sign out"
+    },
+    "login": {
+      "title": "Admin Console",
+      "subtitle": "Sign in to manage your content",
+      "email": "Email address",
+      "password": "Password",
+      "signIn": "Sign in",
+      "signingIn": "Signing in…",
+      "createAccount": "Create account",
+      "creatingAccount": "Creating account…",
+      "backToSite": "Back to website"
+    },
+    "badge": {
+      "admin": "Admin",
+      "published": "Published",
+      "draft": "Draft"
+    },
+    "time": {
+      "justNow": "just now",
+      "minutesAgo": "{count} minute ago",
+      "minutesAgoPlural": "{count} minutes ago",
+      "hoursAgo": "{count} hour ago",
+      "hoursAgoPlural": "{count} hours ago",
+      "daysAgo": "{count} day ago",
+      "daysAgoPlural": "{count} days ago",
+      "weeksAgo": "{count} week ago",
+      "weeksAgoPlural": "{count} weeks ago",
+      "monthsAgo": "{count} month ago",
+      "monthsAgoPlural": "{count} months ago"
+    }
   }
 }
 
