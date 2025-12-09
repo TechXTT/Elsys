@@ -11,7 +11,7 @@ const baseLinks: NavLink[] = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/news", label: "News" },
   // Pages editing is managed through Navigation UI; expose it as "Pages"
-  { href: "/admin/navigation", label: "Pages" },
+  { href: "/admin/navigation", label: "Pages", adminOnly: true },
   { href: "/admin/settings", label: "Settings" },
   { href: "/admin/users", label: "Users", adminOnly: true },
   { href: "/admin/audit", label: "Audit", adminOnly: true },
@@ -33,19 +33,24 @@ export function AdminNav() {
             ← Back to site
           </Link>
           <div className="flex items-center gap-2">
-            {adminLinks.map(({ href, label }) => {
+            {adminLinks.map(({ href, label, adminOnly }) => {
               const isActive = pathname === href || (href !== "/admin" && pathname.startsWith(`${href}/`));
               return (
                 <Link
                   key={href}
                   href={{ pathname: href }}
-                  className={`cursor-pointer rounded px-3 py-1 font-medium transition ${
+                  className={`cursor-pointer rounded px-3 py-1 font-medium transition inline-flex items-center gap-2 ${
                     isActive
                       ? "bg-blue-600 text-white shadow"
                       : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
                   }`}
                 >
-                  {label}
+                  <span>{label}</span>
+                  {adminOnly ? (
+                    <span className="rounded bg-slate-200 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                      Admin
+                    </span>
+                  ) : null}
                 </Link>
               );
             })}

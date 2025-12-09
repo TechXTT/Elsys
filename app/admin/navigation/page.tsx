@@ -3,6 +3,29 @@
 import React, { useCallback, useEffect, useMemo, useState, DragEvent, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { locales as supportedLocales, defaultLocale } from "@/i18n/config";
+import {
+  Plus,
+  Save,
+  RotateCcw,
+  GripVertical,
+  ArrowLeft,
+  ChevronDown,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Pencil,
+  ExternalLink,
+  Trash2,
+  ArrowUp,
+  ArrowDown,
+  Folder,
+  FileText,
+  Link2,
+  Route,
+  Globe,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
 
 type PageNode = {
   id: string;
@@ -55,22 +78,56 @@ export default function NavigationAdminPage() {
   const [newNavLabel, setNewNavLabel] = useState<Record<string, string>>({ bg: "", en: "" });
   const [newKind, setNewKind] = useState<string>("PAGE");
 
-  const load = useCallback(async (fetchLocale: string = PRIMARY_LOCALE) => {
+  const pendingBufferRef = useRef<Record<string, Partial<PageNode>>>({});
+  const pendingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function queuePending(id: string, patch: Partial<PageNode>, debounceMs = 0) {
+    if (debounceMs === 0) {
+      setPending((prev) => ({ ...prev, [id]: { ...(prev[id] || {}), ...patch } }));
+      return;
+    }
+    pendingBufferRef.current[id] = { ...(pendingBufferRef.current[id] || {}), ...patch };
+    if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
+    pendingTimerRef.current = setTimeout(() => {
+      setPending((prev) => {
+        const next = { ...prev };
+        for (const [pid, pp] of Object.entries(pendingBufferRef.current)) {
+          next[pid] = { ...(next[pid] || {}), ...pp };
+        }
+        return next;
+      });
+      pendingBufferRef.current = {};
+      pendingTimerRef.current = null;
+    }, debounceMs);
+  }
+
+  const [treesByLocale, setTreesByLocale] = useState<Record<string, PageNode[]>>({});
+  const currentLocaleRef = useRef(locale);
+  useEffect(() => { currentLocaleRef.current = locale; }, [locale]);
+
+  const load = useCallback(async (targetLocale?: string) => {
+    const initialLocale = targetLocale ?? currentLocaleRef.current;
     setLoading(true);
     setError(null);
     try {
-      const search = fetchLocale ? `?locale=${encodeURIComponent(fetchLocale)}` : "";
-      const res = await fetch(`/api/admin/navigation${search}`, { cache: "no-store" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Load failed");
-      setTree(data.items as PageNode[]);
+      const fetches = NAV_LOCALES.map(async (loc) => {
+        const res = await fetch(`/api/admin/navigation?locale=${encodeURIComponent(loc)}`, { cache: "no-store" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `Load failed for ${loc}`);
+        return { locale: loc, items: data.items as PageNode[] };
+      });
+      const results = await Promise.all(fetches);
+      const byLocale: Record<string, PageNode[]> = {};
+      results.forEach((r) => { byLocale[r.locale] = r.items; });
+      setTreesByLocale(byLocale);
+      setTree(byLocale[initialLocale] || []);
     } catch (e: any) {
       setError(e.message || "Failed to load navigation");
     } finally {
       setLoading(false);
     }
   }, []);
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void load(locale); }, []);
 
   const flat = useMemo(() => {
     const out: PageNode[] = [];
@@ -127,125 +184,285 @@ export default function NavigationAdminPage() {
     list.sort((a,b)=>a.order-b.order); list.forEach((c,i)=>{ c.order=i; normalize(c.children); });
   }
 
-  function update(id: string, patch: Partial<PageNode>) {
-    // Optimistic local update only
-    setTree(prev => {
-      const clone = prev.map(deepClone);
-      const structural = 'parentId' in patch || 'order' in patch;
-      if (!structural) {
-        // Apply shallow patch to the matched node OR locale-specific id
-        function apply(nodes: PageNode[]): boolean {
-          for (const node of nodes) {
-            if (node.id === id) {
-              Object.assign(node, patch);
-              // Also sync aggregated maps if patch contains localized fields
-              const baseLocale = node.locale ?? PRIMARY_LOCALE;
-              if ('navLabel' in patch) {
-                const value = (patch.navLabel ?? null) as string | null;
-                node.labelByLocale = { ...(node.labelByLocale || {}), [baseLocale]: value };
-                node.navLabel = value;
-              }
-              if ('slug' in patch) {
-                const value = (patch.slug ?? null) as string | null;
-                node.slugByLocale = { ...(node.slugByLocale || {}), [baseLocale]: value };
-                node.slug = value;
-              }
-              if ('routeOverride' in patch) {
-                const value = (patch.routeOverride ?? null) as string | null;
-                node.routeOverrideByLocale = { ...(node.routeOverrideByLocale || {}), [baseLocale]: value };
-                node.routeOverride = value;
-              }
-              if ('routePath' in patch) {
-                const value = (patch.routePath ?? null) as string | null;
-                node.routePathByLocale = { ...(node.routePathByLocale || {}), [baseLocale]: value };
-                node.routePath = value;
-              }
-              if ('externalUrl' in patch) {
-                const value = (patch.externalUrl ?? null) as string | null;
-                node.externalUrlByLocale = { ...(node.externalUrlByLocale || {}), [baseLocale]: value };
-                node.externalUrl = value;
-              }
-              return true;
-            }
-            // attempt locale match
-            if (node.idsByLocale) {
-              for (const [loc, locId] of Object.entries(node.idsByLocale)) {
-                if (locId === id) {
-                  const baseLocale = node.locale ?? PRIMARY_LOCALE;
-                  if ('navLabel' in patch) {
-                    const value = (patch.navLabel ?? null) as string | null;
-                    node.labelByLocale = { ...(node.labelByLocale || {}), [loc]: value };
-                    if (loc === baseLocale) node.navLabel = value;
-                  }
-                  if ('slug' in patch) {
-                    const value = (patch.slug ?? null) as string | null;
-                    node.slugByLocale = { ...(node.slugByLocale || {}), [loc]: value };
-                    if (loc === baseLocale) node.slug = value;
-                  }
-                  if ('routeOverride' in patch) {
-                    const value = (patch.routeOverride ?? null) as string | null;
-                    node.routeOverrideByLocale = { ...(node.routeOverrideByLocale || {}), [loc]: value };
-                    if (loc === baseLocale) node.routeOverride = value;
-                  }
-                  if ('routePath' in patch) {
-                    const value = (patch.routePath ?? null) as string | null;
-                    node.routePathByLocale = { ...(node.routePathByLocale || {}), [loc]: value };
-                    if (loc === baseLocale) node.routePath = value;
-                  }
-                  if ('externalUrl' in patch) {
-                    const value = (patch.externalUrl ?? null) as string | null;
-                    node.externalUrlByLocale = { ...(node.externalUrlByLocale || {}), [loc]: value };
-                    if (loc === baseLocale) node.externalUrl = value;
-                  }
-                  return true;
-                }
-              }
-            }
-            if (apply(node.children)) return true;
-          }
-          return false;
+  // Find a node by its id or by groupId match (for cross-locale lookups)
+  function findNodeByIdOrGroup(list: PageNode[], id: string, groupId?: string | null): PageNode | null {
+    for (const n of list) {
+      if (n.id === id) return n;
+      if (groupId && n.idsByLocale) {
+        // Check if any locale id matches
+        for (const locId of Object.values(n.idsByLocale)) {
+          if (locId === id) return n;
         }
-        apply(clone);
-        return clone;
       }
-      const removed = removeNode(clone, id);
-      if (!removed) return clone;
-      Object.assign(removed, patch);
-      const targetParent = removed.parentId;
-      if (targetParent) {
-        const parentNode = findNode(clone, targetParent);
-        (parentNode ? parentNode.children : clone).push(removed);
-      } else clone.push(removed);
-      normalize(clone);
+      const f = findNodeByIdOrGroup(n.children, id, groupId);
+      if (f) return f;
+    }
+    return null;
+  }
+
+  // For structural changes across locales, we need to find the equivalent node by groupId
+  function findNodeInLocaleTree(sourceTree: PageNode[], targetTree: PageNode[], sourceId: string): PageNode | null {
+    // First find the source node to get its groupId info
+    const sourceNode = findNode(sourceTree, sourceId);
+    if (!sourceNode) return null;
+    
+    // Find equivalent in target tree by checking idsByLocale
+    function searchByGroup(nodes: PageNode[]): PageNode | null {
+      for (const n of nodes) {
+        // Check if this node's idsByLocale contains sourceId (meaning same group)
+        if (n.idsByLocale) {
+          for (const locId of Object.values(n.idsByLocale)) {
+            if (locId === sourceId) return n;
+          }
+        }
+        // Also check if this is the same node
+        if (n.id === sourceId) return n;
+        const found = searchByGroup(n.children);
+        if (found) return found;
+      }
+      return null;
+    }
+    return searchByGroup(targetTree);
+  }
+
+  function applyUpdateToTree(source: PageNode[], id: string, patch: Partial<PageNode>, referenceTree?: PageNode[]): PageNode[] {
+    const clone = source.map(deepClone);
+    const structural = 'parentId' in patch || 'order' in patch;
+    if (!structural) {
+      // Apply shallow patch to the matched node OR locale-specific id
+      function apply(nodes: PageNode[]): boolean {
+        for (const node of nodes) {
+          if (node.id === id) {
+            Object.assign(node, patch);
+            // Also sync aggregated maps if patch contains localized fields
+            const baseLocale = node.locale ?? PRIMARY_LOCALE;
+            if ('navLabel' in patch) {
+              const value = (patch.navLabel ?? null) as string | null;
+              node.labelByLocale = { ...(node.labelByLocale || {}), [baseLocale]: value };
+              node.navLabel = value;
+            }
+            if ('slug' in patch) {
+              const value = (patch.slug ?? null) as string | null;
+              node.slugByLocale = { ...(node.slugByLocale || {}), [baseLocale]: value };
+              node.slug = value;
+            }
+            if ('routeOverride' in patch) {
+              const value = (patch.routeOverride ?? null) as string | null;
+              node.routeOverrideByLocale = { ...(node.routeOverrideByLocale || {}), [baseLocale]: value };
+              node.routeOverride = value;
+            }
+            if ('routePath' in patch) {
+              const value = (patch.routePath ?? null) as string | null;
+              node.routePathByLocale = { ...(node.routePathByLocale || {}), [baseLocale]: value };
+              node.routePath = value;
+            }
+            if ('externalUrl' in patch) {
+              const value = (patch.externalUrl ?? null) as string | null;
+              node.externalUrlByLocale = { ...(node.externalUrlByLocale || {}), [baseLocale]: value };
+              node.externalUrl = value;
+            }
+            return true;
+          }
+          // attempt locale match
+          if (node.idsByLocale) {
+            for (const [loc, locId] of Object.entries(node.idsByLocale)) {
+              if (locId === id) {
+                const baseLocale = node.locale ?? PRIMARY_LOCALE;
+                if ('navLabel' in patch) {
+                  const value = (patch.navLabel ?? null) as string | null;
+                  node.labelByLocale = { ...(node.labelByLocale || {}), [loc]: value };
+                  if (loc === baseLocale) node.navLabel = value;
+                }
+                if ('slug' in patch) {
+                  const value = (patch.slug ?? null) as string | null;
+                  node.slugByLocale = { ...(node.slugByLocale || {}), [loc]: value };
+                  if (loc === baseLocale) node.slug = value;
+                }
+                if ('routeOverride' in patch) {
+                  const value = (patch.routeOverride ?? null) as string | null;
+                  node.routeOverrideByLocale = { ...(node.routeOverrideByLocale || {}), [loc]: value };
+                  if (loc === baseLocale) node.routeOverride = value;
+                }
+                if ('routePath' in patch) {
+                  const value = (patch.routePath ?? null) as string | null;
+                  node.routePathByLocale = { ...(node.routePathByLocale || {}), [loc]: value };
+                  if (loc === baseLocale) node.routePath = value;
+                }
+                if ('externalUrl' in patch) {
+                  const value = (patch.externalUrl ?? null) as string | null;
+                  node.externalUrlByLocale = { ...(node.externalUrlByLocale || {}), [loc]: value };
+                  if (loc === baseLocale) node.externalUrl = value;
+                }
+                return true;
+              }
+            }
+          }
+          if (apply(node.children)) return true;
+        }
+        return false;
+      }
+      apply(clone);
       return clone;
+    }
+    
+    // For structural changes, find the node by id or by idsByLocale (cross-locale sync)
+    function findNodeByIdOrLocaleId(nodes: PageNode[], targetId: string): PageNode | null {
+      for (const n of nodes) {
+        if (n.id === targetId) return n;
+        // Check if this node's idsByLocale contains the target id
+        if (n.idsByLocale) {
+          for (const locId of Object.values(n.idsByLocale)) {
+            if (locId === targetId) return n;
+          }
+        }
+        const found = findNodeByIdOrLocaleId(n.children, targetId);
+        if (found) return found;
+      }
+      return null;
+    }
+    
+    function removeNodeByIdOrLocaleId(nodes: PageNode[], targetId: string): PageNode | null {
+      for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i];
+        if (n.id === targetId) {
+          nodes.splice(i, 1);
+          return n;
+        }
+        if (n.idsByLocale) {
+          for (const locId of Object.values(n.idsByLocale)) {
+            if (locId === targetId) {
+              nodes.splice(i, 1);
+              return n;
+            }
+          }
+        }
+        const found = removeNodeByIdOrLocaleId(n.children, targetId);
+        if (found) return found;
+      }
+      return null;
+    }
+    
+    const removed = removeNodeByIdOrLocaleId(clone, id);
+    if (!removed) return clone;
+    
+    // Apply order change
+    if ('order' in patch) {
+      removed.order = patch.order as number;
+    }
+    
+    // Handle parentId change - need to find corresponding parent in this locale tree
+    let targetParentId = removed.parentId;
+    if ('parentId' in patch) {
+      const newParentId = patch.parentId;
+      if (newParentId === null) {
+        targetParentId = null;
+      } else if (newParentId) {
+        // Find the parent by id or idsByLocale
+        const parentInTree = findNodeByIdOrLocaleId(clone, newParentId);
+        targetParentId = parentInTree?.id ?? null;
+      }
+      removed.parentId = targetParentId;
+    }
+    
+    if (targetParentId) {
+      const parentNode = findNode(clone, targetParentId);
+      (parentNode ? parentNode.children : clone).push(removed);
+    } else {
+      clone.push(removed);
+    }
+    normalize(clone);
+    return clone;
+  }
+
+  function update(id: string, patch: Partial<PageNode>) {
+    // Queue as pending change
+    queuePending(id, patch);
+
+    const structural = 'parentId' in patch || 'order' in patch;
+
+    // Optimistic update for current locale view
+    setTree(prev => applyUpdateToTree(prev, id, patch));
+
+    // Keep cached locale trees in sync so structure stays 1:1 before saving
+    setTreesByLocale(prev => {
+      if (structural) {
+        const next: Record<string, PageNode[]> = {};
+        for (const [loc, list] of Object.entries(prev)) {
+          next[loc] = applyUpdateToTree(list, id, patch);
+        }
+        // Ensure current locale entry exists even if prev lacked it
+        if (!next[locale]) next[locale] = applyUpdateToTree(tree, id, patch);
+        return next;
+      }
+      return { ...prev, [locale]: applyUpdateToTree(prev[locale] || tree, id, patch) };
     });
-    setPending(prev => ({ ...prev, [id]: { ...(prev[id] || {}), ...patch } }));
   }
 
   async function saveAll() {
     if (!Object.keys(pending).length) return;
-    setSaving(true); setError(null);
+    setSaving(true);
+    setError(null);
     try {
-      for (const id of Object.keys(pending)) {
-        const patch = pending[id];
-        const res = await fetch(`/api/admin/navigation/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) });
-        if (!res.ok) {
-          const data = await res.json().catch(()=>({}));
-          throw new Error(data.error || 'Failed saving some changes');
-        }
+      const entries = Object.entries(pending);
+      const results = await Promise.allSettled(entries.map(async ([id, patch]) => {
+        const res = await fetch(`/api/admin/navigation/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(patch),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || `Save failed for ${id}`);
+      }));
+      const errors = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+      if (errors.length) {
+        const msg = errors.map(e => (e.reason as any)?.message || 'Save failed').join('; ');
+        setError(msg);
+        return;
       }
       setPending({});
-      await load();
-    } catch (e:any) {
+      await load(locale);
+    } catch (e: any) {
       setError(e.message || 'Save failed');
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function discardAll() {
-    if (!Object.keys(pending).length) return;
-    if (!confirm('Discard all unsaved changes?')) return;
     setPending({});
-    await load();
+    await load(locale);
+  }
+
+  async function remove(id: string) {
+    if (!confirm('Delete this item and its descendants?')) return;
+    const res = await fetch(`/api/admin/navigation/${id}`, { method: 'DELETE' });
+    if (!res.ok) { setError('Delete failed'); return; }
+    await load(locale);
+  }
+
+  function buildHierarchicalSlug(node: PageNode, tree: PageNode[], loc?: string): string {
+    const path: string[] = [];
+    let cur: PageNode | null = node;
+    function getById(id: string | null): PageNode | null { 
+      if (!id) return null; 
+      return findNode(tree, id); 
+    }
+    while (cur) {
+      const seg = loc ? (cur.slugByLocale?.[loc] ?? cur.slug) : (cur.slug ?? null);
+      if (seg) path.unshift(seg);
+      cur = getById(cur.parentId);
+    }
+    return path.join('/');
+  }
+
+  function handleLocaleSwitch(next: string) {
+    if (next === locale) return;
+    setTreesByLocale((prev) => {
+      const updated = { ...prev, [locale]: tree };
+      setTree(updated[next] || []);
+      return updated;
+    });
+    setLocale(next);
   }
 
   // Keyboard shortcut Cmd/Ctrl+S
@@ -261,185 +478,266 @@ export default function NavigationAdminPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [pending, saving]);
 
-  async function remove(id: string) {
-    if (!confirm('Delete this item and its descendants?')) return;
-    const res = await fetch(`/api/admin/navigation/${id}`, { method: 'DELETE' });
-    if (!res.ok) { setError('Delete failed'); return; }
-    setTree(prev => prev.filter(n => n.id !== id));
-    void load();
-  }
-
-  function buildHierarchicalSlug(node: PageNode, tree: PageNode[], loc?: string): string {
-    const path: string[] = [];
-    let cur: PageNode | null = node;
-    function getById(id: string | null): PageNode | null { if(!id) return null; return findNode(tree,id); }
-    while (cur) {
-      const seg = loc ? (cur.slugByLocale?.[loc] ?? cur.slug) : (cur.slug ?? null);
-      if (seg) path.unshift(seg);
-      cur = getById(cur.parentId);
-    }
-    return path.join('/');
-  }
-
-  function handleLocaleSwitch(next: string) {
-    if (next === locale) return;
-    setLocale(next);
-  }
+  const pendingCount = Object.keys(pending).length;
 
   return (
     <div className="space-y-6">
-      <div className="fixed left-2 bottom-8 z-50 pointer-events-none">
-        <div className="relative inline-block">
-          <div
-            role="group"
-            aria-label="Locale switcher"
-            className="inline-flex overflow-hidden rounded-xl border border-slate-200/60 bg-white/80 text-xs backdrop-blur-sm shadow-sm dark:border-slate-700/50 dark:bg-slate-800/70 pointer-events-auto"
-          >
-            {(["bg", "en"] as const).map((code) => (
-              <button
-                key={code}
-                type="button"
-                onClick={() => handleLocaleSwitch(code)}
-                aria-pressed={locale === code}
-                className={`px-3 py-1.5 font-semibold uppercase tracking-wide outline-none transition-colors focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-blue-500 ${
-                  locale === code
-                    ? "bg-white text-blue-600 shadow-sm dark:bg-slate-900 dark:text-blue-300"
-                    : "bg-transparent text-slate-600 hover:bg-white/70 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700/60 dark:hover:text-slate-100"
-                }`}
-              >
-                {code}
-              </button>
-            ))}
-          </div>
-          {(loading || error) && (
-            <div className="absolute left-0 right-0 top-full mt-1 pl-1 text-xs leading-5 pointer-events-none">
-              {loading && <div className="text-slate-600 dark:text-slate-400 animate-pulse">Loading…</div>}
-              {error && <div className="text-red-600 font-medium">{error}</div>}
-            </div>
-          )}
-        </div>
-      </div>
-      <header className="flex flex-col gap-3">
+      {/* Header */}
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Navigation</h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400">Unified hierarchical Pages (per-locale tree).</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Pages & Navigation</h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Manage your site's page hierarchy and navigation structure
+          </p>
         </div>
-        <div className="flex flex-wrap gap-2 items-center">
-          <div className="ml-auto flex items-center gap-2">
-            <button
-              onClick={saveAll}
-              disabled={!Object.keys(pending).length || saving}
-              className="rounded bg-green-600 px-3 py-1 text-xs font-medium text-white disabled:opacity-40"
-              title="Save all changes (Cmd/Ctrl+S)"
-            >{saving? 'Saving…':'Save'}</button>
-            <button
-              onClick={discardAll}
-              disabled={!Object.keys(pending).length || saving}
-              className="rounded border border-slate-300 dark:border-slate-600 px-3 py-1 text-xs font-medium text-slate-700 dark:text-slate-200 disabled:opacity-40"
-              title="Discard unsaved changes"
-            >Discard</button>
-            {Object.keys(pending).length ? <span className="text-[10px] text-slate-500">{Object.keys(pending).length} pending</span> : null}
+
+        <div className="flex items-center gap-3">
+          {/* Locale Switcher */}
+          <div className="flex items-center gap-2">
+            <Globe className="h-4 w-4 text-slate-400" />
+            <div className="flex rounded-lg bg-slate-100 p-0.5 dark:bg-slate-800">
+              {(["bg", "en"] as const).map((code) => (
+                <button
+                  key={code}
+                  type="button"
+                  onClick={() => handleLocaleSwitch(code)}
+                  className={`rounded-md px-3 py-1.5 text-sm font-medium uppercase transition-colors ${
+                    locale === code
+                      ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white"
+                      : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                  }`}
+                >
+                  {code}
+                </button>
+              ))}
+            </div>
           </div>
+
+          <div className="h-6 w-px bg-slate-200 dark:bg-slate-700" />
+
+          {/* Action Buttons */}
+          <button
+            onClick={discardAll}
+            disabled={!pendingCount || saving}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-40 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Discard
+          </button>
+          <button
+            onClick={saveAll}
+            disabled={!pendingCount || saving}
+            className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-500 disabled:opacity-40"
+          >
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            {saving ? "Saving..." : "Save"}
+            {pendingCount > 0 && (
+              <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs">
+                {pendingCount}
+              </span>
+            )}
+          </button>
         </div>
       </header>
 
-      <section className="rounded border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        {loading ? <p className="text-sm text-slate-500">Loading…</p> : error ? <p className="text-sm text-red-600">{error}</p> : (
-          <NavTree
-            nodes={tree}
-            fullTree={tree}
-            flatNodes={flat}
-            parentId={null}
-            draggingId={draggingId}
-            dropTargetId={dropTargetId}
-            dropMode={dropMode}
-            setDraggingId={setDraggingId}
-            setDropTargetId={setDropTargetId}
-            setDropMode={setDropMode}
-            onUpdate={update}
-            onDelete={remove}
-            locale={locale}
-            buildHierarchicalSlug={buildHierarchicalSlug}
-          />
-        )}
-        {/* Floating Save button for anywhere access */}
-        <div className="fixed bottom-4 right-4 z-50">
+      {/* Error Banner */}
+      {error && (
+        <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 dark:border-red-800 dark:bg-red-950/30">
+          <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+          <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <div className="text-center">
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-brand-600" />
+            <p className="mt-2 text-sm text-slate-500">Loading navigation...</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Navigation Tree */}
+          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="border-b border-slate-200 bg-slate-50 px-5 py-3 dark:border-slate-800 dark:bg-slate-800/50">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Navigation Tree
+                  <span className="ml-2 text-xs font-normal text-slate-500">
+                    ({flat.length} items)
+                  </span>
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Drag items to reorder • {locale.toUpperCase()} locale
+                </p>
+              </div>
+            </div>
+            <div className="p-4">
+              <NavTree
+                nodes={tree}
+                fullTree={tree}
+                flatNodes={flat}
+                parentId={null}
+                draggingId={draggingId}
+                dropTargetId={dropTargetId}
+                dropMode={dropMode}
+                setDraggingId={setDraggingId}
+                setDropTargetId={setDropTargetId}
+                setDropMode={setDropMode}
+                onUpdate={update}
+                onDelete={remove}
+                locale={locale}
+                buildHierarchicalSlug={buildHierarchicalSlug}
+              />
+            </div>
+          </section>
+
+          {/* Create New Item */}
+          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="border-b border-slate-200 bg-slate-50 px-5 py-3 dark:border-slate-800 dark:bg-slate-800/50">
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
+                <Plus className="h-4 w-4" />
+                Create New Item
+              </h2>
+            </div>
+            <form onSubmit={createItem} className="p-5">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {/* Parent & Kind */}
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Parent
+                  </label>
+                  <select
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                    value={newParent}
+                    onChange={(e) => setNewParent(e.target.value)}
+                  >
+                    <option value="">(Root level)</option>
+                    {flat.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.navLabel || p.slug || p.id}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Type
+                  </label>
+                  <select
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                    value={newKind}
+                    onChange={(e) => setNewKind(e.target.value)}
+                  >
+                    <option value="PAGE">📄 Page</option>
+                    <option value="FOLDER">📁 Folder</option>
+                    <option value="LINK">🔗 External Link</option>
+                    <option value="ROUTE">🛤️ Dynamic Route</option>
+                  </select>
+                </div>
+
+                {/* Locale-specific fields */}
+                {NAV_LOCALES.map((code: string) => (
+                  <div key={`segment-${code}`}>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                      {code.toUpperCase()}{" "}
+                      {newKind === "LINK" ? "URL" : newKind === "ROUTE" ? "Route Path" : "Slug"}
+                    </label>
+                    <input
+                      disabled={newKind === "LINK"}
+                      value={newKind === "ROUTE" ? newRoutePath[code] : newSlug[code]}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (newKind === "ROUTE") {
+                          setNewRoutePath((prev) => ({ ...prev, [code]: val }));
+                        } else {
+                          setNewSlug((prev) => ({ ...prev, [code]: val }));
+                        }
+                      }}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                      placeholder={newKind === "ROUTE" ? "pages/news" : "e.g. about-us"}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Additional fields row */}
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {NAV_LOCALES.map((code) => (
+                  <div key={`label-${code}`}>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                      {code.toUpperCase()} Label
+                    </label>
+                    <input
+                      value={newNavLabel[code]}
+                      onChange={(e) => setNewNavLabel((prev) => ({ ...prev, [code]: e.target.value }))}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                      placeholder="Display name"
+                    />
+                  </div>
+                ))}
+
+                {newKind === "LINK" &&
+                  NAV_LOCALES.map((code) => (
+                    <div key={`external-${code}`}>
+                      <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                        {code.toUpperCase()} URL
+                      </label>
+                      <input
+                        value={newExternal[code]}
+                        onChange={(e) => setNewExternal((prev) => ({ ...prev, [code]: e.target.value }))}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                        placeholder="https://..."
+                      />
+                    </div>
+                  ))}
+              </div>
+
+              <div className="mt-5">
+                <button
+                  type="submit"
+                  disabled={creating}
+                  className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-500 disabled:opacity-50"
+                >
+                  {creating ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4" />
+                  )}
+                  {creating ? "Creating..." : "Create Item"}
+                </button>
+              </div>
+            </form>
+          </section>
+        </>
+      )}
+
+      {/* Floating Save Button */}
+      {pendingCount > 0 && (
+        <div className="fixed bottom-6 right-6 z-50">
           <button
             onClick={saveAll}
-            disabled={!Object.keys(pending).length || saving}
-            className="relative shadow-lg rounded-full bg-green-600 px-5 py-3 text-sm font-semibold text-white disabled:opacity-40"
-            title="Save all changes (Cmd/Ctrl+S)"
+            disabled={saving}
+            className="flex items-center gap-2 rounded-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-600/25 transition-all hover:bg-brand-500 hover:shadow-xl disabled:opacity-50"
           >
-            {saving ? 'Saving…' : 'Save'}
-            {Object.keys(pending).length ? (
-              <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-white text-green-700 text-xs font-bold flex items-center justify-center border border-green-600">
-                {Object.keys(pending).length}
-              </span>
-            ) : null}
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Save Changes
+            <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs">
+              {pendingCount}
+            </span>
           </button>
         </div>
-      </section>
-
-      <section className="rounded border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-slate-100">Create Item ({locale.toUpperCase()})</h2>
-        <form onSubmit={createItem} className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-          <label className="flex flex-col gap-1 text-xs">
-            <span>Parent</span>
-            <select className="rounded border px-2 py-1 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" value={newParent} onChange={e=>setNewParent(e.target.value)}>
-              <option value="">(root)</option>
-              {flat.map(p=> <option key={p.id} value={p.id}>{p.navLabel || p.slug || p.id}</option>)}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-xs">
-            <span>Kind</span>
-            <select className="rounded border px-2 py-1 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" value={newKind} onChange={e=>setNewKind(e.target.value)}>
-              <option value="PAGE">PAGE</option>
-              <option value="LINK">LINK</option>
-              <option value="FOLDER">FOLDER</option>
-              <option value="ROUTE">ROUTE</option>
-            </select>
-          </label>
-          {NAV_LOCALES.map((code: string) => (
-            <label key={`segment-${code}`} className="flex flex-col gap-1 text-xs">
-              <span>{code.toUpperCase()} {newKind==='LINK' ? 'URL' : (newKind==='ROUTE' ? 'Route path' : 'Segment')}</span>
-              <input
-                disabled={newKind==='LINK'}
-                value={newKind==='ROUTE' ? newRoutePath[code] : newSlug[code]}
-                onChange={e=>{ const val = e.target.value; setNewRoutePath(prev => ({ ...prev, [code]: newKind==='ROUTE'?val:prev[code] })); setNewSlug(prev => ({ ...prev, [code]: newKind==='ROUTE'?prev[code]:val })); }}
-                className="rounded border px-2 py-1 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600"
-                placeholder={newKind==='ROUTE' ? 'pages/news or pages/news/[slug]' : 'e.g. priem'}
-              />
-            </label>
-          ))}
-          {newKind==='ROUTE' && NAV_LOCALES.map((code) => (
-            <label key={`route-slug-${code}`} className="flex flex-col gap-1 text-xs">
-              <span>{code.toUpperCase()} Route slug</span>
-              <input value={newRouteSlug[code]} onChange={e=>setNewRouteSlug(prev=>({ ...prev, [code]: e.target.value }))} className="rounded border px-2 py-1 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" placeholder="e.g. my-article or foo/bar" />
-            </label>
-          ))}
-          {NAV_LOCALES.map((code) => (
-            <label key={`external-${code}`} className="flex flex-col gap-1 text-xs">
-              <span>{code.toUpperCase()} External URL</span>
-              <input disabled={newKind!=='LINK'} value={newExternal[code]} onChange={e=>setNewExternal(prev=>({ ...prev, [code]: e.target.value }))} className="rounded border px-2 py-1 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" placeholder="https://..." />
-            </label>
-          ))}
-          {NAV_LOCALES.map((code) => (
-            <label key={`label-${code}`} className="flex flex-col gap-1 text-xs sm:col-span-2">
-              <span>{code.toUpperCase()} Label</span>
-              <input value={newNavLabel[code]} onChange={e=>setNewNavLabel(prev=>({ ...prev, [code]: e.target.value }))} className="rounded border px-2 py-1 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" placeholder="Display label" />
-            </label>
-          ))}
-          {NAV_LOCALES.map((code) => (
-            <label key={`override-${code}`} className="flex flex-col gap-1 text-xs sm:col-span-2">
-              <span>{code.toUpperCase()} Route override</span>
-              <input value={newRouteOverride[code]} onChange={e=>setNewRouteOverride(prev=>({ ...prev, [code]: e.target.value }))} className="rounded border px-2 py-1 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" placeholder="e.g. pages/news or /custom/path" />
-            </label>
-          ))}
-          <div className="sm:col-span-4">
-            <button disabled={creating} className="rounded bg-blue-600 px-3 py-1 text-sm font-medium text-white disabled:opacity-60">Create</button>
-          </div>
-        </form>
-      </section>
+      )}
     </div>
   );
 }
@@ -460,165 +758,196 @@ function NavTree({ nodes, fullTree, flatNodes, parentId, draggingId, dropTargetI
   locale: string;
   buildHierarchicalSlug: (n: PageNode, tree: PageNode[], loc?: string) => string;
 }) {
-  const rafRef = useRef<number | null>(null);
-  const velRef = useRef(0);
   const dragImgRef = useRef<HTMLElement | null>(null);
 
-  function onDragStart(e: DragEvent<HTMLDivElement>, id: string, dragEl?: HTMLElement | null) {
-    setDraggingId(id);
-    if (e.dataTransfer && dragEl) {
-      e.dataTransfer.effectAllowed = 'move';
-      try { e.dataTransfer.setData('text/plain', id); } catch {}
-      const rect = dragEl.getBoundingClientRect();
-      const clone = dragEl.cloneNode(true) as HTMLElement;
-      clone.style.position='fixed'; clone.style.top='-1000px'; clone.style.left='-1000px'; clone.style.width=rect.width+'px'; clone.style.opacity='0.9'; clone.style.pointerEvents='none';
-      document.body.appendChild(clone); dragImgRef.current = clone;
-      try { e.dataTransfer.setDragImage(clone, Math.min(40, rect.width/3), 16); } catch {}
+  function findNode(list: PageNode[], id: string): PageNode | null {
+    for (const n of list) {
+      if (n.id === id) return n;
+      const f = findNode(n.children, id);
+      if (f) return f;
     }
+    return null;
   }
-  function onDragOverItem(id: string, mode: DropMode, clientY: number | null) {
-    setDropTargetId(id); setDropMode(mode); updateAuto(clientY ?? undefined);
-  }
-  function stopAuto() { if (rafRef.current) cancelAnimationFrame(rafRef.current); rafRef.current=null; velRef.current=0; }
-  function updateAuto(clientY?: number) {
-    if (!draggingId || clientY === undefined) { stopAuto(); return; }
-    const threshold = 140; const maxVel = 35; const minVel = 6; const vh = window.innerHeight;
-    let v = 0;
-    if (clientY < threshold) {
-      const t = (threshold - clientY) / threshold; const eased = Math.pow(t, 1.2); v = -Math.ceil(Math.max(minVel, eased * maxVel));
-    } else if (clientY > vh - threshold) {
-      const t = (clientY - (vh - threshold)) / threshold; const eased = Math.pow(t, 1.2); v = Math.ceil(Math.max(minVel, eased * maxVel));
-    }
-    velRef.current = v;
-    if (v !== 0 && rafRef.current === null) {
-      const step = () => {
-        if (!draggingId || velRef.current === 0) { if (rafRef.current !== null) cancelAnimationFrame(rafRef.current); rafRef.current = null; return; }
-        window.scrollBy(0, velRef.current);
-        rafRef.current = requestAnimationFrame(step);
-      };
-      rafRef.current = requestAnimationFrame(step);
-    } else if (v === 0 && rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
-  }
-  function onDrop() {
-    if (draggingId && dropTargetId && draggingId !== dropTargetId) {
-      const isListZone = dropTargetId.startsWith("__LIST_ZONE__:");
-      const isOutdentZone = dropTargetId.startsWith("__OUTDENT_AFTER_PARENT__:");
-      if (isOutdentZone) {
-        const [, childId] = dropTargetId.split(":");
-        const childNode = findNode(fullTree, childId);
-        if (childNode) {
-          const parent = childNode.parentId ? findNode(fullTree, childNode.parentId) : null;
-          const grandParentId = parent?.parentId ?? null;
-          const targetOrder = parent ? (parent.order + 1) : 0;
-          onUpdate(draggingId, { parentId: grandParentId, order: targetOrder });
-        }
-      } else if (isListZone) {
-        const parts = dropTargetId.split(":");
-        const zone = parts[1];
-        if (zone === "before") {
-          const targetNodeId = parts[2];
-          const drag = findNode(fullTree, draggingId);
-          const over = findNode(fullTree, targetNodeId);
-          if (drag && over) {
-            const targetOrder = (over.order ?? 0) - 1;
-            onUpdate(drag.id, { parentId: over.parentId ?? null, order: targetOrder });
-          }
-        } else {
-          const pidRaw = parts[2];
-          const pid = pidRaw === 'root' ? null : pidRaw;
-          const children = getChildrenOf(pid);
-          const orders = children.map(c => c.order);
-          const min = orders.length ? Math.min(...orders) : 0;
-          const max = orders.length ? Math.max(...orders) : 0;
-          const targetOrder = zone === 'start' ? (min - 1) : (max + 1);
-          const drag = findNode(fullTree, draggingId);
-          if (drag) onUpdate(drag.id, { parentId: pid, order: targetOrder });
-        }
-      } else {
-        const drag = findNode(fullTree, draggingId); const over = findNode(fullTree, dropTargetId);
-        if (drag && over) {
-          if (dropMode==='inside') onUpdate(drag.id, { parentId: over.id, order: 9999 });
-          else {
-            const sameParent = drag.parentId === over.parentId;
-            const targetOrder = dropMode==='below'? (over.order+1) : (over.order-1);
-            onUpdate(drag.id, { parentId: over.parentId ?? null, order: targetOrder });
-            if (sameParent) onUpdate(over.id, { order: drag.order });
-          }
-        }
-      }
-    }
-    setDraggingId(null); setDropTargetId(null); stopAuto();
-    if (dragImgRef.current) { try { document.body.removeChild(dragImgRef.current); } catch {} dragImgRef.current=null; }
-  }
-  function findNode(list: PageNode[], id: string): PageNode | null { for (const n of list){ if(n.id===id) return n; const f=findNode(n.children,id); if(f) return f; } return null; }
 
-  const isRoot = parentId === null;
   function getChildrenOf(pid: string | null): PageNode[] {
     if (pid == null) return fullTree;
     const p = findNode(fullTree, pid);
     return p?.children || [];
   }
-  // Attach global cancel handlers at root list
+
+  function onDragStart(e: DragEvent<HTMLDivElement>, id: string, dragEl?: HTMLElement | null) {
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", id);
+    }
+    setDraggingId(id);
+
+    if (e.dataTransfer && dragEl) {
+      const rect = dragEl.getBoundingClientRect();
+      const clone = dragEl.cloneNode(true) as HTMLElement;
+      clone.style.position = "fixed";
+      clone.style.top = "-1000px";
+      clone.style.left = "-1000px";
+      clone.style.width = rect.width + "px";
+      clone.style.opacity = "0.9";
+      clone.style.pointerEvents = "none";
+      document.body.appendChild(clone);
+      dragImgRef.current = clone;
+      try {
+        e.dataTransfer.setDragImage(clone, Math.min(40, rect.width / 3), 16);
+      } catch {}
+    }
+  }
+
+  function onDrop() {
+    if (!draggingId || !dropTargetId || draggingId === dropTargetId) {
+      setDraggingId(null);
+      setDropTargetId(null);
+      if (dragImgRef.current) {
+        try { document.body.removeChild(dragImgRef.current); } catch {}
+        dragImgRef.current = null;
+      }
+      return;
+    }
+
+    const drag = findNode(fullTree, draggingId);
+    if (!drag) {
+      setDraggingId(null);
+      setDropTargetId(null);
+      return;
+    }
+
+    // Handle new zone format: __INSERT_TOP__:parentId or __INSERT_AFTER__:nodeId
+    if (dropTargetId.startsWith('__INSERT_TOP__:')) {
+      const targetParentId = dropTargetId.replace('__INSERT_TOP__:', '');
+      const newParentId = targetParentId === 'root' ? null : targetParentId;
+      // Insert at top with order before all existing
+      const siblings = getChildrenOf(newParentId);
+      const minOrder = siblings.length > 0 ? Math.min(...siblings.map(s => s.order)) - 1 : 0;
+      onUpdate(drag.id, { parentId: newParentId, order: minOrder });
+    } else if (dropTargetId.startsWith('__INSERT_AFTER__:')) {
+      const afterNodeId = dropTargetId.replace('__INSERT_AFTER__:', '');
+      const afterNode = findNode(fullTree, afterNodeId);
+      if (afterNode) {
+        const siblings = getChildrenOf(afterNode.parentId ?? null);
+        const sorted = [...siblings].sort((a, b) => a.order - b.order);
+        const afterIdx = sorted.findIndex(s => s.id === afterNodeId);
+        const before = sorted[afterIdx];
+        const after = sorted[afterIdx + 1];
+        let targetOrder: number;
+        if (!after) {
+          targetOrder = (before?.order ?? 0) + 1;
+        } else {
+          targetOrder = ((before?.order ?? 0) + (after.order ?? 0)) / 2;
+        }
+        onUpdate(drag.id, { parentId: afterNode.parentId ?? null, order: targetOrder });
+      }
+    } else {
+      // Legacy: dropping on a node directly (inside mode)
+      const over = findNode(fullTree, dropTargetId);
+      if (over) {
+        if (dropMode === "inside") {
+          // Move as last child of target
+          onUpdate(drag.id, { parentId: over.id, order: Number.MAX_SAFE_INTEGER });
+        } else {
+          // Reorder among siblings above/below the target
+          const siblings = getChildrenOf(over.parentId ?? null);
+          const sorted = [...siblings].sort((a, b) => a.order - b.order);
+          const targetIndex = sorted.findIndex((s) => s.id === over.id);
+          const insertIndex = dropMode === "below" ? targetIndex + 1 : targetIndex;
+          const before = sorted[insertIndex - 1];
+          const after = sorted[insertIndex];
+          let targetOrder: number;
+          if (!before && !after) {
+            targetOrder = 0;
+          } else if (!before && after) {
+            targetOrder = (after.order ?? 0) - 1;
+          } else if (before && !after) {
+            targetOrder = (before.order ?? 0) + 1;
+          } else {
+            targetOrder = ((before!.order ?? 0) + (after!.order ?? 0)) / 2;
+          }
+          onUpdate(drag.id, { parentId: over.parentId ?? null, order: targetOrder });
+        }
+      }
+    }
+
+    setDraggingId(null);
+    setDropTargetId(null);
+    if (dragImgRef.current) {
+      try { document.body.removeChild(dragImgRef.current); } catch {}
+      dragImgRef.current = null;
+    }
+  }
+
+  // Cancel drag on Escape at root
   React.useEffect(() => {
     if (parentId !== null) return;
-    const cancel = () => { setDraggingId(null); setDropTargetId(null); stopAuto(); if (dragImgRef.current) { try { document.body.removeChild(dragImgRef.current); } catch {} dragImgRef.current = null; } };
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') cancel(); };
-    window.addEventListener('dragend', cancel);
-    window.addEventListener('drop', cancel);
-    window.addEventListener('pointerup', cancel);
-    window.addEventListener('mouseleave', cancel);
-    window.addEventListener('blur', cancel);
-    window.addEventListener('keydown', esc);
-    return () => {
-      window.removeEventListener('dragend', cancel);
-      window.removeEventListener('drop', cancel);
-      window.removeEventListener('pointerup', cancel);
-      window.removeEventListener('mouseleave', cancel);
-      window.removeEventListener('blur', cancel);
-      window.removeEventListener('keydown', esc);
+    const cancel = () => {
+      setDraggingId(null);
+      setDropTargetId(null);
+      if (dragImgRef.current) {
+        try {
+          document.body.removeChild(dragImgRef.current);
+        } catch {}
+        dragImgRef.current = null;
+      }
     };
-  }, [parentId]);
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") cancel();
+    };
+    window.addEventListener("keydown", esc);
+    return () => {
+      window.removeEventListener("keydown", esc);
+    };
+  }, [parentId, setDraggingId, setDropTargetId]);
+
+  // Drop zone between nodes: insertAfterNodeId is the node after which to insert (null = top of list)
+  const renderDropZone = (insertAfterNodeId: string | null, active: boolean) => (
+    <div
+      className={`relative transition-all ${draggingId ? 'h-6' : 'h-1'}`}
+      onDragOver={(e) => {
+        e.preventDefault();
+        // Use a special format to indicate insertion position
+        setDropTargetId(insertAfterNodeId === null ? `__INSERT_TOP__:${parentId ?? 'root'}` : `__INSERT_AFTER__:${insertAfterNodeId}`);
+        setDropMode("below");
+      }}
+      onDragEnter={(e) => {
+        e.preventDefault();
+        setDropTargetId(insertAfterNodeId === null ? `__INSERT_TOP__:${parentId ?? 'root'}` : `__INSERT_AFTER__:${insertAfterNodeId}`);
+        setDropMode("below");
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onDrop();
+      }}
+    >
+      <div
+        className={`absolute inset-x-0 top-1/2 -translate-y-1/2 rounded-lg border-2 border-dashed transition-all ${
+          active 
+            ? "border-brand-500 bg-brand-50/70 opacity-100 h-8" 
+            : draggingId 
+              ? "border-slate-300 bg-slate-50/50 opacity-50 h-4 dark:border-slate-600 dark:bg-slate-800/50" 
+              : "opacity-0 h-0"
+        }`}
+      />
+    </div>
+  );
+
+  // Check if a zone is active
+  const isZoneActive = (insertAfterNodeId: string | null) => {
+    const zoneId = insertAfterNodeId === null ? `__INSERT_TOP__:${parentId ?? 'root'}` : `__INSERT_AFTER__:${insertAfterNodeId}`;
+    return dropTargetId === zoneId;
+  };
+
   return (
     <div className="relative">
-      <ul
-        className="space-y-2"
-        onDragOver={(e) => {
-          if (!draggingId) return;
-          if (e.target !== e.currentTarget) return; // only background
-          e.preventDefault();
-          setDropTargetId(`__LIST_ZONE__:start:${parentId ?? 'root'}`);
-          setDropMode('above');
-          updateAuto(e.clientY);
-        }}
-      >
-        {draggingId ? (
-          <li
-            onDragEnter={(e) => { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'; }}
-            onDragOver={(e) => { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'; setDropTargetId(`__LIST_ZONE__:start:${parentId ?? 'root'}`); setDropMode('above'); updateAuto(e.clientY); }}
-            onDrop={onDrop}
-          >
-            {dropTargetId === `__LIST_ZONE__:start:${parentId ?? 'root'}` ? (
-              <div className="my-2 h-10 w-full rounded border-2 border-dashed border-blue-400 bg-blue-50/70 dark:bg-blue-900/20" />
-            ) : (
-              <div className="h-6" />
-            )}
-          </li>
-        ) : null}
+      <ul className="space-y-0">
+        {/* Top zone - insert at beginning */}
+        {renderDropZone(null, isZoneActive(null))}
         {nodes.map((n, idx) => (
           <React.Fragment key={n.id}>
-            {draggingId && draggingId !== n.id && idx !== 0 ? (
-              <li
-                onDragEnter={(e) => { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'; }}
-                onDragOver={(e) => { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'; setDropTargetId(`__LIST_ZONE__:before:${n.id}`); setDropMode('above'); updateAuto(e.clientY); }}
-                onDrop={onDrop}
-              >
-                {dropTargetId === `__LIST_ZONE__:before:${n.id}` ? (
-                  <div className="my-2 h-10 w-full rounded border-2 border-dashed border-blue-400 bg-blue-50/70 dark:bg-blue-900/20" />
-                ) : (
-                  <div className="h-6" />
-                )}
-              </li>
-            ) : null}
             <NavItem
               node={n}
               fullTree={fullTree}
@@ -630,29 +959,20 @@ function NavTree({ nodes, fullTree, flatNodes, parentId, draggingId, dropTargetI
               setDropTargetId={setDropTargetId}
               setDropMode={setDropMode}
               onDragStart={onDragStart}
-              onDragOverItem={onDragOverItem}
+              onDragOverItem={(id, mode, clientY) => {
+                setDropTargetId(id);
+                setDropMode(mode);
+              }}
               onDrop={onDrop}
               onUpdate={onUpdate}
               onDelete={onDelete}
               locale={locale}
               buildHierarchicalSlug={buildHierarchicalSlug}
             />
+            {/* Zone after this node (between this and next, or at bottom) */}
+            {renderDropZone(n.id, isZoneActive(n.id))}
           </React.Fragment>
         ))}
-        {draggingId ? (
-          <li
-            onDragEnter={(e) => { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'; }}
-            onDragOver={(e) => { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'; setDropTargetId(`__LIST_ZONE__:end:${parentId ?? 'root'}`); setDropMode('below'); updateAuto(e.clientY); }}
-            onDrop={onDrop}
-          >
-            {dropTargetId === `__LIST_ZONE__:end:${parentId ?? 'root'}` ? (
-              <div className="my-2 h-10 w-full rounded border-2 border-dashed border-blue-400 bg-blue-50/70 dark:bg-blue-900/20" />
-            ) : (
-              <div className="h-8" />
-            )}
-          </li>
-        ) : null}
-        {isRoot && nodes.length===0 && !draggingId && <li className="text-xs text-slate-500">No items</li>}
       </ul>
     </div>
   );
@@ -662,6 +982,7 @@ function NavItem({ node: n, fullTree, flatNodes, draggingId, dropTargetId, dropM
   node: PageNode; fullTree: PageNode[]; flatNodes: PageNode[]; draggingId: string | null; dropTargetId: string | null; dropMode: DropMode; setDraggingId: (id:string|null)=>void; setDropTargetId:(id:string|null)=>void; setDropMode:(m:DropMode)=>void; onDragStart:(e:DragEvent<HTMLDivElement>,id:string,el?:HTMLElement|null)=>void; onDragOverItem:(id:string,mode:DropMode, clientY: number | null)=>void; onDrop:()=>void; onUpdate:(id:string,patch:Partial<PageNode>)=>void; onDelete:(id:string)=>void; locale:string; buildHierarchicalSlug:(n:PageNode,t:PageNode[], loc?: string)=>string }) {
   const router = useRouter();
   const [expanded,setExpanded]=useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const liRef = useRef<HTMLLIElement|null>(null);
   const hasChildren = n.children.length>0;
   const siblings = n.parentId? (find(fullTree,n.parentId)?.children||[]) : fullTree;
@@ -674,70 +995,341 @@ function NavItem({ node: n, fullTree, flatNodes, draggingId, dropTargetId, dropM
   const displayRouteOverride = n.routeOverrideByLocale?.[locale] ?? n.routeOverride ?? null;
   const displayRoutePath = n.routePathByLocale?.[locale] ?? n.routePath ?? null;
   const displayExternal = n.externalUrlByLocale?.[locale] ?? n.externalUrl ?? null;
+  const parentNode = n.parentId ? find(fullTree, n.parentId) : null;
   async function moveUp(){ if(atTop) return; const prev=ordered[idx-1]; onUpdate(n.id,{order:prev.order}); onUpdate(prev.id,{order:n.order}); }
   async function moveDown(){ if(atBottom) return; const next=ordered[idx+1]; onUpdate(n.id,{order:next.order}); onUpdate(next.id,{order:n.order}); }
+  function outdent(){
+    if(!n.parentId) return;
+    const grandParentId = parentNode?.parentId ?? null;
+    onUpdate(n.id,{ parentId: grandParentId, order: Number.MAX_SAFE_INTEGER });
+  }
   function hierarchical(){ return buildHierarchicalSlug(n, fullTree); }
   function preview(){
     const slug = (n.slugByLocale?.[locale] ?? n.slug);
     if(n.kind!=='PAGE'||!slug) return; const path=buildHierarchicalSlug(n, fullTree, locale); window.open(`/${locale}/${path}`,'_blank');
   }
   function edit(){ router.push(`/admin/pages/${n.id}`); }
-  function onDragOver(e:DragEvent<HTMLLIElement>){
-    e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-    if (!liRef.current) { onDragOverItem(n.id, 'inside', e.clientY); return; }
-    const rect = liRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    if (draggingId === n.id) {
-      if (n.parentId && x < Math.min(32, rect.width * 0.1)) {
-        onDragOverItem(`__OUTDENT_AFTER_PARENT__:${n.id}` as any, 'above', e.clientY);
-      }
+  function onDragOver(e: DragEvent<HTMLLIElement>) {
+    e.preventDefault();
+    if (!liRef.current) {
+      // If expanded with children, don't allow "inside" drop on parent - use children zones instead
+      if (hasChildren && expanded) return;
+      onDragOverItem(n.id, "inside", e.clientY);
       return;
     }
-    onDragOverItem(n.id, 'inside', e.clientY);
+    const rect = liRef.current.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    let mode: DropMode = "inside";
+    if (y < rect.height * 0.25) mode = "above";
+    else if (y > rect.height * 0.75) mode = "below";
+    // If expanded with children, don't allow "inside" - only above/below the parent header
+    if (hasChildren && expanded && mode === "inside") {
+      mode = "below"; // Default to below if hovering middle of expanded parent
+    }
+    onDragOverItem(n.id, mode, e.clientY);
   }
-  function onDragLeave(){ onDragOverItem(n.id, 'inside', null); }
-  function onDragEnter(e:DragEvent){ e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'; }
+  function onDragLeave() {
+    onDragOverItem(n.id, "inside", null);
+  }
+  function onDragEnter(e: DragEvent) {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+  }
+
+  const kindIcon = n.kind === 'FOLDER' ? <Folder className="h-4 w-4" /> : n.kind === 'LINK' ? <Link2 className="h-4 w-4" /> : n.kind === 'ROUTE' ? <Route className="h-4 w-4" /> : <FileText className="h-4 w-4" />;
+  const kindColor = n.kind === 'FOLDER' ? 'text-amber-600 dark:text-amber-400' : n.kind === 'LINK' ? 'text-purple-600 dark:text-purple-400' : n.kind === 'ROUTE' ? 'text-cyan-600 dark:text-cyan-400' : 'text-blue-600 dark:text-blue-400';
+  const isDropTarget = dropTargetId === n.id;
+  // Don't show "inside" highlight when expanded - use children zones instead
+  const showInsideHighlight = isDropTarget && dropMode === "inside" && !(hasChildren && expanded);
+
   return (
-    <li ref={liRef} className={`rounded border p-3 dark:border-slate-700 bg-white dark:bg-slate-900 group ${dropTargetId===n.id && dropMode==='inside'?'border-blue-400 ring-1 ring-blue-300':'border-slate-200'} ${draggingId===n.id?'opacity-40':''}`}
-      onDragOver={onDragOver} onDragLeave={onDragLeave} onDragEnter={onDragEnter} onDrop={onDrop}>
+    <li
+      ref={liRef}
+      className={`relative overflow-hidden rounded-xl border bg-white transition-all dark:bg-slate-900 ${
+        showInsideHighlight
+          ? "border-brand-400 ring-2 ring-brand-400/30"
+          : "border-slate-200 dark:border-slate-700"
+      } ${draggingId === n.id ? "opacity-40" : ""}`}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDragEnter={onDragEnter}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onDrop();
+      }}
+    >
       {dropTargetId === `__OUTDENT_AFTER_PARENT__:${n.id}` ? (
-        <div className="-mt-3 mb-2 flex items-center gap-2 text-xs text-blue-400">
-          <div className="h-0.5 w-full bg-blue-500" />
-          <span className="shrink-0">Outdent here</span>
+        <div className="flex items-center gap-2 bg-brand-50 px-4 py-2 text-xs text-brand-600 dark:bg-brand-950/30">
+          <div className="h-0.5 flex-1 bg-brand-500" />
+          <span className="shrink-0 font-medium">Outdent here</span>
         </div>
       ) : null}
-      <div className="flex flex-wrap items-center gap-2 text-sm">
-        {hasChildren ? <button type="button" onClick={()=>setExpanded(!expanded)} className="rounded border border-slate-300 px-2 py-0.5 text-[18px] font-semibold">{expanded?'▾':'▸'}</button> : <span className="px-2 py-0.5 text-[10px] text-slate-400">•</span>}
-        <div className="cursor-grab rounded border border-slate-300 px-2 py-0.5 text-[10px] font-semibold" draggable onDragStart={e=>onDragStart(e,n.id,liRef.current)}>::</div>
-        <span className="font-medium text-slate-900 dark:text-slate-100">{displayLabel || displaySlug || displayExternal || n.id}</span>
-        <span className="text-xs text-slate-500">{
-          n.kind==='LINK'
-            ? (displayExternal || '')
-            : (displayRouteOverride ? (displayRouteOverride.startsWith('/')? displayRouteOverride : `/${displayRouteOverride}`)
-               : (n.kind==='ROUTE' ? (displayRoutePath ? `/${displayRoutePath}` : '') : (displaySlug ? `/${displaySlug}` : '')))
-        }</span>
-        <label className="ml-auto flex items-center gap-1 text-xs"><input type="checkbox" className="accent-blue-600" checked={n.visible} onChange={e=>onUpdate(n.id,{visible:e.target.checked})} /><span>Visible</span></label>
-        {n.kind==='PAGE' && (displaySlug || n.slug) && <><button className="rounded border px-2 py-0.5 text-xs" onClick={edit}>Edit</button><button className="rounded border px-2 py-0.5 text-xs" onClick={preview}>Preview</button></>}
-        <button className="rounded border px-2 py-0.5 text-xs" disabled={atTop} onClick={moveUp}>Up</button>
-        <button className="rounded border px-2 py-0.5 text-xs" disabled={atBottom} onClick={moveDown}>Down</button>
-        <button className="rounded border border-red-300 px-2 py-0.5 text-xs text-red-700" onClick={()=>onDelete(n.id)}>Delete</button>
-      </div>
-      <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <label className="text-xs"><span className="text-slate-600 dark:text-slate-300">Label</span><input className="w-full rounded border px-2 py-1 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" value={displayLabel ?? ''} onChange={e=>{ const targetId = n.idsByLocale?.[locale] || n.id; onUpdate(targetId,{navLabel:e.target.value}); }} /></label>
-        {n.kind==='ROUTE' ? (
-          <>
-            <label className="text-xs"><span className="text-slate-600 dark:text-slate-300">Route path</span><input className="w-full rounded border px-2 py-1 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" value={displayRoutePath ?? ''} onChange={e=>{ const v=e.target.value; const targetId = n.idsByLocale?.[locale] || n.id; onUpdate(targetId,{routePath:v}); }} placeholder="pages/news or pages/news/[slug]" /></label>
-            <label className="text-xs"><span className="text-slate-600 dark:text-slate-300">Route slug</span><input className="w-full rounded border px-2 py-1 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" value={(n.slugByLocale?.[locale] ?? n.slug) || ''} onChange={e=>{ const v=e.target.value; const targetId = n.idsByLocale?.[locale] || n.id; onUpdate(targetId,{slug:v}); }} placeholder="fills [slug] or appends" /></label>
-          </>
+
+      {/* Main row */}
+      <div className="flex items-center gap-3 p-3">
+        {/* Drag handle - this is the actual draggable element */}
+        <div
+          draggable={true}
+          className="flex cursor-grab select-none items-center justify-center rounded-lg border border-slate-200 bg-slate-50 p-1.5 text-slate-400 transition-colors hover:border-slate-300 hover:bg-slate-100 hover:text-slate-600 active:cursor-grabbing dark:border-slate-700 dark:bg-slate-800 dark:hover:border-slate-600 dark:hover:bg-slate-700"
+          onDragStart={(e: DragEvent<HTMLDivElement>) => {
+            e.stopPropagation();
+            onDragStart(e, n.id, liRef.current);
+          }}
+          onDragEnd={() => {
+            setDraggingId(null);
+            setDropTargetId(null);
+            setDropMode("inside");
+          }}
+        >
+          <GripVertical className="h-4 w-4 pointer-events-none" />
+        </div>
+
+        {/* Expand/Collapse */}
+        {hasChildren ? (
+          <button
+            type="button"
+            onClick={() => setExpanded(!expanded)}
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"
+          >
+            {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </button>
         ) : (
-          <label className="text-xs"><span className="text-slate-600 dark:text-slate-300">Segment / URL</span><input className="w-full rounded border px-2 py-1 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" value={n.kind==='LINK' ? (displayExternal ?? '') : (displaySlug ?? '')} onChange={e=>{ const v=e.target.value; const targetId = n.idsByLocale?.[locale] || n.id; if(n.kind==='LINK'){ onUpdate(targetId,{externalUrl:v,slug:null}); } else { if(v.startsWith('http')) onUpdate(targetId,{kind:'LINK',externalUrl:v,slug:null}); else if (v.includes('/')) onUpdate(targetId,{kind:'ROUTE',routePath:v,slug:null,externalUrl:null}); else onUpdate(targetId,{slug:v}); } }} /></label>
+          <div className="w-7" />
         )}
-        <label className="text-xs sm:col-span-3"><span className="text-slate-600 dark:text-slate-300">Route override (optional)</span><input className="w-full rounded border px-2 py-1 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" value={displayRouteOverride ?? ''} onChange={e=>{ const v=e.target.value; const targetId = n.idsByLocale?.[locale] || n.id; onUpdate(targetId, { routeOverride: v || null }); }} placeholder="e.g. pages/news or /custom/path (supports [slug])" /></label>
-        <label className="text-xs"><span className="text-slate-600 dark:text-slate-300">Kind</span><select className="w-full rounded border px-2 py-1 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" value={n.kind} onChange={e=>onUpdate(n.id,{kind:e.target.value})}><option value="PAGE">PAGE</option><option value="LINK">LINK</option><option value="FOLDER">FOLDER</option><option value="ROUTE">ROUTE</option></select></label>
-        <label className="text-xs sm:col-span-3"><span className="text-slate-600 dark:text-slate-300">Parent</span><select className="w-full rounded border px-2 py-1 text-sm bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600" value={n.parentId||''} onChange={e=>onUpdate(n.id,{parentId:e.target.value||null,order:0})}><option value="">(root)</option>{flatNodes.filter(p=>p.id!==n.id && p.kind!=='LINK').map(p=> <option key={p.id} value={p.id}>{p.navLabel||p.slug||p.id}</option>)}</select></label>
+
+        {/* Kind icon */}
+        <div className={`flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 ${kindColor}`}>
+          {kindIcon}
+        </div>
+
+        {/* Label & path */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="truncate font-medium text-slate-900 dark:text-white">
+              {displayLabel || displaySlug || displayExternal || n.id}
+            </span>
+            <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
+              n.kind === 'FOLDER' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+              n.kind === 'LINK' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+              n.kind === 'ROUTE' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400' :
+              'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+            }`}>
+              {n.kind}
+            </span>
+          </div>
+          <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+            {n.kind === 'LINK'
+              ? displayExternal || '(no URL)'
+              : displayRouteOverride
+                ? (displayRouteOverride.startsWith('/') ? displayRouteOverride : `/${displayRouteOverride}`)
+                : n.kind === 'ROUTE'
+                  ? displayRoutePath ? `/${displayRoutePath}` : '(no path)'
+                  : displaySlug ? `/${displaySlug}` : '(no slug)'}
+          </p>
+        </div>
+
+        {/* Visibility toggle */}
+        <button
+          type="button"
+          onClick={() => onUpdate(n.id, { visible: !n.visible })}
+          className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+            n.visible
+              ? 'bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50'
+              : 'bg-slate-100 text-slate-400 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-500 dark:hover:bg-slate-700'
+          }`}
+          title={n.visible ? 'Visible in nav' : 'Hidden from nav'}
+        >
+          {n.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+        </button>
+
+        {/* Action buttons */}
+        <div className="flex items-center gap-1">
+          {n.kind === 'PAGE' && (displaySlug || n.slug) && (
+            <>
+              <button
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+                onClick={edit}
+                title="Edit page"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+              <button
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+                onClick={preview}
+                title="Preview page"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </button>
+            </>
+          )}
+          <button
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+            disabled={atTop}
+            onClick={moveUp}
+            title="Move up"
+          >
+            <ArrowUp className="h-4 w-4" />
+          </button>
+          <button
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+            disabled={atBottom}
+            onClick={moveDown}
+            title="Move down"
+          >
+            <ArrowDown className="h-4 w-4" />
+          </button>
+            <button
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+              disabled={!n.parentId}
+              onClick={outdent}
+              title="Outdent"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+          <button
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+            onClick={() => setShowDetails(!showDetails)}
+            title="Edit details"
+          >
+            <ChevronDown className={`h-4 w-4 transition-transform ${showDetails ? 'rotate-180' : ''}`} />
+          </button>
+          <button
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-red-400 dark:hover:bg-red-950/30"
+            onClick={() => onDelete(n.id)}
+            title="Delete"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
       </div>
+
+      {/* Expandable details panel */}
+      {showDetails && (
+        <div className="border-t border-slate-100 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-800/30">
+          <div className="mb-2 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+            <span className="rounded-md bg-slate-200 px-2 py-0.5 font-semibold uppercase tracking-wide dark:bg-slate-700">
+              {locale}
+            </span>
+            <span>Editing locale</span>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-slate-600 dark:text-slate-400">Label</label>
+              <input
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                value={displayLabel ?? ''}
+                onChange={(e) => {
+                  const targetId = n.idsByLocale?.[locale] || n.id;
+                  onUpdate(targetId, { navLabel: e.target.value });
+                }}
+                placeholder="Display name"
+              />
+            </div>
+            {n.kind === 'ROUTE' ? (
+              <>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-slate-600 dark:text-slate-400">Route path</label>
+                  <input
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                    value={displayRoutePath ?? ''}
+                    onChange={(e) => {
+                      const targetId = n.idsByLocale?.[locale] || n.id;
+                      onUpdate(targetId, { routePath: e.target.value });
+                    }}
+                    placeholder="pages/news or pages/news/[slug]"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-slate-600 dark:text-slate-400">Route slug</label>
+                  <input
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                    value={(n.slugByLocale?.[locale] ?? n.slug) || ''}
+                    onChange={(e) => {
+                      const targetId = n.idsByLocale?.[locale] || n.id;
+                      onUpdate(targetId, { slug: e.target.value });
+                    }}
+                    placeholder="fills [slug] or appends"
+                  />
+                </div>
+              </>
+            ) : (
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-slate-600 dark:text-slate-400">
+                  {n.kind === 'LINK' ? 'External URL' : 'Slug'}
+                </label>
+                <input
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                  value={n.kind === 'LINK' ? (displayExternal ?? '') : (displaySlug ?? '')}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    const targetId = n.idsByLocale?.[locale] || n.id;
+                    if (n.kind === 'LINK') {
+                      onUpdate(targetId, { externalUrl: v, slug: null });
+                    } else {
+                      if (v.startsWith('http')) onUpdate(targetId, { kind: 'LINK', externalUrl: v, slug: null });
+                      else if (v.includes('/')) onUpdate(targetId, { kind: 'ROUTE', routePath: v, slug: null, externalUrl: null });
+                      else onUpdate(targetId, { slug: v });
+                    }
+                  }}
+                  placeholder={n.kind === 'LINK' ? 'https://...' : 'e.g. about-us'}
+                />
+              </div>
+            )}
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-slate-600 dark:text-slate-400">Type</label>
+              <select
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                value={n.kind}
+                onChange={(e) => onUpdate(n.id, { kind: e.target.value })}
+              >
+                <option value="PAGE">📄 Page</option>
+                <option value="FOLDER">📁 Folder</option>
+                <option value="LINK">🔗 External Link</option>
+                <option value="ROUTE">🛤️ Dynamic Route</option>
+              </select>
+            </div>
+            <div className="sm:col-span-2 lg:col-span-3">
+              <label className="mb-1.5 block text-xs font-medium text-slate-600 dark:text-slate-400">Route override (optional)</label>
+              <input
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                value={displayRouteOverride ?? ''}
+                onChange={(e) => {
+                  const targetId = n.idsByLocale?.[locale] || n.id;
+                  onUpdate(targetId, { routeOverride: e.target.value || null });
+                }}
+                placeholder="e.g. pages/news or /custom/path (supports [slug])"
+              />
+            </div>
+            <div className="sm:col-span-2 lg:col-span-3">
+              <label className="mb-1.5 block text-xs font-medium text-slate-600 dark:text-slate-400">Parent</label>
+              <select
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                value={n.parentId || ''}
+                onChange={(e) => onUpdate(n.id, { parentId: e.target.value || null, order: 0 })}
+              >
+                <option value="">(Root level)</option>
+                {flatNodes.filter((p) => p.id !== n.id && p.kind !== 'LINK').map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.navLabel || p.slug || p.id}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Children */}
       {hasChildren && expanded && (
-        <div className="mt-2 border-l border-slate-200 pl-4 dark:border-slate-700">
+        <div 
+          className="border-t border-slate-100 bg-slate-50/30 py-3 pl-8 pr-3 dark:border-slate-800 dark:bg-slate-800/20"
+          onMouseDown={(e) => e.stopPropagation()}
+          onDragStart={(e) => e.stopPropagation()}
+          onDragOver={(e) => e.stopPropagation()}
+          onDragEnter={(e) => e.stopPropagation()}
+          onDrop={(e) => e.stopPropagation()}
+        >
           <NavTree nodes={n.children} fullTree={fullTree} flatNodes={flatNodes} parentId={n.id} draggingId={draggingId} dropTargetId={dropTargetId} dropMode={dropMode} setDraggingId={setDraggingId} setDropTargetId={setDropTargetId} setDropMode={setDropMode} onUpdate={onUpdate} onDelete={onDelete} locale={locale} buildHierarchicalSlug={buildHierarchicalSlug} />
         </div>
       )}
