@@ -65,6 +65,7 @@ type PageRow = {
   navLabel: string | null;
   kind: string;
   locale: string;
+  accessRole: string | null;
 };
 
 function buildGroupedTree(rows: PageRow[], locale: string) {
@@ -122,6 +123,12 @@ function filterVisible(nodes: any[]): any[] {
   return nodes.filter((n:any)=>n.visible).map((n:any)=>({ ...n, children: filterVisible(n.children||[]) }));
 }
 
+function filterAccessible(nodes: any[], role?: string | null): any[] {
+  return nodes
+    .filter((n: any) => !n.accessRole || (role && n.accessRole === role))
+    .map((n: any) => ({ ...n, children: filterAccessible(n.children || [], role) }));
+}
+
 function mapWithPath(n: any, parentSegments: string[], inRoute: boolean, routeBase: string | null): UiNavNode {
   const segs = sanitizeSegment(n.slug||"").split('/').filter(Boolean);
   const ownSeg = segs[segs.length-1] || "";
@@ -148,15 +155,15 @@ function mapWithPath(n: any, parentSegments: string[], inRoute: boolean, routeBa
   return { label, href, external: !!n.externalUrl, kind: n.kind, children: (n.children||[]).map((c:any)=>mapWithPath(c, pathSegments, inRoute, routeBase)) };
 }
 
-async function buildNavigation(locale: string): Promise<NavigationResult> {
+async function buildNavigation(locale: string, role?: string | null): Promise<NavigationResult> {
   const localesToFetch = locale === defaultLocale ? [locale] : [locale, defaultLocale];
   const pages = await (prisma as any).page.findMany({
-    where: { locale: { in: localesToFetch } },
+    where: { locale: { in: localesToFetch }, published: true },
     orderBy: [{ parentId: 'asc' }, { order: 'asc' }],
-    select: { id: true, groupId: true, parentId: true, order: true, slug: true, visible: true, externalUrl: true, routePath: true, routeOverride: true, navLabel: true, kind: true, locale: true }
+    select: { id: true, groupId: true, parentId: true, order: true, slug: true, visible: true, externalUrl: true, routePath: true, routeOverride: true, navLabel: true, kind: true, locale: true, accessRole: true }
   });
   if (pages.length) {
-    const tree = filterVisible(buildGroupedTree(pages, locale)).map((n:any)=>mapWithPath(n, [], false, null));
+    const tree = filterAccessible(filterVisible(buildGroupedTree(pages, locale)), role).map((n:any)=>mapWithPath(n, [], false, null));
     return { items: tree, legacy: false };
   }
   const legacyItems = await (prisma as any).navigationItem.findMany({ orderBy: [{ parentId: 'asc' }, { order: 'asc' }] });
@@ -177,11 +184,13 @@ async function buildNavigation(locale: string): Promise<NavigationResult> {
   return { items: tree, legacy: true };
 }
 
-export async function getNavigationTree(locale: string, options?: { forceRefresh?: boolean }): Promise<NavigationResult> {
+export async function getNavigationTree(locale: string, options?: { forceRefresh?: boolean; role?: string | null }): Promise<NavigationResult> {
   const forceRefresh = options?.forceRefresh ?? false;
+  const role = options?.role ?? null;
   const redis = getRedisClient();
   const version = await getCacheVersion(redis);
-  const key = getCacheKey(locale, version);
+  const cacheSegment = role ? `${locale}::${role}` : locale;
+  const key = getCacheKey(cacheSegment, version);
   if (!forceRefresh) {
     const cached = NAV_CACHE.get(key);
     if (cached && cached.expires > Date.now()) {
@@ -193,7 +202,7 @@ export async function getNavigationTree(locale: string, options?: { forceRefresh
       return redisHit;
     }
   }
-  const result = await buildNavigation(locale);
+  const result = await buildNavigation(locale, role);
   NAV_CACHE.set(key, { result, expires: Date.now() + NAV_CACHE_TTL_MS });
   await writeRedisEntry(redis, key, result);
   return result;
