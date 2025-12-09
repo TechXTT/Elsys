@@ -157,6 +157,8 @@ model Page {
 
   @@unique([slug, locale])
   @@index([slug, locale])
+  @@index([locale, published]) // For hierarchical lookups filtering by published status
+  @@index([locale, parentId, slug]) // Critical for hierarchical path resolution (avoids N+1)
   @@index([groupId])
   @@index([parentId, order])
 }
