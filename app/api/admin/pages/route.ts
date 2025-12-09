@@ -18,15 +18,19 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const locale = searchParams.get("locale") || undefined;
     const q = searchParams.get("q") || undefined;
+    const slug = searchParams.get("slug") || undefined;
+    const groupId = searchParams.get("groupId") || undefined;
 
     const where: any = {};
     if (locale) where.locale = locale;
+    if (slug) where.slug = slug; // Exact match for slug
+    if (groupId) where.groupId = groupId; // Exact match for groupId (for locale switching)
     if (q) where.OR = [{ title: { contains: q, mode: "insensitive" } }, { slug: { contains: q, mode: "insensitive" } }];
 
     const pages = await (prisma as any).page.findMany({
       where,
       orderBy: { updatedAt: "desc" },
-      select: { id: true, slug: true, locale: true, title: true, published: true, updatedAt: true },
+      select: { id: true, slug: true, locale: true, groupId: true, title: true, published: true, updatedAt: true },
     } as any);
     return NextResponse.json({ pages });
   } catch (err: any) {
