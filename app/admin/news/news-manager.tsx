@@ -68,6 +68,16 @@ function getTodayInputValue(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+function countWords(input: string): number {
+  const words = input.trim().split(/\s+/).filter(Boolean);
+  return words.length;
+}
+
+function estimateReadingMinutes(words: number): number {
+  if (words === 0) return 0;
+  return Math.max(1, Math.round(words / 200));
+}
+
 function resolveInlineCode(
   inline: boolean | undefined,
   className: string | undefined,
