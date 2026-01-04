@@ -926,13 +926,57 @@ export function NewsManager({ posts: incomingPosts, currentLocale = "bg", onLoca
       <section className="space-y-4 rounded border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <header>
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">News list</h2>
-          <p className="text-sm text-slate-600 dark:text-slate-400">Most recent first.</p>
+          <p className="text-sm text-slate-600 dark:text-slate-400">Search, filter and sort existing posts.</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 dark:text-slate-300">
+              Search
+              <input
+                type="search"
+                value={filterQuery}
+                onChange={(event) => setFilterQuery(event.target.value)}
+                placeholder="Title or slug"
+                className="rounded border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 dark:text-slate-300">
+              Status
+              <select
+                value={filterStatus}
+                onChange={(event) => setFilterStatus(event.target.value as typeof filterStatus)}
+                className="rounded border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
+              >
+                <option value="all">All</option>
+                <option value="published">Published</option>
+                <option value="draft">Drafts</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 dark:text-slate-300">
+              Sort by
+              <select
+                value={sortBy}
+                onChange={(event) => setSortBy(event.target.value as typeof sortBy)}
+                className="rounded border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
+              >
+                <option value="recent">Newest first</option>
+                <option value="oldest">Oldest first</option>
+                <option value="title">Title (A→Z)</option>
+              </select>
+            </label>
+          </div>
         </header>
-        {posts.length === 0 ? (
-          <p className="text-sm text-slate-500 dark:text-slate-400">No posts yet.</p>
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+          <span>{filteredPosts.length} shown · {posts.length} total</span>
+          {filterStatus !== "all" && (
+            <span className="rounded-full border border-slate-200 px-2 py-0.5 dark:border-slate-700">{filterStatus === "published" ? "Published only" : "Drafts only"}</span>
+          )}
+        </div>
+        {filteredPosts.length === 0 ? (
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {posts.length === 0 ? "No posts yet." : "No matches for your filters."}
+          </p>
         ) : (
           <ul className="space-y-3">
-            {posts.map((post) => {
+            {filteredPosts.map((post) => {
               const isActive = editingId === post.id;
               return (
                 <li
