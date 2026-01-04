@@ -271,6 +271,29 @@ export function NewsManager({ posts: incomingPosts, currentLocale = "bg", onLoca
   const previewDateLabel = formatDateLabel(date);
   const previewExcerpt = excerpt.trim();
   const hasMarkdown = markdown.trim().length > 0;
+  const wordCount = useMemo(() => countWords(markdown), [markdown]);
+  const readingMinutes = useMemo(() => estimateReadingMinutes(wordCount), [wordCount]);
+  const filteredPosts = useMemo(() => {
+    const q = filterQuery.trim().toLowerCase();
+    const byQuery = posts.filter((post) => {
+      if (!q) return true;
+      const titleText = (post.title || "").toLowerCase();
+      const slugText = (post.id || "").toLowerCase();
+      return titleText.includes(q) || slugText.includes(q);
+    });
+    const byStatus = byQuery.filter((post) => {
+      if (filterStatus === "all") return true;
+      const isDraft = post.published === false;
+      return filterStatus === "draft" ? isDraft : !isDraft;
+    });
+    const sorted = [...byStatus].sort((a, b) => {
+      if (sortBy === "title") return (a.title || "").localeCompare(b.title || "");
+      const aDate = a.date ? new Date(a.date).getTime() : 0;
+      const bDate = b.date ? new Date(b.date).getTime() : 0;
+      return sortBy === "recent" ? bDate - aDate : aDate - bDate;
+    });
+    return sorted;
+  }, [posts, filterQuery, filterStatus, sortBy]);
   const featuredPreview = images.find((img) => img.name === featuredImage);
   const featuredPreviewSrc = featuredPreview
     ? featuredPreview.origin === "new"
