@@ -893,9 +893,16 @@ export function NewsManager({ posts: incomingPosts, currentLocale = "bg", onLoca
           </div>
         </form>
         <div className="border-t border-dashed border-slate-200 pt-5 dark:border-slate-700">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Preview</h3>
-            <span className="text-xs text-slate-500 dark:text-slate-400">Auto-updates</span>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Preview</h3>
+              <span className="text-xs text-slate-500 dark:text-slate-400">Auto-updates as you type</span>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs text-slate-600 dark:text-slate-300">
+              <span className="rounded-full border border-slate-200 bg-white px-2 py-1 dark:border-slate-700 dark:bg-slate-800">{wordCount} words</span>
+              <span className="rounded-full border border-slate-200 bg-white px-2 py-1 dark:border-slate-700 dark:bg-slate-800">~{readingMinutes} min read</span>
+              <span className="rounded-full border border-slate-200 bg-white px-2 py-1 dark:border-slate-700 dark:bg-slate-800">{images.length} images</span>
+            </div>
           </div>
           <article className="markdown-content mt-4 space-y-4 rounded border border-slate-200 bg-slate-50 p-4 text-slate-700 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200">
             <header className="space-y-1">
