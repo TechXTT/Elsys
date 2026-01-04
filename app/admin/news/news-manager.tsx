@@ -188,9 +188,11 @@ export function NewsManager({ posts: incomingPosts, currentLocale = "bg", onLoca
   const [featuredImage, setFeaturedImage] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isPrefilling, setIsPrefilling] = useState(false);
+  const [filterQuery, setFilterQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState<"all" | "published" | "draft">("all");
+  const [sortBy, setSortBy] = useState<"recent" | "oldest" | "title">("recent");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const imagesRef = useRef<SelectedImage[]>([]);
-  const prevLocaleRef = useRef<string>(currentLocale);
 
   type Draft = {
     title: string;
