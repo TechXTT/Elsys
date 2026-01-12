@@ -109,6 +109,8 @@ export async function POST(req: Request) {
   const slugValue = form.get("slug");
   const excerptValue = form.get("excerpt");
   const markdownValue = form.get("markdown");
+  const blocksJsonValue = form.get("blocksJson");
+  const useBlocksValue = form.get("useBlocks");
   const dateValue = form.get("date");
   const imagesMetaValue = form.get("imageMeta");
   const featuredImageValue = form.get("featuredImage");
@@ -121,6 +123,20 @@ export async function POST(req: Request) {
   const normalizedSlug = slugify(slugSource);
   const trimmedExcerpt = typeof excerptValue === "string" && excerptValue.trim().length > 0 ? excerptValue.trim() : undefined;
   const markdown = typeof markdownValue === "string" ? markdownValue.trim() : "";
+  const useBlocks = useBlocksValue === "true";
+
+  // Parse blocks JSON if provided
+  let blocks: unknown[] | null = null;
+  if (typeof blocksJsonValue === "string" && blocksJsonValue.trim().length > 0) {
+    try {
+      const parsed = JSON.parse(blocksJsonValue);
+      if (Array.isArray(parsed)) {
+        blocks = parsed;
+      }
+    } catch (error) {
+      console.error("News create blocks parse error", error);
+    }
+  }
 
   if (!normalizedTitle) {
     try {
@@ -266,6 +282,8 @@ export async function POST(req: Request) {
       title: normalizedTitle,
       excerpt: trimmedExcerpt,
       markdown,
+      blocks,
+      useBlocks,
       date: safeDate,
       images: finalImagesMeta,
       featuredImage: featuredImage?.url ?? finalImagesMeta[0]?.url ?? null,

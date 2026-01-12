@@ -4,6 +4,7 @@ import { put } from "@vercel/blob";
 import { authOptions } from "@/lib/auth";
 import { defaultLocale } from "@/i18n/config";
 import { getNewsPost as dbGetNewsPost, updateNewsPost as dbUpdateNewsPost } from "@/lib/news";
+import { getNewsPostVersions, restoreNewsPostVersion } from "@/lib/news-versions";
 import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/audit";
 import type { PostItem } from "@/lib/types";
@@ -72,7 +73,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     return NextResponse.json({ error: "Публикацията не е намерена" }, { status: 404 });
   }
 
-  const { post, markdown, published } = db;
+  const { post, markdown, blocks, useBlocks, published } = db;
   try {
     await recordAudit({
       req: request,
@@ -83,7 +84,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       details: { locale },
     });
   } catch {}
-  return NextResponse.json({ post, markdown, published });
+  return NextResponse.json({ post, markdown, blocks, useBlocks, published });
 }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
@@ -110,6 +111,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   const slugValue = form.get("slug");
   const excerptValue = form.get("excerpt");
   const markdownValue = form.get("markdown");
+  const blocksJsonValue = form.get("blocksJson");
+  const useBlocksValue = form.get("useBlocks");
   const dateValue = form.get("date");
   const imageMetaValue = form.get("imageMeta");
   const featuredImageValue = form.get("featuredImage");
@@ -122,6 +125,20 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   const normalizedSlug = slugify(slugSource);
   const trimmedExcerpt = typeof excerptValue === "string" && excerptValue.trim().length > 0 ? excerptValue.trim() : undefined;
   const markdown = typeof markdownValue === "string" ? markdownValue.trim() : "";
+  const useBlocks = useBlocksValue === "true";
+
+  // Parse blocks JSON if provided
+  let blocks: unknown[] | null = null;
+  if (typeof blocksJsonValue === "string" && blocksJsonValue.trim().length > 0) {
+    try {
+      const parsed = JSON.parse(blocksJsonValue);
+      if (Array.isArray(parsed)) {
+        blocks = parsed;
+      }
+    } catch (error) {
+      console.error("News update blocks parse error", error);
+    }
+  }
 
   if (!normalizedTitle) {
     try {
@@ -266,6 +283,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       title: normalizedTitle,
       excerpt: trimmedExcerpt,
       markdown,
+      blocks,
+      useBlocks,
       date: safeDate,
       images: nextImages,
       featuredImage: featuredUrl,
@@ -319,4 +338,72 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "newsPost.delete", entity: "newsPost", entityId: params.id, details: { locale } });
   } catch {}
   return NextResponse.json({ ok: true });
+}
+
+/**
+ * Handle version history and restoration
+ * GET ?action=versions - List all versions
+ * POST ?action=restore - Restore a specific version
+ */
+export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session || !(session.user as any)?.id || (session.user as any)?.role !== "ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const url = new URL(request.url);
+  const action = url.searchParams.get("action");
+  const localeParam = url.searchParams.get("locale");
+  const locale = localeParam === "bg" || localeParam === "en" ? localeParam : defaultLocale;
+  const userId = (session.user as any).id as string;
+
+  // GET versions history
+  if (action === "versions" && request.method === "GET") {
+    try {
+      const versions = await getNewsPostVersions(params.id, locale);
+      return NextResponse.json({ versions });
+    } catch (err) {
+      console.error("Error fetching news versions", err);
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
+  }
+
+  // POST restore version
+  if (action === "restore" && request.method === "POST") {
+    try {
+      const body = await request.json().catch(() => null);
+      if (!body || typeof body.version !== "number") {
+        return NextResponse.json({ error: "Missing version number" }, { status: 400 });
+      }
+
+      const result = await restoreNewsPostVersion({
+        slug: params.id,
+        versionNumber: body.version,
+        locale,
+        userId,
+      });
+
+      if (!result.success) {
+        return NextResponse.json({ error: result.error || "Restore failed" }, { status: 400 });
+      }
+
+      try {
+        await recordAudit({
+          req: request,
+          userId,
+          action: "newsPost.version.restore",
+          entity: "newsPost",
+          entityId: params.id,
+          details: { version: body.version, newVersion: result.newVersion, locale },
+        });
+      } catch {}
+
+      return NextResponse.json({ success: true, newVersion: result.newVersion });
+    } catch (err) {
+      console.error("Error restoring news version", err);
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
+  }
+
+  return NextResponse.json({ error: "Not found" }, { status: 404 });
 }

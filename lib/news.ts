@@ -24,6 +24,8 @@ interface NewsRow {
   title: string;
   excerpt: string | null;
   bodyMarkdown: string;
+  blocks: unknown[] | null;
+  useBlocks: boolean;
   date: Date;
   images: ImageMeta[] | null;
   featuredImage: string | null;
@@ -52,10 +54,18 @@ export async function getNewsPosts(locale?: Locale, includeDrafts = false): Prom
   if (cached) return cached;
 
   const localesToFetch = loc === defaultLocale ? [loc] : [loc, defaultLocale];
+  const now = new Date();
   const rows: NewsRow[] = await (prisma as any).newsPost.findMany({
-    where: { locale: { in: localesToFetch }, ...(includeDrafts ? {} : { published: true }) },
+    where: {
+      locale: { in: localesToFetch },
+      ...(includeDrafts ? {} : {
+        published: true,
+        // Only show posts with date in the past or today (scheduled publishing)
+        date: { lte: now }
+      })
+    },
     orderBy: { date: "desc" },
-    select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, date: true, images: true, featuredImage: true, published: true },
+    select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true },
   });
   const primary = rows.filter(r => r.locale === loc);
   const effective = primary.length > 0 ? primary : rows.filter(r => r.locale === defaultLocale);
@@ -64,17 +74,21 @@ export async function getNewsPosts(locale?: Locale, includeDrafts = false): Prom
   return out;
 }
 
-export async function getNewsPost(slug: string, locale?: Locale, includeDrafts = false): Promise<{ post: PostItem; markdown: string; published: boolean } | null> {
+export async function getNewsPost(slug: string, locale?: Locale, includeDrafts = false): Promise<{ post: PostItem; markdown: string; blocks: unknown[] | null; useBlocks: boolean; published: boolean } | null> {
   const loc = (locale ?? defaultLocale) as string;
   const localesToFetch = loc === defaultLocale ? [loc] : [loc, defaultLocale];
   const rows: NewsRow[] = await (prisma as any).newsPost.findMany({
     where: { id: slug, locale: { in: localesToFetch } },
-    select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, date: true, images: true, featuredImage: true, published: true },
+    select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true },
   });
+  const now = new Date();
+  // Helper to check if post should be visible publicly (published AND date is not in future)
+  const isPubliclyVisible = (row: NewsRow) => row.published && row.date <= now;
+
   const primary = rows.find(r => r.locale === loc);
-  if (primary && (includeDrafts || primary.published)) return { post: toPostItem(primary), markdown: primary.bodyMarkdown, published: primary.published };
+  if (primary && (includeDrafts || isPubliclyVisible(primary))) return { post: toPostItem(primary), markdown: primary.bodyMarkdown, blocks: primary.blocks, useBlocks: primary.useBlocks, published: primary.published };
   const fb = rows.find(r => r.locale === defaultLocale);
-  if (fb && (includeDrafts || fb.published)) return { post: toPostItem(fb), markdown: fb.bodyMarkdown, published: fb.published };
+  if (fb && (includeDrafts || isPubliclyVisible(fb))) return { post: toPostItem(fb), markdown: fb.bodyMarkdown, blocks: fb.blocks, useBlocks: fb.useBlocks, published: fb.published };
   return null;
 }
 
@@ -84,6 +98,8 @@ export async function createNewsPost(input: {
   title: string;
   excerpt?: string;
   markdown: string;
+  blocks?: unknown[] | null;
+  useBlocks?: boolean;
   date: Date;
   images?: ImageMeta[];
   featuredImage?: string | null;
@@ -98,6 +114,8 @@ export async function createNewsPost(input: {
       title: input.title,
       excerpt: input.excerpt ?? null,
       bodyMarkdown: input.markdown,
+      blocks: input.blocks ?? null,
+      useBlocks: input.useBlocks ?? false,
       date: input.date,
       images: input.images ?? null,
       featuredImage: input.featuredImage ?? null,
@@ -105,6 +123,32 @@ export async function createNewsPost(input: {
       authorId: input.authorId ?? null,
     },
   });
+
+  // Create initial version snapshot
+  if (input.authorId) {
+    try {
+      await (prisma as any).newsPostVersion.create({
+        data: {
+          newsPostId: input.slug,
+          newsPostLocale: localeValue,
+          version: 1,
+          title: input.title,
+          excerpt: input.excerpt ?? null,
+          bodyMarkdown: input.markdown,
+          blocks: input.blocks ?? null,
+          useBlocks: input.useBlocks ?? false,
+          date: input.date,
+          images: input.images ?? null,
+          featuredImage: input.featuredImage ?? null,
+          published: input.published ?? true,
+          createdById: input.authorId,
+        },
+      });
+    } catch (error) {
+      console.error('Failed to create initial news post version', error);
+    }
+  }
+
   return toPostItem(row);
 }
 
@@ -115,6 +159,8 @@ export async function updateNewsPost(args: {
   title: string;
   excerpt?: string;
   markdown: string;
+  blocks?: unknown[] | null;
+  useBlocks?: boolean;
   date: Date;
   images?: ImageMeta[];
   featuredImage?: string | null;
@@ -122,6 +168,36 @@ export async function updateNewsPost(args: {
   published?: boolean;
 }) {
   const localeValue = args.locale ?? defaultLocale;
+
+  // Create version snapshot before updating
+  if (args.authorId) {
+    try {
+      const versionCount = await (prisma as any).newsPostVersion.count({
+        where: { newsPostId: args.currentSlug, newsPostLocale: localeValue }
+      });
+      const nextVersion = versionCount + 1;
+      await (prisma as any).newsPostVersion.create({
+        data: {
+          newsPostId: args.currentSlug,
+          newsPostLocale: localeValue,
+          version: nextVersion,
+          title: args.title,
+          excerpt: args.excerpt ?? null,
+          bodyMarkdown: args.markdown,
+          blocks: args.blocks ?? null,
+          useBlocks: args.useBlocks ?? false,
+          date: args.date,
+          images: args.images ?? null,
+          featuredImage: args.featuredImage ?? null,
+          published: args.published ?? true,
+          createdById: args.authorId,
+        },
+      });
+    } catch (error) {
+      console.error('Failed to create news post version snapshot', error);
+    }
+  }
+
   if (args.slug !== args.currentSlug) {
     // slug change: create new then delete old to avoid PK update pitfalls
     const created: NewsRow = await (prisma as any).newsPost.create({
@@ -131,6 +207,8 @@ export async function updateNewsPost(args: {
         title: args.title,
         excerpt: args.excerpt ?? null,
         bodyMarkdown: args.markdown,
+        blocks: args.blocks ?? null,
+        useBlocks: args.useBlocks ?? false,
         date: args.date,
         images: args.images ?? null,
         featuredImage: args.featuredImage ?? null,
@@ -147,6 +225,8 @@ export async function updateNewsPost(args: {
       title: args.title,
       excerpt: args.excerpt ?? null,
       bodyMarkdown: args.markdown,
+      blocks: args.blocks ?? null,
+      useBlocks: args.useBlocks ?? false,
       date: args.date,
       images: args.images ?? null,
       featuredImage: args.featuredImage ?? null,
