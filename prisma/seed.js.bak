@@ -209,20 +209,6 @@ The laboratory is equipped with:
 ## Partners
 
 The project was realized with the support of leading tech companies and the Technical University - Sofia.`,
-      blocks: [
-        { id: 'blk-1', type: 'Heading', props: { text: 'New Robotics Laboratory', level: 'h2' } },
-        { id: 'blk-2', type: 'Paragraph', props: { content: 'On April 10, ELSYS officially opened Bulgaria\'s most modern robotics and artificial intelligence laboratory.' } },
-        { id: 'blk-3', type: 'Heading', props: { text: 'Equipment', level: 'h3' } },
-        { id: 'blk-4', type: 'List', props: { style: 'check', items: [
-          { text: '20 educational robotics kits' },
-          { text: 'VR simulation systems' },
-          { text: '3D printers' },
-          { text: 'Specialized modeling software' }
-        ]}},
-        { id: 'blk-5', type: 'Heading', props: { text: 'Partners', level: 'h3' } },
-        { id: 'blk-6', type: 'Paragraph', props: { content: 'The project was realized with the support of leading tech companies and the Technical University - Sofia.' } },
-      ],
-      useBlocks: true,
       date: new Date('2026-04-10'),
       featuredImage: '/images/news/robotics-lab.jpg',
       published: true,
@@ -245,18 +231,6 @@ The project was realized with the support of leading tech companies and the Tech
 ## Подготовка
 
 Учениците се подготвяха под ръководството на опитни преподаватели и с подкрепата на alumni мрежата на училището.`,
-      blocks: [
-        { id: 'blk-1', type: 'Heading', props: { text: 'Международен успех', level: 'h2' } },
-        { id: 'blk-2', type: 'Paragraph', props: { content: 'Три ученици от ТУЕС се завърнаха с медали от Международната олимпиада по информатика, проведена в Токио, Япония.' } },
-        { id: 'blk-3', type: 'Heading', props: { text: 'Резултати', level: 'h3' } },
-        { id: 'blk-4', type: 'List', props: { style: 'numbered', items: [
-          { text: 'Златен медал - Иван Петров, 12 клас' },
-          { text: 'Сребърен медал - Мария Димитрова, 11 клас' },
-          { text: 'Бронзов медал - Георги Стоянов, 11 клас' }
-        ]}},
-        { id: 'blk-5', type: 'Quote', props: { text: 'Учениците се подготвяха под ръководството на опитни преподаватели и с подкрепата на alumni мрежата на училището.', style: 'highlighted' } },
-      ],
-      useBlocks: true,
       date: new Date('2026-03-15'),
       featuredImage: '/images/news/olympiad-medals.jpg',
       published: true,
@@ -279,18 +253,6 @@ Three students from ELSYS returned with medals from the International Informatic
 ## Preparation
 
 Students were trained under the guidance of experienced teachers and with the support of the school's alumni network.`,
-      blocks: [
-        { id: 'blk-1', type: 'Heading', props: { text: 'International Success', level: 'h2' } },
-        { id: 'blk-2', type: 'Paragraph', props: { content: 'Three students from ELSYS returned with medals from the International Informatics Olympiad held in Tokyo, Japan.' } },
-        { id: 'blk-3', type: 'Heading', props: { text: 'Results', level: 'h3' } },
-        { id: 'blk-4', type: 'List', props: { style: 'numbered', items: [
-          { text: 'Gold medal - Ivan Petrov, 12th grade' },
-          { text: 'Silver medal - Maria Dimitrova, 11th grade' },
-          { text: 'Bronze medal - Georgi Stoyanov, 11th grade' }
-        ]}},
-        { id: 'blk-5', type: 'Quote', props: { text: 'Students were trained under the guidance of experienced teachers and with the support of the school\'s alumni network.', style: 'highlighted' } },
-      ],
-      useBlocks: true,
       date: new Date('2026-03-15'),
       featuredImage: '/images/news/olympiad-medals.jpg',
       published: true,
@@ -317,20 +279,6 @@ Students were trained under the guidance of experienced teachers and with the su
 Регистрацията е задължителна. Моля запишете се онлайн до 20 март.
 
 Очакваме ви!`,
-      blocks: [
-        { id: 'blk-1', type: 'Heading', props: { text: 'Ден на отворените врати', level: 'h2' } },
-        { id: 'blk-2', type: 'Paragraph', props: { content: 'На 25 март ви каним на Ден на отворените врати в ТУЕС!' } },
-        { id: 'blk-3', type: 'Heading', props: { text: 'Програма', level: 'h3' } },
-        { id: 'blk-4', type: 'List', props: { style: 'numbered', items: [
-          { text: '10:00 - Официално откриване и презентация на училището' },
-          { text: '11:00 - Разходка из лабораториите' },
-          { text: '12:00 - Демонстрации на ученически проекти' },
-          { text: '13:00 - Среща с преподаватели и ученици' },
-          { text: '14:00 - Въпроси и отговори' }
-        ]}},
-        { id: 'blk-5', type: 'Callout', props: { type: 'info', title: 'Регистрация', content: 'Регистрацията е задължителна. Моля запишете се онлайн до 20 март. Очакваме ви!' } },
-      ],
-      useBlocks: true,
       date: new Date('2026-02-20'),
       featuredImage: '/images/news/open-doors.jpg',
       published: true,
@@ -357,20 +305,6 @@ On March 25th, we invite you to the ELSYS Open Doors Day!
 Registration is required. Please register online by March 20th.
 
 We look forward to seeing you!`,
-      blocks: [
-        { id: 'blk-1', type: 'Heading', props: { text: 'Open Doors Day', level: 'h2' } },
-        { id: 'blk-2', type: 'Paragraph', props: { content: 'On March 25th, we invite you to the ELSYS Open Doors Day!' } },
-        { id: 'blk-3', type: 'Heading', props: { text: 'Program', level: 'h3' } },
-        { id: 'blk-4', type: 'List', props: { style: 'numbered', items: [
-          { text: '10:00 AM - Official opening and school presentation' },
-          { text: '11:00 AM - Laboratory tour' },
-          { text: '12:00 PM - Student project demonstrations' },
-          { text: '1:00 PM - Meet with teachers and students' },
-          { text: '2:00 PM - Q&A session' }
-        ]}},
-        { id: 'blk-5', type: 'Callout', props: { type: 'info', title: 'Registration', content: 'Registration is required. Please register online by March 20th. We look forward to seeing you!' } },
-      ],
-      useBlocks: true,
       date: new Date('2026-02-20'),
       featuredImage: '/images/news/open-doors.jpg',
       published: true,
@@ -395,8 +329,6 @@ We look forward to seeing you!`,
 ## Общи проекти
 
 Компанията ще подкрепя развитието на специализирани курсове и ще предоставя реални проекти за учениците.`,
-      blocks: [],
-      useBlocks: true,
       date: new Date('2026-02-05'),
       featuredImage: '/images/news/partnership.jpg',
       published: true,
@@ -421,8 +353,6 @@ The partnership includes:
 ## Joint Projects
 
 The company will support the development of specialized courses and provide real projects for students.`,
-      blocks: [],
-      useBlocks: true,
       date: new Date('2026-02-05'),
       featuredImage: '/images/news/partnership.jpg',
       published: true,
@@ -445,8 +375,6 @@ The company will support the development of specialized courses and provide real
 Поздравяваме целия отбор, треньорите и всички които подкрепиха нашите спортисти!
 
 ТУЕС не е само код и електроника - тук развиваме и спортния дух!`,
-      blocks: [],
-      useBlocks: true,
       date: new Date('2026-01-25'),
       featuredImage: '/images/news/football-victory.jpg',
       published: true,
@@ -469,8 +397,6 @@ In a dramatic final, our boys defeated the SMG team with a score of 3:2.
 Congratulations to the entire team, coaches, and everyone who supported our athletes!
 
 ELSYS is not just code and electronics - we develop sportsmanship too!`,
-      blocks: [],
-      useBlocks: true,
       date: new Date('2026-01-25'),
       featuredImage: '/images/news/football-victory.jpg',
       published: true,
@@ -498,8 +424,6 @@ ELSYS is not just code and electronics - we develop sportsmanship too!`,
 ## Следваща среща
 
 Следващата alumni среща се планира за май 2026.`,
-      blocks: [],
-      useBlocks: true,
       date: new Date('2026-01-12'),
       featuredImage: '/images/news/alumni-meetup.jpg',
       published: true,
@@ -527,8 +451,6 @@ The alumni shared their industry experience, gave advice to current students, an
 ## Next Meetup
 
 The next alumni meetup is planned for May 2026.`,
-      blocks: [],
-      useBlocks: true,
       date: new Date('2026-01-12'),
       featuredImage: '/images/news/alumni-meetup.jpg',
       published: true,
@@ -557,8 +479,6 @@ The next alumni meetup is planned for May 2026.`,
 ## Регистрация
 
 Регистрацията за първия workshop е вече отворена!`,
-      blocks: [],
-      useBlocks: true,
       date: new Date('2026-01-08'),
       featuredImage: '/images/news/workshops.jpg',
       published: true,
@@ -587,8 +507,6 @@ Each workshop includes a theoretical part and a practical project. Participation
 ## Registration
 
 Registration for the first workshop is now open!`,
-      blocks: [],
-      useBlocks: true,
       date: new Date('2026-01-08'),
       featuredImage: '/images/news/workshops.jpg',
       published: true,
