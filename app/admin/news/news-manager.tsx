@@ -1,14 +1,38 @@
 "use client";
 
-import { type ChangeEvent, type ComponentPropsWithoutRef, type FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ChangeEvent,
+  type FormEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
-import ReactMarkdown from "react-markdown";
-import type { Components } from "react-markdown";
 import type { PostItem } from "@/lib/types";
+import {
+  NewsBuilderProvider,
+  useNewsBuilder,
+  NewsBuilderToolbar,
+  RichTextEditor,
+  useNewsBuilderShortcuts,
+  type SelectedImage,
+  type ImageSize,
+} from "./components";
+import {
+  NewsBlockPalette,
+  NewsBlockCanvas,
+  NewsBlockPropertyPanel,
+  blocksToMarkdown,
+  blocksToJson,
+  markdownToBlocks,
+} from "./components/blocks";
 
-type Status = { type: "idle" } | { type: "loading" } | { type: "success"; message: string } | { type: "error"; message: string };
-
-type ImageSize = "small" | "medium" | "large" | "full";
+type Status =
+  | { type: "idle" }
+  | { type: "loading" }
+  | { type: "success"; message: string }
+  | { type: "error"; message: string };
 
 const imageSizeLabels: Record<ImageSize, string> = {
   small: "Small",
@@ -19,36 +43,24 @@ const imageSizeLabels: Record<ImageSize, string> = {
 
 const imageSizeOptions: ImageSize[] = ["small", "medium", "large", "full"];
 
-interface SelectedImage {
-  file: File | null;
-  preview: string;
-  name: string;
-  size: ImageSize;
-  origin: "new" | "existing";
-  url?: string;
-}
-
 interface Props {
   posts: PostItem[];
   currentLocale: string;
   onLocaleChange?: (locale: string) => void;
+  isLocaleLoading?: boolean;
 }
 
 function slugify(input: string): string {
-    return input
-        .normalize("NFKD")
-        .trim()
-        .toLowerCase()
-        // normalize various dash characters (en-dash, em-dash, figure dash, minus sign) to ASCII hyphen
-        .replace(/[\u2010\u2011\u2012\u2013\u2014\u2015\u2212]+/g, "-")
-        .replace(/[\u0000-\u001F\u007F]+/g, "")
-        // replace any whitespace (spaces, tabs, NBSP, etc.) and underscores with a single hyphen
-        .replace(/[\s_]+/g, "-")
-        // remove any character that is not a-z, 0-9, Cyrillic range, or hyphen
-        .replace(/[^a-z0-9\u0400-\u04FF-]+/g, "")
-        // collapse multiple hyphens into one and trim leading/trailing hyphens
-        .replace(/-+/g, "-")
-        .replace(/^-|-$/g, "");
+  return input
+    .normalize("NFKD")
+    .trim()
+    .toLowerCase()
+    .replace(/[\u2010\u2011\u2012\u2013\u2014\u2015\u2212]+/g, "-")
+    .replace(/[\u0000-\u001F\u007F]+/g, "")
+    .replace(/[\s_]+/g, "-")
+    .replace(/[^a-z0-9\u0400-\u04FF-]+/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 function splitName(name: string) {
@@ -61,7 +73,11 @@ function formatDateLabel(value?: string) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" });
+  // European format: dd/mm/yyyy
+  const day = date.getDate().toString().padStart(2, "0");
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
 }
 
 function getTodayInputValue(): string {
@@ -78,122 +94,69 @@ function estimateReadingMinutes(words: number): number {
   return Math.max(1, Math.round(words / 200));
 }
 
-function resolveInlineCode(
-  inline: boolean | undefined,
-  className: string | undefined,
-  children: ReactNode,
-  props: ComponentPropsWithoutRef<"code">,
-) {
-  if (inline) {
-    return (
-      <code
-        className={`rounded bg-slate-100 px-1 py-0.5 font-mono text-sm dark:bg-slate-800 ${className ?? ""}`}
-        {...props}
-      >
-        {children}
-      </code>
-    );
-  }
+// Inner component that uses the context
+function NewsManagerInner({
+  posts: incomingPosts,
+  currentLocale = "bg",
+  onLocaleChange,
+  isLocaleLoading: externalLocaleLoading,
+}: Props) {
+  const {
+    state,
+    setField,
+    setForm,
+    resetForm,
+    setEditingId,
+    setPrefilling,
+    addImage,
+    removeImage,
+    updateImageSize,
+    setFeaturedImage,
+    setImages,
+    isEditing,
+    addBlock,
+    toggleBlockMode,
+  } = useNewsBuilder();
 
-  return (
-    <pre className="overflow-auto rounded-md bg-slate-900 p-4 text-sm text-slate-100">
-      <code className={className} {...props}>
-        {children}
-      </code>
-    </pre>
-  );
-}
+  const { form, editingId, isPrefilling, selectedBlockId } = state;
+  const {
+    title,
+    slug,
+    slugTouched,
+    excerpt,
+    markdown,
+    date,
+    published,
+    images,
+    featuredImage,
+    blocks,
+    useBlocks,
+  } = form;
 
-function createPreviewMarkdownComponents(images: SelectedImage[]): Components {
-  const imageLookup = new Map(
-    images.map((img) => [img.name, img.origin === "existing" ? img.url ?? img.preview : img.preview] as const),
-  );
-  const sizeLookup = new Map(images.map((img) => [img.name, img.size] as const));
-
-  function resolveImageSource(src?: string): string | undefined {
-    if (!src) return undefined;
-    if (/^https?:\/\//i.test(src)) return src;
-    const trimmed = src.startsWith("/") ? src.slice(1) : src;
-    const key = trimmed.split("/").pop() ?? trimmed;
-    return imageLookup.get(key) ?? src;
-  }
-
-  function resolveSizeClass(name?: string): string {
-    if (!name) return "w-full";
-    const size = sizeLookup.get(name);
-    switch (size) {
-      case "small":
-        return "mx-auto w-full max-w-sm";
-      case "medium":
-        return "mx-auto w-full max-w-xl";
-      case "large":
-        return "mx-auto w-full max-w-4xl";
-      case "full":
-      default:
-        return "w-full";
-    }
-  }
-
-  return {
-    h1: (props: ComponentPropsWithoutRef<"h1">) => (
-      <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100" {...props} />
-    ),
-    h2: (props: ComponentPropsWithoutRef<"h2">) => (
-      <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100" {...props} />
-    ),
-    h3: (props: ComponentPropsWithoutRef<"h3">) => (
-      <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100" {...props} />
-    ),
-    a: (props: ComponentPropsWithoutRef<"a">) => (
-      <a className="text-blue-600 underline hover:text-blue-700" {...props} />
-    ),
-    ul: (props: ComponentPropsWithoutRef<"ul">) => (
-      <ul className="list-disc space-y-2 pl-6" {...props} />
-    ),
-    ol: (props: ComponentPropsWithoutRef<"ol">) => (
-      <ol className="list-decimal space-y-2 pl-6" {...props} />
-    ),
-    blockquote: (props: ComponentPropsWithoutRef<"blockquote">) => (
-      <blockquote
-        className="border-l-4 border-blue-600/40 pl-4 text-slate-600 italic dark:border-blue-500/40 dark:text-slate-300"
-        {...props}
-      />
-    ),
-    code: ({ inline, className, children, ...props }: ComponentPropsWithoutRef<"code"> & { inline?: boolean }) =>
-      resolveInlineCode(inline, className, children, props),
-    p: (props: ComponentPropsWithoutRef<"p">) => <p className="leading-relaxed" {...props} />,
-    img: ({ src, alt, ...props }: ComponentPropsWithoutRef<"img">) => {
-      const resolved = resolveImageSource(typeof src === "string" ? src : undefined);
-      if (!resolved) return null;
-      const trimmed = typeof src === "string" ? (src.startsWith("/") ? src.slice(1) : src) : undefined;
-      const key = trimmed?.split("/").pop();
-      const sizeClass = resolveSizeClass(key);
-      return <img src={resolved} alt={alt ?? ""} className={`my-4 rounded-lg ${sizeClass}`} {...props} />;
-    },
-  };
-}
-
-export function NewsManager({ posts: incomingPosts, currentLocale = "bg", onLocaleChange }: Props) {
-  const [title, setTitle] = useState("");
-  const [slug, setSlug] = useState("");
-  const [slugTouched, setSlugTouched] = useState(false);
-  const [excerpt, setExcerpt] = useState("");
-  const [markdown, setMarkdown] = useState("");
-  const [date, setDate] = useState(() => getTodayInputValue());
   const [locale, setLocale] = useState(currentLocale);
-  const [published, setPublished] = useState(false);
   const [status, setStatus] = useState<Status>({ type: "idle" });
   const [posts, setPosts] = useState<PostItem[]>(incomingPosts ?? []);
-  const [images, setImages] = useState<SelectedImage[]>([]);
-  const [featuredImage, setFeaturedImage] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [isPrefilling, setIsPrefilling] = useState(false);
   const [filterQuery, setFilterQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "published" | "draft">("all");
   const [sortBy, setSortBy] = useState<"recent" | "oldest" | "title">("recent");
+  const [showPreviewPanel, setShowPreviewPanel] = useState(true);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const imagesRef = useRef<SelectedImage[]>([]);
 
+  // Version history UI state
+  type VersionInfo = {
+    id?: string;
+    version: number;
+    title: string;
+    createdAt?: string;
+    createdBy?: { name?: string | null; email?: string | null } | null;
+  };
+  const [showVersions, setShowVersions] = useState(false);
+  const [versionsLoading, setVersionsLoading] = useState(false);
+  const [versions, setVersions] = useState<VersionInfo[]>([]);
+  const [versionsError, setVersionsError] = useState<string | null>(null);
+
+  // Draft caching per locale
   type Draft = {
     title: string;
     slug: string;
@@ -204,6 +167,8 @@ export function NewsManager({ posts: incomingPosts, currentLocale = "bg", onLoca
     published: boolean;
     images: SelectedImage[];
     featuredImage: string | null;
+    blocks: unknown[];
+    useBlocks: boolean;
   };
   const [draftByLocale, setDraftByLocale] = useState<Record<string, Draft>>({
     [currentLocale]: {
@@ -216,6 +181,17 @@ export function NewsManager({ posts: incomingPosts, currentLocale = "bg", onLoca
       published: false,
       images: [],
       featuredImage: null,
+      blocks: [],
+      useBlocks: false,
+    },
+  });
+
+  // Keyboard shortcuts
+  useNewsBuilderShortcuts({
+    onSave: () => {
+      if (!isSubmitDisabled && status.type !== "loading") {
+        handleSubmit(new Event("submit") as unknown as FormEvent);
+      }
     },
   });
 
@@ -232,6 +208,8 @@ export function NewsManager({ posts: incomingPosts, currentLocale = "bg", onLoca
         published,
         images,
         featuredImage,
+        blocks,
+        useBlocks,
       },
     }));
   }
@@ -239,40 +217,42 @@ export function NewsManager({ posts: incomingPosts, currentLocale = "bg", onLoca
   function loadDraft(loc: string) {
     const draft = draftByLocale[loc];
     if (!draft) return false;
-    setTitle(draft.title);
-    setSlug(draft.slug);
-    setSlugTouched(draft.slugTouched);
-    setExcerpt(draft.excerpt);
-    setMarkdown(draft.markdown);
-    setDate(draft.date);
-    setPublished(draft.published);
-    setImages(draft.images);
-    setFeaturedImage(draft.featuredImage);
+    setForm({
+      title: draft.title,
+      slug: draft.slug,
+      slugTouched: draft.slugTouched,
+      excerpt: draft.excerpt,
+      markdown: draft.markdown,
+      date: draft.date,
+      published: draft.published,
+      images: draft.images,
+      featuredImage: draft.featuredImage,
+      blocks: (draft.blocks || []) as any,
+      useBlocks: draft.useBlocks || false,
+    });
     return true;
   }
 
   const isSubmitDisabled = useMemo(
-    () => title.trim().length === 0 || slug.trim().length === 0 || markdown.trim().length === 0,
-    [title, slug, markdown],
+    () =>
+      title.trim().length === 0 ||
+      slug.trim().length === 0 ||
+      (useBlocks ? blocks.length === 0 : markdown.trim().length === 0),
+    [title, slug, markdown, useBlocks, blocks]
   );
 
-  const isEditing = editingId !== null;
   const submitDisabled = isSubmitDisabled || status.type === "loading" || isPrefilling;
-  const primaryActionLabel =
-    status.type === "loading"
-      ? "Saving…"
-      : isPrefilling
-      ? "Loading…"
-      : isEditing
-      ? "Save changes"
-      : "Save post";
-  const previewComponents = useMemo(() => createPreviewMarkdownComponents(images), [images]);
-  const previewTitle = title.trim() || (isEditing ? "Editing title" : "Untitled draft");
-  const previewDateLabel = formatDateLabel(date);
-  const previewExcerpt = excerpt.trim();
-  const hasMarkdown = markdown.trim().length > 0;
-  const wordCount = useMemo(() => countWords(markdown), [markdown]);
+
+  const contentForWordCount = useMemo(() => {
+    if (useBlocks) {
+      return blocksToMarkdown(blocks);
+    }
+    return markdown;
+  }, [useBlocks, blocks, markdown]);
+
+  const wordCount = useMemo(() => countWords(contentForWordCount), [contentForWordCount]);
   const readingMinutes = useMemo(() => estimateReadingMinutes(wordCount), [wordCount]);
+
   const filteredPosts = useMemo(() => {
     const q = filterQuery.trim().toLowerCase();
     const byQuery = posts.filter((post) => {
@@ -294,6 +274,7 @@ export function NewsManager({ posts: incomingPosts, currentLocale = "bg", onLoca
     });
     return sorted;
   }, [posts, filterQuery, filterStatus, sortBy]);
+
   const featuredPreview = images.find((img) => img.name === featuredImage);
   const featuredPreviewSrc = featuredPreview
     ? featuredPreview.origin === "new"
@@ -302,16 +283,16 @@ export function NewsManager({ posts: incomingPosts, currentLocale = "bg", onLoca
     : null;
 
   function handleTitleChange(next: string) {
-    setTitle(next);
+    setField("title", next);
     if (!slugTouched) {
-      setSlug(slugify(next));
+      setField("slug", slugify(next));
     }
     cacheCurrentDraft(locale);
   }
 
   function handleSlugChange(next: string) {
-    setSlug(slugify(next));
-    setSlugTouched(true);
+    setField("slug", slugify(next));
+    setField("slugTouched", true);
     cacheCurrentDraft(locale);
   }
 
@@ -333,34 +314,14 @@ export function NewsManager({ posts: incomingPosts, currentLocale = "bg", onLoca
     const files = Array.from(event.target.files ?? []);
     if (files.length === 0) return;
 
-    setImages((prev) => {
-      const used = new Set(prev.map((img) => img.name));
-      const next = [...prev];
-      files.forEach((file) => {
-        const preview = URL.createObjectURL(file);
-        const name = generateImageName(file.name, used);
-        next.push({ file, preview, name, size: "full", origin: "new" });
-      });
-      // update cache with next images
-      setDraftByLocale((p) => ({
-        ...p,
-        [locale]: {
-          ...(p[locale] ?? {
-            title: "",
-            slug: "",
-            slugTouched: false,
-            excerpt: "",
-            markdown: "",
-            date: getTodayInputValue(),
-            published: false,
-            images: [],
-            featuredImage: null,
-          }),
-          images: next,
-        },
-      }));
-      return next;
+    const used = new Set(images.map((img) => img.name));
+    files.forEach((file) => {
+      const preview = URL.createObjectURL(file);
+      const name = generateImageName(file.name, used);
+      addImage({ file, preview, name, size: "full", origin: "new" });
     });
+
+    cacheCurrentDraft(locale);
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -373,17 +334,9 @@ export function NewsManager({ posts: incomingPosts, currentLocale = "bg", onLoca
     });
   }
 
-  function resetForm() {
-    setTitle("");
-    setSlug("");
-    setSlugTouched(false);
-    setExcerpt("");
-    setMarkdown("");
-    setDate(getTodayInputValue());
-    setPublished(false);
-    setImages([]);
-    setEditingId(null);
-    setFeaturedImage(null);
+  function handleResetForm() {
+    cleanupNewPreviews(imagesRef.current);
+    resetForm();
     setDraftByLocale((prev) => ({
       ...prev,
       [locale]: {
@@ -396,48 +349,74 @@ export function NewsManager({ posts: incomingPosts, currentLocale = "bg", onLoca
         published: false,
         images: [],
         featuredImage: null,
+        blocks: [],
+        useBlocks: false,
       },
     }));
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+    setStatus({ type: "idle" });
   }
 
   async function handleEditPost(id: string) {
-    setIsPrefilling(true);
+    setPrefilling(true);
     setStatus({ type: "idle" });
 
     try {
-      const response = await fetch(`/api/admin/news/${id}?locale=${encodeURIComponent(locale)}`);
-      const payload = (await response.json().catch(() => null)) as { post?: PostItem; markdown?: string; published?: boolean; error?: string } | null;
+      const response = await fetch(
+        `/api/admin/news/${id}?locale=${encodeURIComponent(locale)}`
+      );
+      const payload = (await response.json().catch(() => null)) as {
+        post?: PostItem;
+        markdown?: string;
+        blocks?: unknown[] | null;
+        useBlocks?: boolean;
+        published?: boolean;
+        error?: string;
+      } | null;
 
       if (!response.ok || !payload?.post) {
         setStatus({ type: "error", message: payload?.error ?? "Failed to load the post" });
+        setPrefilling(false);
         return;
       }
 
       cleanupNewPreviews(imagesRef.current);
       const post = payload.post;
       setEditingId(post.id ?? id);
-      setTitle(post.title ?? "");
-      setSlug(post.id ?? id);
-      setSlugTouched(true);
-      setExcerpt(post.excerpt ?? "");
-      setMarkdown(payload.markdown ?? "");
-      setDate(post.date ? post.date.slice(0, 10) : getTodayInputValue());
-      setPublished(payload.published !== false);
+
       const nextImages = (post.images ?? []).map<SelectedImage>((img) => ({
         file: null,
         preview: img.url,
         name: img.name,
-        size: img.size ?? "full",
+        size: (img.size ?? "full") as ImageSize,
         origin: "existing",
         url: img.url,
       }));
-      setImages(nextImages);
-      const featuredByUrl = post.image ? (nextImages.find((img) => img.url === post.image) ?? null) : null;
+
+      const featuredByUrl = post.image
+        ? nextImages.find((img) => img.url === post.image) ?? null
+        : null;
       const nextFeatured = featuredByUrl?.name ?? nextImages[0]?.name ?? null;
-      setFeaturedImage(nextFeatured);
+
+      // Parse blocks from payload
+      const loadedBlocks = Array.isArray(payload.blocks) ? payload.blocks : [];
+
+      setForm({
+        title: post.title ?? "",
+        slug: post.id ?? id,
+        slugTouched: true,
+        excerpt: post.excerpt ?? "",
+        markdown: payload.markdown ?? "",
+        date: post.date ? post.date.slice(0, 10) : getTodayInputValue(),
+        published: payload.published !== false,
+        images: nextImages,
+        featuredImage: nextFeatured,
+        blocks: loadedBlocks as any,
+        useBlocks: payload.useBlocks ?? false,
+      });
+
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -445,131 +424,113 @@ export function NewsManager({ posts: incomingPosts, currentLocale = "bg", onLoca
       console.error("News edit preload error", error);
       setStatus({ type: "error", message: "An error occurred while loading" });
     } finally {
-      setIsPrefilling(false);
+      setPrefilling(false);
     }
   }
 
-  function handleCancelEdit() {
-    cleanupNewPreviews(imagesRef.current);
-    resetForm();
-    setStatus({ type: "idle" });
+  function handleRemoveImage(name: string) {
+    const img = images.find((i) => i.name === name);
+    if (img?.origin === "new") {
+      URL.revokeObjectURL(img.preview);
+    }
+    removeImage(name);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    cacheCurrentDraft(locale);
   }
 
+  // Keep imagesRef in sync
   useEffect(() => {
     imagesRef.current = images;
   }, [images]);
 
+  // Auto-set featured image
   useEffect(() => {
-    if (images.length === 0) {
-      if (featuredImage !== null) {
-        setFeaturedImage(null);
-      }
+    if (images.length === 0 && featuredImage !== null) {
+      setFeaturedImage(null);
       return;
     }
-
-    if (!featuredImage || !images.some((img) => img.name === featuredImage)) {
-      const fallback = images[0]?.name ?? null;
-      if (fallback !== featuredImage) {
-        setFeaturedImage(fallback);
-      }
+    if (images.length > 0 && (!featuredImage || !images.some((img) => img.name === featuredImage))) {
+      setFeaturedImage(images[0]?.name ?? null);
     }
-  }, [images, featuredImage]);
+  }, [images, featuredImage, setFeaturedImage]);
 
-  function handleImageSizeChange(name: string, size: ImageSize) {
-    setImages((prev) => prev.map((img) => (img.name === name ? { ...img, size } : img)));
-    cacheCurrentDraft(locale);
-  }
-
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       cleanupNewPreviews(imagesRef.current);
     };
   }, []);
 
-  // Keep list in sync with outer shell
+  // Keep list in sync
   useEffect(() => {
     setPosts(incomingPosts ?? []);
   }, [incomingPosts]);
 
-  // When outer locale changes, update form locale and, if editing, load the same slug in the new locale
+  // Locale switching
   useEffect(() => {
     if (!currentLocale || currentLocale === locale) return;
-    // cache current locale draft when switching
     cacheCurrentDraft(locale);
     setLocale(currentLocale);
+
     if (editingId) {
-      // Refill fields with the other locale's content of the same slug
       (async () => {
-        setIsPrefilling(true);
+        setPrefilling(true);
         try {
-          const response = await fetch(`/api/admin/news/${editingId}?locale=${encodeURIComponent(currentLocale)}`);
-          const payload = (await response.json().catch(() => null)) as { post?: PostItem; markdown?: string; published?: boolean; error?: string } | null;
+          const response = await fetch(
+            `/api/admin/news/${editingId}?locale=${encodeURIComponent(currentLocale)}`
+          );
+          const payload = (await response.json().catch(() => null)) as {
+            post?: PostItem;
+            markdown?: string;
+            blocks?: unknown[] | null;
+            useBlocks?: boolean;
+            published?: boolean;
+            error?: string;
+          } | null;
           if (response.ok && payload?.post) {
             const post = payload.post;
-            setTitle(post.title ?? "");
-            setSlug(post.id ?? editingId);
-            setSlugTouched(true);
-            setExcerpt(post.excerpt ?? "");
-            setMarkdown(payload.markdown ?? "");
-            setDate(post.date ? post.date.slice(0, 10) : getTodayInputValue());
-            setPublished(payload.published !== false);
             const nextImages = (post.images ?? []).map<SelectedImage>((img) => ({
               file: null,
               preview: img.url,
               name: img.name,
-              size: img.size ?? "full",
+              size: (img.size ?? "full") as ImageSize,
               origin: "existing",
               url: img.url,
             }));
-            setImages(nextImages);
-            const featuredByUrl = post.image ? (nextImages.find((img) => img.url === post.image) ?? null) : null;
+            const featuredByUrl = post.image
+              ? nextImages.find((img) => img.url === post.image) ?? null
+              : null;
             const nextFeatured = featuredByUrl?.name ?? nextImages[0]?.name ?? null;
-            setFeaturedImage(nextFeatured);
+            const loadedBlocks = Array.isArray(payload.blocks) ? payload.blocks : [];
+            setForm({
+              title: post.title ?? "",
+              slug: post.id ?? editingId,
+              slugTouched: true,
+              excerpt: post.excerpt ?? "",
+              markdown: payload.markdown ?? "",
+              date: post.date ? post.date.slice(0, 10) : getTodayInputValue(),
+              published: payload.published !== false,
+              images: nextImages,
+              featuredImage: nextFeatured,
+              blocks: loadedBlocks as any,
+              useBlocks: payload.useBlocks ?? false,
+            });
             if (fileInputRef.current) fileInputRef.current.value = "";
           }
         } finally {
-          setIsPrefilling(false);
+          setPrefilling(false);
         }
       })();
     } else {
-      // New post: load cached draft for the new locale or clear
       const loaded = loadDraft(currentLocale);
       if (!loaded) {
-        setTitle("");
-        setSlug("");
-        setSlugTouched(false);
-        setExcerpt("");
-        setMarkdown("");
-        setDate(getTodayInputValue());
-        setPublished(false);
-        setImages([]);
-        setFeaturedImage(null);
+        resetForm();
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
     }
   }, [currentLocale]);
-
-  function handleRemoveImage(name: string) {
-    const removingFeatured = featuredImage === name;
-    setImages((prev) => {
-      const next: SelectedImage[] = [];
-      prev.forEach((img) => {
-        if (img.name === name) {
-          if (img.origin === "new") URL.revokeObjectURL(img.preview);
-        } else {
-          next.push(img);
-        }
-      });
-      return next;
-    });
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-    if (removingFeatured) {
-      setFeaturedImage(null);
-    }
-    cacheCurrentDraft(locale);
-  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -578,11 +539,17 @@ export function NewsManager({ posts: incomingPosts, currentLocale = "bg", onLoca
     setStatus({ type: "loading" });
 
     try {
+      // Convert blocks to markdown if in block mode
+      const contentMarkdown = useBlocks ? blocksToMarkdown(blocks) : markdown;
+      const blocksJson = useBlocks ? blocksToJson(blocks) : "";
+
       const formData = new FormData();
       formData.append("title", title);
       formData.append("slug", slug);
       formData.append("excerpt", excerpt);
-      formData.append("markdown", markdown);
+      formData.append("markdown", contentMarkdown);
+      formData.append("blocksJson", blocksJson);
+      formData.append("useBlocks", String(useBlocks));
       formData.append("date", date);
       formData.append("locale", locale);
       formData.append("published", String(published));
@@ -600,7 +567,8 @@ export function NewsManager({ posts: incomingPosts, currentLocale = "bg", onLoca
         }
       });
 
-      const endpoint = isEditing && editingId ? `/api/admin/news/${editingId}` : "/api/admin/news";
+      const endpoint =
+        isEditing && editingId ? `/api/admin/news/${editingId}` : "/api/admin/news";
       const method = isEditing ? "PUT" : "POST";
 
       const response = await fetch(endpoint, {
@@ -608,7 +576,10 @@ export function NewsManager({ posts: incomingPosts, currentLocale = "bg", onLoca
         body: formData,
       });
 
-      const payload = (await response.json().catch(() => null)) as { error?: string; post?: PostItem } | null;
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+        post?: PostItem;
+      } | null;
 
       if (!response.ok || !payload?.post) {
         setStatus({
@@ -623,7 +594,9 @@ export function NewsManager({ posts: incomingPosts, currentLocale = "bg", onLoca
 
       if (isEditing && originalEditingId) {
         setPosts((prev) => {
-          const filtered = prev.filter((post) => post.id !== originalEditingId && post.id !== updatedPost.id);
+          const filtered = prev.filter(
+            (post) => post.id !== originalEditingId && post.id !== updatedPost.id
+          );
           return [updatedPost, ...filtered];
         });
       } else {
@@ -635,7 +608,6 @@ export function NewsManager({ posts: incomingPosts, currentLocale = "bg", onLoca
 
       cleanupNewPreviews(imagesRef.current);
       resetForm();
-      // clear draft cache for current locale after successful save
       setDraftByLocale((prev) => ({
         ...prev,
         [locale]: {
@@ -648,410 +620,1083 @@ export function NewsManager({ posts: incomingPosts, currentLocale = "bg", onLoca
           published: false,
           images: [],
           featuredImage: null,
+          blocks: [],
+          useBlocks: false,
         },
       }));
-      setStatus({ type: "success", message: isEditing ? "Post updated successfully" : "Post created successfully" });
+      setStatus({
+        type: "success",
+        message: isEditing ? "Post updated successfully" : "Post created successfully",
+      });
     } catch (error) {
       console.error("News create client error", error);
-      setStatus({ type: "error", message: isEditing ? "Error during update" : "An error occurred during submission" });
+      setStatus({
+        type: "error",
+        message: isEditing ? "Error during update" : "An error occurred during submission",
+      });
     }
   }
 
+  const previewTitle = title.trim() || (isEditing ? "Editing title" : "Untitled draft");
+  const previewDateLabel = formatDateLabel(date);
+  const previewExcerpt = excerpt.trim();
+
   return (
-    <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
-      <section className="space-y-4 rounded border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <header className="space-y-2">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{isEditing ? "Edit post" : "New post"}</h2>
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            {isEditing
-              ? "Update content, images and metadata. Saving will replace the published post."
-              : "Fill in the form and save to add a new post. Use image filenames in Markdown to embed them."}
-          </p>
-        </header> 
+    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900">
+      {/* Toolbar */}
+      <NewsBuilderToolbar
+        onSave={() => handleSubmit(new Event("submit") as unknown as FormEvent)}
+        isSaving={status.type === "loading"}
+        showPreviewPanel={showPreviewPanel}
+        setShowPreviewPanel={setShowPreviewPanel}
+        onCancelEdit={handleResetForm}
+        locale={locale}
+        onLocaleChange={onLocaleChange}
+        isLocaleLoading={isPrefilling || externalLocaleLoading}
+      />
 
-        {isEditing && (
-          <div className="flex flex-col gap-3 rounded border border-blue-200 bg-blue-50/80 px-4 py-3 text-sm text-blue-800 dark:border-blue-500/40 dark:bg-blue-500/10 dark:text-blue-100 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="font-medium">Editing: /novini/{editingId}</p>
-              <p className="text-xs text-blue-700/80 dark:text-blue-100/80">Changes to Markdown and images will replace the current data.</p>
-            </div>
-            <button
-              type="button"
-              onClick={handleCancelEdit}
-              className="inline-flex items-center justify-center rounded border border-blue-600 px-3 py-1 text-xs font-semibold text-blue-600 hover:bg-blue-100 dark:border-blue-300 dark:text-blue-100 dark:hover:bg-blue-500/30"
-            >
-              Cancel editing
-            </button>
+      {/* Main Content */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Block Palette (when in block mode) */}
+        {useBlocks && (
+          <div className="w-72 flex-shrink-0 overflow-hidden border-r border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900">
+            <NewsBlockPalette onAddBlock={(blockType) => addBlock(blockType)} />
           </div>
         )}
 
-        {isPrefilling && (
-          <p className="rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">Loading content…</p>
-        )}
+        {/* Form Panel / Block Canvas */}
+        <div className="flex flex-1 flex-col overflow-hidden border-r border-slate-200 dark:border-slate-700">
+          {useBlocks ? (
+            <div className="flex-1 overflow-y-auto">
+              {/* Metadata form at the top */}
+              <div className="border-b border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+                <form className="mx-auto max-w-3xl space-y-4" onSubmit={handleSubmit}>
+                  {/* Edit Mode Banner */}
+                  {isEditing && (
+                    <div className="flex flex-col gap-3 rounded-lg border border-brand-200 bg-brand-50/80 px-4 py-3 text-sm text-brand-800 dark:border-brand-500/40 dark:bg-brand-500/10 dark:text-brand-100 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <p className="font-medium">Editing: /novini/{editingId}</p>
+                        <p className="text-xs text-brand-700/80 dark:text-brand-100/80">
+                          Changes will replace the current data.
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Title *</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(event) => handleTitleChange(event.target.value)}
-              required
-              className="w-full rounded border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Status</label>
-            <select
-              value={published ? "published" : "draft"}
-              onChange={(e) => setPublished(e.target.value === "published")}
-              className="w-full rounded border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
-            >
-              <option value="draft">Draft</option>
-              <option value="published">Published</option>
-            </select>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">New posts start as drafts by default.</p>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Slug *</label>
-            <input
-              type="text"
-              value={slug}
-              onChange={(event) => handleSlugChange(event.target.value)}
-              onBlur={() => setSlugTouched(true)}
-              required
-              className="w-full rounded border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
-              placeholder="primerna-novina"
-            />
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">URL: /novini/{slug || "..."}</p>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Images (optional, multiple)</label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleImageChange}
-              className="w-full text-sm text-slate-600 file:mr-3 file:rounded file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-blue-700"
-            />
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Files are uploaded to Vercel Blob. Use Markdown <code>![alt](/file-name)</code> or <code>![alt](file-name)</code>; filenames are normalized automatically.
-              After adding, choose the preferred display size and mark the featured image.
-            </p>
-            {images.length > 0 && (
-              <div className="mt-3 space-y-3">
-                {images.map((img) => (
-                  <div key={img.name} className="flex items-start gap-3 rounded border border-slate-200 p-2 dark:border-slate-700">
-                    <img src={img.preview} alt={img.name} className="h-16 w-16 rounded object-cover" />
-                    <div className="flex-1 text-xs text-slate-600 dark:text-slate-400">
-                      <p className="font-medium text-slate-700 dark:text-slate-200">{img.name}</p>
-                      <p>Reference with <code>![alt]({img.name})</code> in Markdown.</p>
-                      <span className="mt-2 inline-flex items-center gap-1 rounded bg-slate-200 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                        {img.origin === "existing" ? "Existing image" : "New upload"}
-                      </span>
-                      <label className="mt-2 block text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500">Display size</label>
+                  {/* Title */}
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                      Title <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={title}
+                      onChange={(e) => handleTitleChange(e.target.value)}
+                      required
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                      placeholder="Enter post title"
+                    />
+                  </div>
+
+                  {/* Status, Slug & Date Row */}
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                        Status
+                      </label>
                       <select
-                        value={img.size}
-                        onChange={(event) => handleImageSizeChange(img.name, event.target.value as ImageSize)}
-                        className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
+                        value={published ? "published" : "draft"}
+                        onChange={(e) => setField("published", e.target.value === "published")}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                       >
-                        {imageSizeOptions.map((size) => (
-                          <option key={size} value={size}>
-                            {imageSizeLabels[size]}
+                        <option value="draft">Draft</option>
+                        <option value="published">Published</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                        Slug <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={slug}
+                        onChange={(e) => handleSlugChange(e.target.value)}
+                        onBlur={() => setField("slugTouched", true)}
+                        required
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                        placeholder="example-post-slug"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                        Date
+                      </label>
+                      <input
+                        type="date"
+                        value={date}
+                        onChange={(e) => setField("date", e.target.value)}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Excerpt */}
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                      Excerpt
+                    </label>
+                    <textarea
+                      value={excerpt}
+                      onChange={(e) => setField("excerpt", e.target.value)}
+                      rows={2}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                      placeholder="Enter a short summary"
+                    />
+                  </div>
+
+                  {/* Featured Image (Block Mode) */}
+                  {images.length > 0 && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                        Featured Image (Title Card)
+                      </label>
+                      {featuredPreviewSrc && (
+                        <div className="relative inline-block">
+                          <img
+                            src={featuredPreviewSrc}
+                            alt="Featured"
+                            className="h-24 w-full rounded-lg border border-slate-200 object-cover dark:border-slate-700"
+                          />
+                          <div className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-xs text-white">
+                            {featuredImage}
+                          </div>
+                        </div>
+                      )}
+                      <select
+                        value={featuredImage ?? ""}
+                        onChange={(e) => setFeaturedImage(e.target.value || null)}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                      >
+                        {images.map((img) => (
+                          <option key={img.name} value={img.name}>
+                            {img.name}
                           </option>
                         ))}
                       </select>
-                      <label className="mt-3 flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
-                        <input
-                          type="radio"
-                          name="featured-image"
-                          checked={featuredImage === img.name}
-                          onChange={() => setFeaturedImage(img.name)}
-                          className="h-3 w-3 border border-slate-400 text-blue-600 focus:ring-blue-500"
-                        />
-                        Featured image (card)
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Cover image for the news card.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Images (Block Mode Upload/Manage) */}
+                  <div className="space-y-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800/50">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                        Images
                       </label>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        {images.length} image{images.length !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageChange}
+                      className="w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-brand-700 dark:text-slate-300"
+                    />
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Use blocks or Markdown to embed images. Featured selector chooses the title card image.
+                    </p>
+
+                    {images.length > 0 && (
+                      <div className="space-y-2 pt-2">
+                        {images.map((img) => (
+                          <div
+                            key={img.name}
+                            className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800"
+                          >
+                            <img
+                              src={img.preview}
+                              alt={img.name}
+                              className="h-16 w-16 rounded-lg object-cover"
+                            />
+                            <div className="flex-1 text-xs text-slate-600 dark:text-slate-400">
+                              <p className="font-medium text-slate-700 dark:text-slate-200">
+                                {img.name}
+                              </p>
+                              <div className="mt-2 flex flex-wrap items-center gap-2">
+                                <select
+                                  value={img.size}
+                                  onChange={(e) =>
+                                    updateImageSize(img.name, e.target.value as ImageSize)
+                                  }
+                                  className="rounded border border-slate-300 bg-white px-2 py-1 text-xs focus:border-brand-500 focus:outline-none dark:border-slate-600 dark:bg-slate-700"
+                                >
+                                  {imageSizeOptions.map((size) => (
+                                    <option key={size} value={size}>
+                                      {imageSizeLabels[size]}
+                                    </option>
+                                  ))}
+                                </select>
+                                <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">
+                                  <input
+                                    type="radio"
+                                    name="featured-image"
+                                    checked={featuredImage === img.name}
+                                    onChange={() => setFeaturedImage(img.name)}
+                                    className="h-3 w-3"
+                                  />
+                                  Featured
+                                </label>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImage(img.name)}
+                              className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Mode Toggle */}
+                  <div className="flex items-center justify-between border-t border-slate-200 pt-3 dark:border-slate-700">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                        Editor Mode:
+                      </span>
+                      <span className="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-900/50 dark:text-brand-300">
+                        Block Editor
+                      </span>
                     </div>
                     <button
                       type="button"
-                      onClick={() => handleRemoveImage(img.name)}
-                      className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                      onClick={toggleBlockMode}
+                      className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                     >
-                      Remove
+                      Switch to Markdown
                     </button>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Date</label>
-            <input
-              type="date"
-              value={date}
-              onChange={(event) => setDate(event.target.value)}
-              className="w-full rounded border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Excerpt</label>
-            <textarea
-              value={excerpt}
-              onChange={(event) => setExcerpt(event.target.value)}
-              rows={3}
-              className="w-full rounded border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
-              placeholder="Enter a short summary"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Content (Markdown) *</label>
-            <textarea
-              value={markdown}
-              onChange={(event) => setMarkdown(event.target.value)}
-              rows={6}
-              className="w-full rounded border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
-              placeholder="Enter content in Markdown"
-            />
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Supports standard Markdown (headings, lists, links).</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="submit"
-              disabled={submitDisabled}
-              className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-60"
-            >
-              {primaryActionLabel}
-            </button>
-            {isEditing && (
-              <button
-                type="button"
-                onClick={handleCancelEdit}
-                className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
-              >
-                Cancel
-              </button>
-            )}
-            <button
-              type="button"
-              disabled={published || status.type === "loading" || isPrefilling}
-              onClick={async () => {
-                if (published) return; // safety guard
-                const target = locale === "bg" ? "en" : "bg";
-                setStatus({ type: "loading" });
-                try {
-                  const res = await fetch("/api/admin/news/translate", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      sourceLocale: locale,
-                      targetLocale: target,
-                      title,
-                      excerpt,
-                      markdown,
-                    }),
-                  });
-                  const payload = (await res.json().catch(() => null)) as { title?: string; excerpt?: string; markdown?: string; error?: string } | null;
-                  if (!res.ok || !payload) {
-                    setStatus({ type: "error", message: payload?.error ?? "Translate failed" });
-                    return;
-                  }
-                  const nextTitle = payload.title ?? title;
-                  const nextExcerpt = payload.excerpt !== undefined ? payload.excerpt : excerpt;
-                  const nextMarkdown = payload.markdown ?? markdown;
-                  // Prepare target-locale draft with translated fields
-                  setDraftByLocale((prev) => ({
-                    ...prev,
-                    [target]: {
-                      title: nextTitle,
-                      slug, // keep same slug as base; can be edited after
-                      slugTouched,
-                      excerpt: nextExcerpt,
-                      markdown: nextMarkdown,
-                      date,
-                      published: false,
-                      images,
-                      featuredImage,
-                    },
-                  }));
-                  // Exit editing if translating an existing post; this starts a new draft in target locale
-                  if (editingId) setEditingId(null);
-                  // Trigger global locale switch so list and toolbar update; form will load cached translated draft
-                  if (onLocaleChange) onLocaleChange(target);
-                  setStatus({ type: "success", message: `Translated to ${target.toUpperCase()} (set as draft)` });
-                } catch (e) {
-                  setStatus({ type: "error", message: "Translate error" });
-                }
-              }}
-              title={published ? "Switch status to Draft to enable auto-translate" : undefined}
-              className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
-            >
-              Auto-translate to {locale === "bg" ? "EN" : "BG"}
-            </button>
-            {status.type === "error" && <span className="text-sm text-red-600">{status.message}</span>}
-            {status.type === "success" && <span className="text-sm text-green-600">{status.message}</span>}
-          </div>
-        </form>
-        <div className="border-t border-dashed border-slate-200 pt-5 dark:border-slate-700">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Preview</h3>
-              <span className="text-xs text-slate-500 dark:text-slate-400">Auto-updates as you type</span>
-            </div>
-            <div className="flex flex-wrap gap-2 text-xs text-slate-600 dark:text-slate-300">
-              <span className="rounded-full border border-slate-200 bg-white px-2 py-1 dark:border-slate-700 dark:bg-slate-800">{wordCount} words</span>
-              <span className="rounded-full border border-slate-200 bg-white px-2 py-1 dark:border-slate-700 dark:bg-slate-800">~{readingMinutes} min read</span>
-              <span className="rounded-full border border-slate-200 bg-white px-2 py-1 dark:border-slate-700 dark:bg-slate-800">{images.length} images</span>
-            </div>
-          </div>
-          <article className="markdown-content mt-4 space-y-4 rounded border border-slate-200 bg-slate-50 p-4 text-slate-700 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200">
-            <header className="space-y-1">
-              <h4 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{previewTitle}</h4>
-              {previewDateLabel && <p className="text-xs text-slate-500 dark:text-slate-400">Scheduled for {previewDateLabel}</p>}
-              {previewExcerpt && <p className="pt-1 text-sm text-slate-600 dark:text-slate-300">{previewExcerpt}</p>}
-            </header>
-            {featuredPreviewSrc && (
-              <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900/60">
-                <img src={featuredPreviewSrc} alt={previewTitle || "Featured image"} className="h-auto w-full object-cover" />
-              </div>
-            )}
-            {hasMarkdown ? (
-              <ReactMarkdown components={previewComponents}>{markdown}</ReactMarkdown>
-            ) : (
-              <p className="text-sm text-slate-500 dark:text-slate-400">Add Markdown content to see the preview here.</p>
-            )}
-          </article>
-        </div>
-      </section>
-      <section className="space-y-4 rounded border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <header>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">News list</h2>
-          <p className="text-sm text-slate-600 dark:text-slate-400">Search, filter and sort existing posts.</p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 dark:text-slate-300">
-              Search
-              <input
-                type="search"
-                value={filterQuery}
-                onChange={(event) => setFilterQuery(event.target.value)}
-                placeholder="Title or slug"
-                className="rounded border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 dark:text-slate-300">
-              Status
-              <select
-                value={filterStatus}
-                onChange={(event) => setFilterStatus(event.target.value as typeof filterStatus)}
-                className="rounded border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
-              >
-                <option value="all">All</option>
-                <option value="published">Published</option>
-                <option value="draft">Drafts</option>
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 dark:text-slate-300">
-              Sort by
-              <select
-                value={sortBy}
-                onChange={(event) => setSortBy(event.target.value as typeof sortBy)}
-                className="rounded border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
-              >
-                <option value="recent">Newest first</option>
-                <option value="oldest">Oldest first</option>
-                <option value="title">Title (A→Z)</option>
-              </select>
-            </label>
-          </div>
-        </header>
-        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
-          <span>{filteredPosts.length} shown · {posts.length} total</span>
-          {filterStatus !== "all" && (
-            <span className="rounded-full border border-slate-200 px-2 py-0.5 dark:border-slate-700">{filterStatus === "published" ? "Published only" : "Drafts only"}</span>
-          )}
-        </div>
-        {filteredPosts.length === 0 ? (
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {posts.length === 0 ? "No posts yet." : "No matches for your filters."}
-          </p>
-        ) : (
-          <ul className="space-y-3">
-            {filteredPosts.map((post) => {
-              const isActive = editingId === post.id;
-              return (
-                <li
-                  key={post.id}
-                  className={`rounded p-3 ${
-                    isActive
-                      ? "border border-blue-500/80 bg-blue-50 dark:border-blue-400/70 dark:bg-blue-500/15"
-                      : "border border-slate-200 dark:border-slate-700"
-                  }`}
-                >
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <strong className="text-sm text-slate-900 dark:text-slate-100">{post.title}</strong>
-                        {post.published === false && (
-                          <span className="rounded bg-amber-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
-                            Draft
-                          </span>
-                        )}
-                      </div>
-                      {post.date && <span className="text-xs text-slate-500 dark:text-slate-400">{formatDateLabel(post.date)}</span>}
-                    </div>
-                    {Array.isArray(post.images) && post.images.length > 0 && (
-                      <span className="text-xs text-slate-500 dark:text-slate-400">
-                        {post.images.length === 1 ? "1 image" : `${post.images.length} images`}
-                      </span>
-                    )}
-                    {post.excerpt && <p className="text-xs text-slate-600 dark:text-slate-400">{post.excerpt}</p>}
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Link href={`/${locale}/novini/${post.id}`} className="text-xs font-medium text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
-                        View on site
-                      </Link>
+
+                  {/* Block Mode Actions: Version History & Auto-Translate */}
+                  {isEditing && (
+                    <div className="flex items-center gap-2 pt-3">
                       <button
                         type="button"
-                        onClick={() => handleEditPost(post.id)}
-                        disabled={isPrefilling || status.type === "loading"}
-                        className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 disabled:opacity-60 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                        onClick={async () => {
+                          if (!editingId) return;
+                          setShowVersions(true);
+                          setVersionsLoading(true);
+                          setVersionsError(null);
+                          try {
+                            const res = await fetch(`/api/admin/news/${encodeURIComponent(editingId)}?action=versions&locale=${encodeURIComponent(locale)}`, { method: "GET" });
+                            const payload = (await res.json().catch(() => null)) as { versions?: VersionInfo[]; error?: string } | null;
+                            if (!res.ok || !payload?.versions) {
+                              setVersionsError(payload?.error ?? "Failed to load versions");
+                            } else {
+                              setVersions(payload.versions);
+                            }
+                          } catch {
+                            setVersionsError("Failed to load versions");
+                          } finally {
+                            setVersionsLoading(false);
+                          }
+                        }}
+                        className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
                       >
-                        Edit
+                        Version history
                       </button>
-                      {isActive && (
+
+                      <button
+                        type="button"
+                        disabled={published || status.type === "loading" || isPrefilling}
+                        onClick={async () => {
+                          if (published) return;
+                          const target = locale === "bg" ? "en" : "bg";
+                          setStatus({ type: "loading" });
+                          try {
+                            const res = await fetch("/api/admin/news/translate", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                sourceLocale: locale,
+                                targetLocale: target,
+                                title,
+                                excerpt,
+                                markdown: blocksToMarkdown(blocks),
+                              }),
+                            });
+                            const payload = (await res.json().catch(() => null)) as {
+                              title?: string;
+                              excerpt?: string;
+                              markdown?: string;
+                              error?: string;
+                            } | null;
+                            if (!res.ok || !payload) {
+                              setStatus({
+                                type: "error",
+                                message: payload?.error ?? "Translate failed",
+                              });
+                              return;
+                            }
+                            const nextTitle = payload.title ?? title;
+                            const nextExcerpt = payload.excerpt !== undefined ? payload.excerpt : excerpt;
+                            const nextMarkdown = payload.markdown ?? "";
+                            const translatedBlocks = nextMarkdown ? markdownToBlocks(nextMarkdown) : blocks;
+                            setDraftByLocale((prev) => ({
+                              ...prev,
+                              [target]: {
+                                title: nextTitle,
+                                slug,
+                                slugTouched,
+                                excerpt: nextExcerpt,
+                                markdown: "",
+                                date,
+                                published: false,
+                                images,
+                                featuredImage,
+                                blocks: translatedBlocks,
+                                useBlocks: true,
+                              },
+                            }));
+                            if (editingId) setEditingId(null);
+                            if (onLocaleChange) onLocaleChange(target);
+                            setStatus({
+                              type: "success",
+                              message: `Translated to ${target.toUpperCase()} (set as draft)`,
+                            });
+                          } catch {
+                            setStatus({ type: "error", message: "Translate error" });
+                          }
+                        }}
+                        title={published ? "Switch to Draft to enable auto-translate" : undefined}
+                        className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                      >
+                        Auto-translate to {locale === "bg" ? "EN" : "BG"}
+                      </button>
+                    </div>
+                  )}
+
+                  {status.type === "error" && (
+                    <span className="text-sm text-red-600">{status.message}</span>
+                  )}
+                  {status.type === "success" && (
+                    <span className="text-sm text-green-600">{status.message}</span>
+                  )}
+                </form>
+              </div>
+
+              {/* Block Canvas */}
+              <NewsBlockCanvas />
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto p-6">
+              <form className="mx-auto max-w-3xl space-y-6" onSubmit={handleSubmit}>
+              {/* Edit Mode Banner */}
+              {isEditing && (
+                <div className="flex flex-col gap-3 rounded-lg border border-brand-200 bg-brand-50/80 px-4 py-3 text-sm text-brand-800 dark:border-brand-500/40 dark:bg-brand-500/10 dark:text-brand-100 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="font-medium">Editing: /novini/{editingId}</p>
+                    <p className="text-xs text-brand-700/80 dark:text-brand-100/80">
+                      Changes will replace the current data.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Loading State */}
+              {isPrefilling && (
+                <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-brand-600" />
+                  Loading content...
+                </div>
+              )}
+
+              {/* Title */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                  Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => handleTitleChange(e.target.value)}
+                  required
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                  placeholder="Enter post title"
+                />
+              </div>
+
+              {/* Status & Slug Row */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                    Status
+                  </label>
+                  <select
+                    value={published ? "published" : "draft"}
+                    onChange={(e) => setField("published", e.target.value === "published")}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="published">Published</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                    Slug <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={slug}
+                    onChange={(e) => handleSlugChange(e.target.value)}
+                    onBlur={() => setField("slugTouched", true)}
+                    required
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                    placeholder="example-post-slug"
+                  />
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    URL: /novini/{slug || "..."}
+                  </p>
+                </div>
+              </div>
+
+              {/* Date */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                  Date
+                </label>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setField("date", e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                  
+                />
+              </div>
+
+              {/* Excerpt */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                  Excerpt
+                </label>
+                <textarea
+                  value={excerpt}
+                  onChange={(e) => setField("excerpt", e.target.value)}
+                  rows={3}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                  placeholder="Enter a short summary"
+                />
+              </div>
+
+              {/* Featured Image Preview/Selector */}
+              {images.length > 0 && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                    Featured Image (Title Card)
+                  </label>
+                  {featuredPreviewSrc && (
+                    <div className="relative inline-block">
+                      <img
+                        src={featuredPreviewSrc}
+                        alt="Featured"
+                        className="h-32 w-full max-w-md rounded-lg border border-slate-200 object-cover dark:border-slate-700"
+                      />
+                      <div className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-1 text-xs text-white">
+                        {featuredImage}
+                      </div>
+                    </div>
+                  )}
+                  <select
+                    value={featuredImage ?? ""}
+                    onChange={(e) => setFeaturedImage(e.target.value || null)}
+                    className="w-full max-w-md rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                  >
+                    {images.map((img) => (
+                      <option key={img.name} value={img.name}>
+                        {img.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    This image will be displayed as the cover for this news article.
+                  </p>
+                </div>
+              )}
+
+              {/* Images */}
+              <div className="space-y-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800/50">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                    Images
+                  </label>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    {images.length} image{images.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageChange}
+                  className="w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-brand-700 dark:text-slate-300"
+                />
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Use Markdown <code className="rounded bg-slate-100 px-1 dark:bg-slate-700">![alt](filename)</code> to embed images in content.
+                </p>
+
+                {images.length > 0 && (
+                  <div className="space-y-2 pt-2">
+                    {images.map((img) => (
+                      <div
+                        key={img.name}
+                        className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800"
+                      >
+                        <img
+                          src={img.preview}
+                          alt={img.name}
+                          className="h-16 w-16 rounded-lg object-cover"
+                        />
+                        <div className="flex-1 text-xs text-slate-600 dark:text-slate-400">
+                          <p className="font-medium text-slate-700 dark:text-slate-200">
+                            {img.name}
+                          </p>
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            <select
+                              value={img.size}
+                              onChange={(e) =>
+                                updateImageSize(img.name, e.target.value as ImageSize)
+                              }
+                              className="rounded border border-slate-300 bg-white px-2 py-1 text-xs focus:border-brand-500 focus:outline-none dark:border-slate-600 dark:bg-slate-700"
+                            >
+                              {imageSizeOptions.map((size) => (
+                                <option key={size} value={size}>
+                                  {imageSizeLabels[size]}
+                                </option>
+                              ))}
+                            </select>
+                            <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">
+                              <input
+                                type="radio"
+                                name="featured-image"
+                                checked={featuredImage === img.name}
+                                onChange={() => setFeaturedImage(img.name)}
+                                className="h-3 w-3"
+                              />
+                              Featured
+                            </label>
+                          </div>
+                        </div>
                         <button
                           type="button"
-                          onClick={async () => {
-                            if (!editingId) return;
-                            if (!confirm("Delete this post? This cannot be undone.")) return;
-                            setStatus({ type: "loading" });
-                            try {
-                              const res = await fetch(`/api/admin/news/${editingId}?locale=${locale}`, { method: "DELETE" });
-                              if (!res.ok) {
-                                const p = await res.json().catch(() => null);
-                                setStatus({ type: "error", message: p?.error ?? "Delete failed" });
-                              } else {
-                                setPosts((prev) => prev.filter((p) => p.id !== editingId));
-                                resetForm();
-                                setStatus({ type: "success", message: "Post deleted" });
-                              }
-                            } catch (e) {
-                              setStatus({ type: "error", message: "Error during delete" });
-                            }
-                          }}
-                          className="rounded border border-red-500 px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:border-red-400 dark:text-red-300 dark:hover:bg-red-900/30"
+                          onClick={() => handleRemoveImage(img.name)}
+                          className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"
                         >
-                          Delete
+                          Remove
                         </button>
-                      )}
-                      {isActive && <span className="text-[11px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-300">Editing</span>}
-                    </div>
+                      </div>
+                    ))}
                   </div>
-                </li>
-              );
-            })}
-          </ul>
+                )}
+              </div>
+
+              {/* Content Mode Toggle */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                    Content <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                      {useBlocks ? "Block Editor" : "Markdown"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={toggleBlockMode}
+                      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 ${
+                        useBlocks ? "bg-brand-600" : "bg-slate-300 dark:bg-slate-600"
+                      }`}
+                      role="switch"
+                      aria-checked={useBlocks}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          useBlocks ? "translate-x-5" : "translate-x-0"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                {useBlocks ? (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Use the block palette on the right to add content blocks. Click a block to edit its properties.
+                  </p>
+                ) : (
+                  <RichTextEditor
+                    label=""
+                    required
+                    value={markdown}
+                    onChange={(val) => setField("markdown", val)}
+                    placeholder="Write your post content here..."
+                    images={images.map((img) => ({
+                      name: img.name,
+                      preview: img.preview,
+                      url: img.url,
+                      size: img.size,
+                    }))}
+                  />
+                )}
+              </div>
+
+              {/* Status Messages & Actions */}
+              <div className="flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4 dark:border-slate-700">
+                <button
+                  type="submit"
+                  disabled={submitDisabled}
+                  className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-500 disabled:opacity-50"
+                >
+                  {status.type === "loading" ? (
+                    <>
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      Saving...
+                    </>
+                  ) : isEditing ? (
+                    "Save changes"
+                  ) : (
+                    "Save post"
+                  )}
+                </button>
+
+                {isEditing && (
+                  <button
+                    type="button"
+                    onClick={handleResetForm}
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                  >
+                    Cancel
+                  </button>
+                )}
+
+                {/* Version History Button */}
+                {isEditing && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!editingId) return;
+                      setShowVersions(true);
+                      setVersionsLoading(true);
+                      setVersionsError(null);
+                      try {
+                        const res = await fetch(`/api/admin/news/${encodeURIComponent(editingId)}?action=versions&locale=${encodeURIComponent(locale)}`, { method: "GET" });
+                        const payload = (await res.json().catch(() => null)) as { versions?: VersionInfo[]; error?: string } | null;
+                        if (!res.ok || !payload?.versions) {
+                          setVersionsError(payload?.error ?? "Failed to load versions");
+                        } else {
+                          setVersions(payload.versions);
+                        }
+                      } catch {
+                        setVersionsError("Failed to load versions");
+                      } finally {
+                        setVersionsLoading(false);
+                      }
+                    }}
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                  >
+                    Version history
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  disabled={published || status.type === "loading" || isPrefilling}
+                  onClick={async () => {
+                    if (published) return;
+                    const target = locale === "bg" ? "en" : "bg";
+                    setStatus({ type: "loading" });
+                    try {
+                      const res = await fetch("/api/admin/news/translate", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          sourceLocale: locale,
+                          targetLocale: target,
+                          title,
+                          excerpt,
+                          markdown,
+                        }),
+                      });
+                      const payload = (await res.json().catch(() => null)) as {
+                        title?: string;
+                        excerpt?: string;
+                        markdown?: string;
+                        error?: string;
+                      } | null;
+                      if (!res.ok || !payload) {
+                        setStatus({
+                          type: "error",
+                          message: payload?.error ?? "Translate failed",
+                        });
+                        return;
+                      }
+                      const nextTitle = payload.title ?? title;
+                      const nextExcerpt = payload.excerpt !== undefined ? payload.excerpt : excerpt;
+                      const nextMarkdown = payload.markdown ?? markdown;
+                      setDraftByLocale((prev) => ({
+                        ...prev,
+                        [target]: {
+                          title: nextTitle,
+                          slug,
+                          slugTouched,
+                          excerpt: nextExcerpt,
+                          markdown: nextMarkdown,
+                          date,
+                          published: false,
+                          images,
+                          featuredImage,
+                          blocks: [],
+                          useBlocks: false,
+                        },
+                      }));
+                      if (editingId) setEditingId(null);
+                      if (onLocaleChange) onLocaleChange(target);
+                      setStatus({
+                        type: "success",
+                        message: `Translated to ${target.toUpperCase()} (set as draft)`,
+                      });
+                    } catch {
+                      setStatus({ type: "error", message: "Translate error" });
+                    }
+                  }}
+                  title={published ? "Switch to Draft to enable auto-translate" : undefined}
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                >
+                  Auto-translate to {locale === "bg" ? "EN" : "BG"}
+                </button>
+
+                {status.type === "error" && (
+                  <span className="text-sm text-red-600">{status.message}</span>
+                )}
+                {status.type === "success" && (
+                  <span className="text-sm text-green-600">{status.message}</span>
+                )}
+              </div>
+            </form>
+          </div>
+          )}
+        </div>
+
+        {/* Right Panel - Property Editor (block mode) or Preview/List (markdown mode) */}
+        {showPreviewPanel && (
+          <div className="w-[28rem] flex-shrink-0 overflow-hidden bg-white dark:bg-slate-900">
+            {useBlocks && selectedBlockId ? (
+              /* Block Property Editor */
+              <NewsBlockPropertyPanel />
+            ) : (
+              <div className="h-full overflow-y-auto">
+                {/* Preview Section */}
+                <div className="border-b border-slate-200 p-4 dark:border-slate-700">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                      Preview
+                    </h3>
+                <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 dark:border-slate-700 dark:bg-slate-800">
+                    {wordCount} words
+                  </span>
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 dark:border-slate-700 dark:bg-slate-800">
+                    ~{readingMinutes} min
+                  </span>
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 dark:border-slate-700 dark:bg-slate-800">
+                    {images.length} img
+                  </span>
+                </div>
+              </div>
+              <article className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+                <header className="space-y-1">
+                  <h4 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                    {previewTitle}
+                  </h4>
+                  {previewDateLabel && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {previewDateLabel}
+                    </p>
+                  )}
+                  {previewExcerpt && (
+                    <p className="pt-1 text-sm text-slate-600 dark:text-slate-300">
+                      {previewExcerpt}
+                    </p>
+                  )}
+                </header>
+                {featuredPreviewSrc && (
+                  <div className="mt-3 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
+                    <img
+                      src={featuredPreviewSrc}
+                      alt={previewTitle || "Featured"}
+                      className="h-auto w-full object-cover"
+                    />
+                  </div>
+                )}
+              </article>
+            </div>
+
+            {/* News List Section */}
+            <div className="p-4">
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  News list
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {filteredPosts.length} shown · {posts.length} total
+                </p>
+              </div>
+
+              {/* Filters */}
+              <div className="mb-4 space-y-2">
+                <input
+                  type="search"
+                  value={filterQuery}
+                  onChange={(e) => setFilterQuery(e.target.value)}
+                  placeholder="Search by title or slug..."
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                />
+                <div className="flex gap-2">
+                  <select
+                    value={filterStatus}
+                    onChange={(e) =>
+                      setFilterStatus(e.target.value as typeof filterStatus)
+                    }
+                    className="flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs focus:border-brand-500 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                  >
+                    <option value="all">All</option>
+                    <option value="published">Published</option>
+                    <option value="draft">Drafts</option>
+                  </select>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                    className="flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs focus:border-brand-500 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                  >
+                    <option value="recent">Newest</option>
+                    <option value="oldest">Oldest</option>
+                    <option value="title">A→Z</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Posts List */}
+              {filteredPosts.length === 0 ? (
+                <p className="py-4 text-center text-sm text-slate-500 dark:text-slate-400">
+                  {posts.length === 0 ? "No posts yet." : "No matches."}
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {filteredPosts.map((post) => {
+                    const isActive = editingId === post.id;
+                    return (
+                      <li
+                        key={post.id}
+                        className={`rounded-lg p-3 transition-colors ${
+                          isActive
+                            ? "border-2 border-brand-500 bg-brand-50 dark:border-brand-400 dark:bg-brand-500/10"
+                            : "border border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <strong className="truncate text-sm text-slate-900 dark:text-slate-100">
+                                {post.title}
+                              </strong>
+                              {post.published === false && (
+                                <span className="flex-shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+                                  Draft
+                                </span>
+                              )}
+                            </div>
+                            {post.date && (
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {formatDateLabel(post.date)}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <Link
+                            href={`/${locale}/novini/${post.id}`}
+                            className="text-xs font-medium text-brand-600 hover:underline dark:text-brand-400"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            View
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => handleEditPost(post.id)}
+                            disabled={isPrefilling || status.type === "loading"}
+                            className="rounded border border-slate-300 px-2 py-0.5 text-xs text-slate-600 hover:bg-slate-100 disabled:opacity-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                          >
+                            Edit
+                          </button>
+                          {isActive && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (!editingId) return;
+                                if (!confirm("Delete this post? This cannot be undone."))
+                                  return;
+                                setStatus({ type: "loading" });
+                                try {
+                                  const res = await fetch(
+                                    `/api/admin/news/${editingId}?locale=${locale}`,
+                                    { method: "DELETE" }
+                                  );
+                                  if (!res.ok) {
+                                    const p = await res.json().catch(() => null);
+                                    setStatus({
+                                      type: "error",
+                                      message: p?.error ?? "Delete failed",
+                                    });
+                                  } else {
+                                    setPosts((prev) =>
+                                      prev.filter((p) => p.id !== editingId)
+                                    );
+                                    handleResetForm();
+                                    setStatus({ type: "success", message: "Post deleted" });
+                                  }
+                                } catch {
+                                  setStatus({
+                                    type: "error",
+                                    message: "Error during delete",
+                                  });
+                                }
+                              }}
+                              className="rounded border border-red-500 px-2 py-0.5 text-xs text-red-600 hover:bg-red-50 dark:border-red-400 dark:text-red-400 dark:hover:bg-red-900/30"
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+              </div>
+            )}
+          </div>
         )}
-      </section>
+      </div>
+      {/* Versions Modal */}
+      <VersionsModal
+        open={showVersions}
+        onClose={() => setShowVersions(false)}
+        loading={versionsLoading}
+        error={versionsError}
+        versions={versions}
+        onRestore={async (version) => {
+          if (!editingId) return;
+          if (!confirm(`Restore to version ${version}? This will replace current content.`)) return;
+          setStatus({ type: "loading" });
+          try {
+            const res = await fetch(`/api/admin/news/${encodeURIComponent(editingId)}?action=restore&locale=${encodeURIComponent(locale)}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ version }),
+            });
+            const payload = (await res.json().catch(() => null)) as { success?: boolean; error?: string } | null;
+            if (!res.ok || !payload?.success) {
+              setStatus({ type: "error", message: payload?.error ?? "Restore failed" });
+              return;
+            }
+            // Reload the post content
+            await handleEditPost(editingId);
+            setShowVersions(false);
+            setStatus({ type: "success", message: `Restored to version ${version}` });
+          } catch {
+            setStatus({ type: "error", message: "Restore error" });
+          }
+        }}
+      />
+    </div>
+  );
+}
+
+// Wrapper component with provider
+export function NewsManager(props: Props) {
+  return (
+    <NewsBuilderProvider>
+      <NewsManagerInner {...props} />
+    </NewsBuilderProvider>
+  );
+}
+
+// Inline modal for Version History
+function VersionsModal(props: {
+  open: boolean;
+  onClose: () => void;
+  loading: boolean;
+  error: string | null;
+  versions: { version: number; title: string; createdAt?: string; createdBy?: { name?: string | null; email?: string | null } | null }[];
+  onRestore: (version: number) => Promise<void>;
+}) {
+  if (!props.open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-2xl rounded-lg border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900">
+        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-700">
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Version history</h3>
+          <button onClick={props.onClose} className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800">Close</button>
+        </div>
+        <div className="max-h-[60vh] overflow-y-auto p-4">
+          {props.loading ? (
+            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-brand-600" />
+              Loading versions...
+            </div>
+          ) : props.error ? (
+            <p className="text-sm text-red-600">{props.error}</p>
+          ) : props.versions.length === 0 ? (
+            <p className="text-sm text-slate-500 dark:text-slate-400">No versions yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {props.versions.map((v) => {
+                const dateLabel = v.createdAt ? new Date(v.createdAt).toLocaleString() : "";
+                const byLabel = v.createdBy?.name || v.createdBy?.email || "";
+                return (
+                  <li key={`v-${v.version}`} className="flex items-center justify-between rounded border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700 dark:bg-slate-700 dark:text-slate-200">{v.version}</span>
+                        <strong className="truncate text-slate-900 dark:text-slate-100">{v.title || `(untitled)`}</strong>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{dateLabel}{byLabel ? ` · ${byLabel}` : ""}</p>
+                    </div>
+                    <button
+                      onClick={() => props.onRestore(v.version)}
+                      className="rounded border border-brand-500 px-2 py-1 text-xs font-medium text-brand-700 hover:bg-brand-50 dark:border-brand-400 dark:text-brand-300 dark:hover:bg-brand-900/20"
+                    >
+                      Restore
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -48,53 +48,14 @@ export function NewsAdminShell({ initialPosts, initialLocale }: Props) {
   }, [initialLocale, initialPosts]);
 
   return (
-    <div className="space-y-6">
-      <div className="fixed left-2 bottom-8 z-50 pointer-events-none">
-        <div className="relative inline-block">
-          <span className="sr-only" id="locale-switch-label">Locale</span>
-          <div
-            role="group"
-            aria-labelledby="locale-switch-label"
-            className="inline-flex overflow-hidden rounded-xl border border-slate-200/60 bg-white/70 text-xs backdrop-blur-sm shadow-sm dark:border-slate-700/50 dark:bg-slate-800/60 pointer-events-auto"
-          >
-            <button
-              type="button"
-              aria-pressed={locale === "bg"}
-              onClick={() => handleLocaleSwitch("bg")}
-              className={`px-3 py-1.5 font-medium outline-none transition-colors focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-blue-500 ${
-                locale === "bg"
-                  ? "bg-white text-blue-600 shadow-sm dark:bg-slate-900 dark:text-blue-300"
-                  : "bg-transparent text-slate-600 hover:bg-white/60 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-slate-100"
-              }`}
-            >
-              BG
-            </button>
-            <button
-              type="button"
-              aria-pressed={locale === "en"}
-              onClick={() => handleLocaleSwitch("en")}
-              className={`px-3 py-1.5 font-medium outline-none transition-colors focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-blue-500 ${
-                locale === "en"
-                  ? "bg-white text-blue-600 shadow-sm dark:bg-slate-900 dark:text-blue-300"
-                  : "bg-transparent text-slate-600 hover:bg-white/60 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-slate-100"
-              }`}
-            >
-              EN
-            </button>
-          </div>
-          {(loading || error) && (
-            <div className="absolute left-0 right-0 top-full mt-1 pl-1 text-xs leading-5 pointer-events-none">
-            {loading && (
-              <div className="text-slate-600 dark:text-slate-400 animate-pulse">Loading…</div>
-            )}
-            {error && (
-              <div className="text-red-600 font-medium">{error}</div>
-            )}
-            </div>
-          )}
+    <div className="h-full">
+      {/* Error message if locale loading fails */}
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400">
+          {error}
         </div>
-      </div>
-      <NewsManager posts={posts} currentLocale={locale} onLocaleChange={handleLocaleSwitch} />
+      )}
+      <NewsManager posts={posts} currentLocale={locale} onLocaleChange={handleLocaleSwitch} isLocaleLoading={loading} />
     </div>
   );
 }

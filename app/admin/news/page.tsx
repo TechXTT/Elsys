@@ -14,16 +14,18 @@ export default async function AdminNewsPage({ searchParams }: { searchParams?: {
   const posts = await getNewsPosts(selectedLocale, true);
 
   return (
-    <div className="space-y-8">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold">News</h1>
-        <p className="text-sm text-slate-600 dark:text-slate-400">
+    <div className="-mx-4 -my-4 flex h-[calc(100vh-2rem)] flex-col lg:-mx-8 lg:-my-8 lg:h-[calc(100vh-4rem)]">
+      <header className="flex-shrink-0 space-y-1 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900 lg:px-6">
+        <h1 className="text-xl font-semibold text-slate-900 dark:text-white">News</h1>
+        <p className="text-xs text-slate-600 dark:text-slate-400">
           Create and edit posts for the "News" section. Provide title, slug, excerpt and Markdown content; optionally upload multiple images,
-          choose their display size, mark a featured (card) image and reference their filenames in Markdown using <code>![alt](file-name)</code>.
+          choose their display size, mark a featured (card) image and reference their filenames in Markdown using <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">![alt](file-name)</code>.
           The live preview updates in real time.
         </p>
       </header>
-      <NewsAdminShell initialPosts={posts as PostItem[]} initialLocale={selectedLocale} />
+      <div className="min-h-0 flex-1">
+        <NewsAdminShell initialPosts={posts as PostItem[]} initialLocale={selectedLocale} />
+      </div>
     </div>
   );
 }

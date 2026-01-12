@@ -28,7 +28,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <AdminSidebar />
         {/* Main content area - offset by sidebar width on desktop */}
         <main className="min-h-screen pt-14 lg:ml-64 lg:pt-0">
-          <div className="mx-auto max-w-6xl p-4 lg:p-8">
+          <div className="p-4 lg:p-8">
             {children}
           </div>
         </main>
