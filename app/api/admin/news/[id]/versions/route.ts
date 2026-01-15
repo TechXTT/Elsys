@@ -22,10 +22,8 @@ export async function GET(
     const session = await getServerSession(authOptions);
     ensureAdmin(session);
 
-    const { searchParams } = new URL(req.url);
-    const locale = searchParams.get("locale") || undefined;
-
-    const versions = await getNewsPostVersions(params.id, locale as any);
+    // Version history is now shared across all locales
+    const versions = await getNewsPostVersions(params.id);
 
     return NextResponse.json({ versions });
   } catch (err: any) {

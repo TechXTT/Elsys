@@ -596,21 +596,60 @@ Registration for the first workshop is now open!`,
   ];
 
   console.log('Seeding news articles...');
-  
+
+  // Track which slugs we've created version 1 for (to avoid duplicates)
+  const seededVersions = new Set();
+
   for (const article of newsArticles) {
     await prisma.newsPost.upsert({
-      where: { 
-        id_locale: { 
-          id: article.id, 
-          locale: article.locale 
-        } 
+      where: {
+        id_locale: {
+          id: article.id,
+          locale: article.locale
+        }
       },
       update: article,
       create: { ...article, authorId: user.id },
     });
+
+    // Create version 1 only once per slug (shared across all locales)
+    if (!seededVersions.has(article.id)) {
+      try {
+        // Check if version already exists
+        const existingVersion = await prisma.newsPostVersion.findFirst({
+          where: {
+            newsPostId: article.id,
+            version: 1,
+          },
+        });
+
+        if (!existingVersion) {
+          await prisma.newsPostVersion.create({
+            data: {
+              newsPostId: article.id,
+              version: 1,
+              title: article.title,
+              excerpt: article.excerpt || null,
+              bodyMarkdown: article.bodyMarkdown,
+              blocks: article.blocks || null,
+              useBlocks: article.useBlocks,
+              date: article.date,
+              images: null,
+              featuredImage: article.featuredImage || null,
+              published: article.published,
+              createdById: user.id,
+            },
+          });
+        }
+        seededVersions.add(article.id);
+      } catch (error) {
+        console.error(`Failed to create version for ${article.id}:`, error.message);
+      }
+    }
   }
 
   console.log(`✓ Seeded ${newsArticles.length} news articles (${newsArticles.length / 2} unique articles in 2 languages)`);
+  console.log(`✓ Created version 1 for ${seededVersions.size} unique articles`);
 }
 
 main()

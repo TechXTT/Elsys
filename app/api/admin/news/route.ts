@@ -164,7 +164,8 @@ export async function POST(req: Request) {
   const locale = (typeof localeValue === "string" && (localeValue === "bg" || localeValue === "en")) ? (localeValue as "bg" | "en") : defaultLocale;
   const published = publishedValue === "false" ? false : true;
 
-  const duplicate = await dbExistsNewsSlug(normalizedSlug, defaultLocale);
+  // Check for duplicates in the CURRENT locale only
+  const duplicate = await dbExistsNewsSlug(normalizedSlug, locale);
   if (duplicate) {
     try {
       await recordAudit({
@@ -228,6 +229,8 @@ export async function POST(req: Request) {
 
   const imagesMeta: NonNullable<PostItem["images"]> = [];
   const usedNames = new Set<string>();
+
+  // Process uploaded files
   if (imageEntries.length > 0) {
     for (const entry of imageEntries) {
       if (!(entry instanceof File) || entry.size === 0) continue;
@@ -264,11 +267,22 @@ export async function POST(req: Request) {
     }
   }
 
+  // Include existing images that are already uploaded
+  const existingImages = declaredMeta
+    .filter((meta) => meta.origin === "existing" && meta.url)
+    .map((meta) => ({
+      name: meta.name,
+      url: meta.url!,
+      size: meta.size ?? "full" as ImageSize,
+    }));
+
+  // Combine uploaded and existing images, preserving declared order
+  const allImages = [...imagesMeta, ...existingImages];
   const orderedImagesMeta = declaredMeta
-    .map((meta) => imagesMeta.find((img) => img.name === meta.name) ?? null)
+    .map((meta) => allImages.find((img) => img.name === meta.name) ?? null)
     .filter((img): img is NonNullable<typeof img> => Boolean(img));
 
-  const finalImagesMeta = orderedImagesMeta.length === imagesMeta.length ? orderedImagesMeta : imagesMeta;
+  const finalImagesMeta = orderedImagesMeta.length === allImages.length ? orderedImagesMeta : allImages;
 
   const featuredImage = requestedFeaturedName
     ? finalImagesMeta.find((img) => img.name === requestedFeaturedName) ?? null
@@ -290,6 +304,31 @@ export async function POST(req: Request) {
       authorId: (session.user as any)?.id as string | undefined,
       published,
     });
+
+    // Create other locale version with same status and date (user can translate content later)
+    const otherLocale = locale === "bg" ? "en" : "bg";
+    const otherExists = await dbExistsNewsSlug(normalizedSlug, otherLocale);
+    if (!otherExists) {
+      try {
+        await dbCreateNewsPost({
+          slug: normalizedSlug,
+          locale: otherLocale,
+          title: normalizedTitle,
+          excerpt: trimmedExcerpt,
+          markdown,
+          blocks,
+          useBlocks,
+          date: safeDate,
+          images: finalImagesMeta,
+          featuredImage: featuredImage?.url ?? finalImagesMeta[0]?.url ?? null,
+          authorId: (session.user as any)?.id as string | undefined,
+          published, // Same published status as source locale
+        });
+      } catch (error) {
+        console.error(`Failed to create ${otherLocale} version`, error);
+        // Don't fail the whole request if other locale creation fails
+      }
+    }
   } catch (error) {
     console.error("News create DB error", error);
     try {

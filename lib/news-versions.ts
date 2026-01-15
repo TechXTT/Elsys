@@ -4,7 +4,6 @@ import { defaultLocale, type Locale } from "@/i18n/config";
 interface NewsPostVersionRow {
   id: string;
   newsPostId: string;
-  newsPostLocale: string;
   version: number;
   title: string;
   excerpt: string | null;
@@ -24,17 +23,14 @@ interface NewsPostVersionRow {
 }
 
 /**
- * Get all version history for a news post
+ * Get all version history for a news post (shared across all locales)
  */
 export async function getNewsPostVersions(
-  slug: string,
-  locale?: Locale
+  slug: string
 ): Promise<NewsPostVersionRow[]> {
-  const localeValue = locale ?? defaultLocale;
   const versions: NewsPostVersionRow[] = await (prisma as any).newsPostVersion.findMany({
     where: {
       newsPostId: slug,
-      newsPostLocale: localeValue,
     },
     orderBy: { version: "desc" },
     include: {
@@ -54,14 +50,11 @@ export async function getNewsPostVersions(
  */
 export async function getNewsPostVersion(
   slug: string,
-  versionNumber: number,
-  locale?: Locale
+  versionNumber: number
 ): Promise<NewsPostVersionRow | null> {
-  const localeValue = locale ?? defaultLocale;
   const version: NewsPostVersionRow | null = await (prisma as any).newsPostVersion.findFirst({
     where: {
       newsPostId: slug,
-      newsPostLocale: localeValue,
       version: versionNumber,
     },
     include: {
@@ -78,7 +71,7 @@ export async function getNewsPostVersion(
 
 /**
  * Restore a news post to a specific version
- * Creates a new version entry with the restored content
+ * Applies the restored content to the specified locale
  */
 export async function restoreNewsPostVersion(args: {
   slug: string;
@@ -89,7 +82,7 @@ export async function restoreNewsPostVersion(args: {
   const localeValue = args.locale ?? defaultLocale;
 
   // Get the version to restore
-  const versionToRestore = await getNewsPostVersion(args.slug, args.versionNumber, localeValue);
+  const versionToRestore = await getNewsPostVersion(args.slug, args.versionNumber);
   if (!versionToRestore) {
     return { success: false, error: "Version not found" };
   }
@@ -99,7 +92,6 @@ export async function restoreNewsPostVersion(args: {
     const versionCount = await (prisma as any).newsPostVersion.count({
       where: {
         newsPostId: args.slug,
-        newsPostLocale: localeValue,
       },
     });
     const nextVersion = versionCount + 1;
@@ -108,7 +100,6 @@ export async function restoreNewsPostVersion(args: {
     await (prisma as any).newsPostVersion.create({
       data: {
         newsPostId: args.slug,
-        newsPostLocale: localeValue,
         version: nextVersion,
         title: versionToRestore.title,
         excerpt: versionToRestore.excerpt,
@@ -123,7 +114,7 @@ export async function restoreNewsPostVersion(args: {
       },
     });
 
-    // Update the actual post
+    // Update the actual post in the specified locale
     await (prisma as any).newsPost.update({
       where: {
         id_locale: {
@@ -157,15 +148,11 @@ export async function restoreNewsPostVersion(args: {
  */
 export async function pruneNewsPostVersions(args: {
   slug: string;
-  locale?: Locale;
   keepCount: number;
 }): Promise<{ deletedCount: number }> {
-  const localeValue = args.locale ?? defaultLocale;
-
   const allVersions = await (prisma as any).newsPostVersion.findMany({
     where: {
       newsPostId: args.slug,
-      newsPostLocale: localeValue,
     },
     orderBy: { version: "desc" },
     select: { id: true },

@@ -53,11 +53,11 @@ export async function getNewsPosts(locale?: Locale, includeDrafts = false): Prom
   const cached = cacheGet(cacheKey);
   if (cached) return cached;
 
-  const localesToFetch = loc === defaultLocale ? [loc] : [loc, defaultLocale];
+  // Fetch from the requested locale first
   const now = new Date();
-  const rows: NewsRow[] = await (prisma as any).newsPost.findMany({
+  const primaryRows: NewsRow[] = await (prisma as any).newsPost.findMany({
     where: {
-      locale: { in: localesToFetch },
+      locale: loc,
       ...(includeDrafts ? {} : {
         published: true,
         // Only show posts with date in the past or today (scheduled publishing)
@@ -67,8 +67,26 @@ export async function getNewsPosts(locale?: Locale, includeDrafts = false): Prom
     orderBy: { date: "desc" },
     select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true },
   });
-  const primary = rows.filter(r => r.locale === loc);
-  const effective = primary.length > 0 ? primary : rows.filter(r => r.locale === defaultLocale);
+
+  // If locale is not default, also fetch defaults to fill gaps (only when not includeDrafts)
+  let fallbackRows: NewsRow[] = [];
+  if (loc !== defaultLocale && !includeDrafts) {
+    fallbackRows = await (prisma as any).newsPost.findMany({
+      where: {
+        locale: defaultLocale,
+        published: true,
+        date: { lte: now }
+      },
+      orderBy: { date: "desc" },
+      select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true },
+    });
+  }
+
+  // Merge: primary locale takes precedence, fallback fills gaps
+  const seenIds = new Set(primaryRows.map(r => r.id));
+  const effective = [...primaryRows, ...fallbackRows.filter(r => !seenIds.has(r.id))];
+  effective.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
   const out = effective.map(toPostItem);
   cacheSet(cacheKey, out);
   return out;
@@ -124,26 +142,33 @@ export async function createNewsPost(input: {
     },
   });
 
-  // Create initial version snapshot
+  // Create initial version snapshot (shared across locales)
   if (input.authorId) {
     try {
-      await (prisma as any).newsPostVersion.create({
-        data: {
-          newsPostId: input.slug,
-          newsPostLocale: localeValue,
-          version: 1,
-          title: input.title,
-          excerpt: input.excerpt ?? null,
-          bodyMarkdown: input.markdown,
-          blocks: input.blocks ?? null,
-          useBlocks: input.useBlocks ?? false,
-          date: input.date,
-          images: input.images ?? null,
-          featuredImage: input.featuredImage ?? null,
-          published: input.published ?? true,
-          createdById: input.authorId,
-        },
+      // Check if this is the first locale being created for this slug
+      const versionCount = await (prisma as any).newsPostVersion.count({
+        where: { newsPostId: input.slug }
       });
+
+      // Only create version 1 if this is the first locale
+      if (versionCount === 0) {
+        await (prisma as any).newsPostVersion.create({
+          data: {
+            newsPostId: input.slug,
+            version: 1,
+            title: input.title,
+            excerpt: input.excerpt ?? null,
+            bodyMarkdown: input.markdown,
+            blocks: input.blocks ?? null,
+            useBlocks: input.useBlocks ?? false,
+            date: input.date,
+            images: input.images ?? null,
+            featuredImage: input.featuredImage ?? null,
+            published: input.published ?? true,
+            createdById: input.authorId,
+          },
+        });
+      }
     } catch (error) {
       console.error('Failed to create initial news post version', error);
     }
@@ -169,17 +194,16 @@ export async function updateNewsPost(args: {
 }) {
   const localeValue = args.locale ?? defaultLocale;
 
-  // Create version snapshot before updating
+  // Create version snapshot before updating (shared across locales)
   if (args.authorId) {
     try {
       const versionCount = await (prisma as any).newsPostVersion.count({
-        where: { newsPostId: args.currentSlug, newsPostLocale: localeValue }
+        where: { newsPostId: args.currentSlug }
       });
       const nextVersion = versionCount + 1;
       await (prisma as any).newsPostVersion.create({
         data: {
           newsPostId: args.currentSlug,
-          newsPostLocale: localeValue,
           version: nextVersion,
           title: args.title,
           excerpt: args.excerpt ?? null,

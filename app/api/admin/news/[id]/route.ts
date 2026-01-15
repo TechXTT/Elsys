@@ -62,8 +62,20 @@ export async function GET(request: Request, { params }: { params: { id: string }
   }
 
   const url = new URL(request.url);
+  const action = url.searchParams.get("action");
   const localeParam = url.searchParams.get("locale");
   const locale = localeParam === "bg" || localeParam === "en" ? localeParam : defaultLocale;
+
+  // Handle version history request (non-locale-specific)
+  if (action === "versions") {
+    try {
+      const versions = await getNewsPostVersions(params.id);
+      return NextResponse.json({ versions });
+    } catch (err) {
+      console.error("Error fetching news versions", err);
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
+  }
 
   const db = await dbGetNewsPost(params.id, locale, true);
   if (!db) {
@@ -291,6 +303,27 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       authorId: (session.user as any)?.id as string | undefined,
       published,
     });
+
+    // Sync status and date to other locale version if it exists
+    const otherLocale = requestedLocale === "bg" ? "en" : "bg";
+    try {
+      const otherExists = await (prisma as any).newsPost.findUnique({
+        where: { id_locale: { id: params.id, locale: otherLocale } },
+      });
+      if (otherExists) {
+        // Update other locale's status and date to match
+        await (prisma as any).newsPost.update({
+          where: { id_locale: { id: params.id, locale: otherLocale } },
+          data: {
+            published,
+            date: safeDate,
+          },
+        });
+      }
+    } catch (error) {
+      console.error(`Failed to sync status/date to ${otherLocale} version`, error);
+      // Don't fail the whole request
+    }
   } catch (error) {
     console.error("News update DB error", error);
     try {
@@ -326,7 +359,8 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
   const locale = localeParam === "bg" || localeParam === "en" ? localeParam : defaultLocale;
 
   try {
-    await (prisma as any).newsPost.delete({ where: { id_locale: { id: params.id, locale } } });
+    // Delete all locale versions of this article (entire article concept)
+    await (prisma as any).newsPost.deleteMany({ where: { id: params.id } });
   } catch (error) {
     try {
       await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "newsPost.delete.notfound", entity: "newsPost", entityId: params.id, details: { locale } });
@@ -335,15 +369,14 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
   }
 
   try {
-    await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "newsPost.delete", entity: "newsPost", entityId: params.id, details: { locale } });
+    await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "newsPost.delete", entity: "newsPost", entityId: params.id, details: { locale, allLocales: true } });
   } catch {}
   return NextResponse.json({ ok: true });
 }
 
 /**
- * Handle version history and restoration
- * GET ?action=versions - List all versions
- * POST ?action=restore - Restore a specific version
+ * Handle version restoration
+ * PATCH ?action=restore - Restore a specific version
  */
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -357,19 +390,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const locale = localeParam === "bg" || localeParam === "en" ? localeParam : defaultLocale;
   const userId = (session.user as any).id as string;
 
-  // GET versions history
-  if (action === "versions" && request.method === "GET") {
-    try {
-      const versions = await getNewsPostVersions(params.id, locale);
-      return NextResponse.json({ versions });
-    } catch (err) {
-      console.error("Error fetching news versions", err);
-      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-    }
-  }
-
-  // POST restore version
-  if (action === "restore" && request.method === "POST") {
+  // Restore version
+  if (action === "restore") {
     try {
       const body = await request.json().catch(() => null);
       if (!body || typeof body.version !== "number") {

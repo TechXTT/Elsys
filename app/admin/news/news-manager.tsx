@@ -233,12 +233,25 @@ function NewsManagerInner({
     return true;
   }
 
+  // Check if the other locale has content (for create mode only)
+  const otherLocale = locale === "bg" ? "en" : "bg";
+  const otherLocaleDraft = draftByLocale[otherLocale];
+  const hasOtherLocaleContent = isEditing || (
+    otherLocaleDraft &&
+    otherLocaleDraft.title.trim().length > 0 &&
+    otherLocaleDraft.slug.trim().length > 0 &&
+    (otherLocaleDraft.useBlocks
+      ? (otherLocaleDraft.blocks?.length ?? 0) > 0
+      : otherLocaleDraft.markdown.trim().length > 0)
+  );
+
   const isSubmitDisabled = useMemo(
     () =>
       title.trim().length === 0 ||
       slug.trim().length === 0 ||
-      (useBlocks ? blocks.length === 0 : markdown.trim().length === 0),
-    [title, slug, markdown, useBlocks, blocks]
+      (useBlocks ? blocks.length === 0 : markdown.trim().length === 0) ||
+      !hasOtherLocaleContent, // Require both locales for new posts
+    [title, slug, markdown, useBlocks, blocks, hasOtherLocaleContent]
   );
 
   const submitDisabled = isSubmitDisabled || status.type === "loading" || isPrefilling;
@@ -287,13 +300,13 @@ function NewsManagerInner({
     if (!slugTouched) {
       setField("slug", slugify(next));
     }
-    cacheCurrentDraft(locale);
+    // Draft auto-cached by useEffect
   }
 
   function handleSlugChange(next: string) {
     setField("slug", slugify(next));
     setField("slugTouched", true);
-    cacheCurrentDraft(locale);
+    // Draft auto-cached by useEffect
   }
 
   function generateImageName(original: string, used: Set<string>) {
@@ -321,7 +334,7 @@ function NewsManagerInner({
       addImage({ file, preview, name, size: "full", origin: "new" });
     });
 
-    cacheCurrentDraft(locale);
+    // Draft auto-cached by useEffect
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -437,7 +450,7 @@ function NewsManagerInner({
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-    cacheCurrentDraft(locale);
+    // Draft auto-cached by useEffect
   }
 
   // Keep imagesRef in sync
@@ -468,6 +481,11 @@ function NewsManagerInner({
     setPosts(incomingPosts ?? []);
   }, [incomingPosts]);
 
+  // Auto-cache draft whenever form fields change
+  useEffect(() => {
+    cacheCurrentDraft(locale);
+  }, [title, slug, slugTouched, excerpt, markdown, date, published, images, featuredImage, blocks, useBlocks, locale]);
+
   // Locale switching
   useEffect(() => {
     if (!currentLocale || currentLocale === locale) return;
@@ -475,6 +493,7 @@ function NewsManagerInner({
     setLocale(currentLocale);
 
     if (editingId) {
+      // When editing, always check if article exists in target locale first
       (async () => {
         setPrefilling(true);
         try {
@@ -490,6 +509,15 @@ function NewsManagerInner({
             error?: string;
           } | null;
           if (response.ok && payload?.post) {
+            // Article exists in target locale
+            // Check for cached draft first (preserves unsaved changes)
+            const hasCachedDraft = loadDraft(currentLocale);
+            if (hasCachedDraft) {
+              // User has unsaved changes in the target locale - load them
+              return;
+            }
+
+            // No cached draft - load from database
             const post = payload.post;
             const nextImages = (post.images ?? []).map<SelectedImage>((img) => ({
               file: null,
@@ -518,6 +546,15 @@ function NewsManagerInner({
               useBlocks: payload.useBlocks ?? false,
             });
             if (fileInputRef.current) fileInputRef.current.value = "";
+          } else {
+            // Article doesn't exist in target locale - switch to create mode
+            setEditingId(null);
+            const loaded = loadDraft(currentLocale);
+            if (!loaded) {
+              // No cached draft - keep current form as basis for translation
+              // but switch to create mode (editingId = null means "create new")
+              cacheCurrentDraft(currentLocale);
+            }
           }
         } finally {
           setPrefilling(false);
@@ -539,7 +576,155 @@ function NewsManagerInner({
     setStatus({ type: "loading" });
 
     try {
-      // Convert blocks to markdown if in block mode
+      // For new posts, save both locales
+      if (!isEditing) {
+        // Save current locale first
+        const currentContentMarkdown = useBlocks ? blocksToMarkdown(blocks) : markdown;
+        const currentBlocksJson = useBlocks ? blocksToJson(blocks) : "";
+
+        const currentFormData = new FormData();
+        currentFormData.append("title", title);
+        currentFormData.append("slug", slug);
+        currentFormData.append("excerpt", excerpt);
+        currentFormData.append("markdown", currentContentMarkdown);
+        currentFormData.append("blocksJson", currentBlocksJson);
+        currentFormData.append("useBlocks", String(useBlocks));
+        currentFormData.append("date", date);
+        currentFormData.append("locale", locale);
+        currentFormData.append("published", String(published));
+        const imageMeta = images.map((img) => ({
+          name: img.name,
+          size: img.size,
+          origin: img.origin,
+          url: img.origin === "existing" ? img.url : undefined,
+        }));
+        currentFormData.append("imageMeta", JSON.stringify(imageMeta));
+        currentFormData.append("featuredImage", featuredImage ?? "");
+        images.forEach((img) => {
+          if (img.origin === "new" && img.file) {
+            currentFormData.append("images", img.file, img.name);
+          }
+        });
+
+        const currentResponse = await fetch("/api/admin/news", {
+          method: "POST",
+          body: currentFormData,
+        });
+
+        const currentPayload = (await currentResponse.json().catch(() => null)) as {
+          error?: string;
+          post?: PostItem;
+        } | null;
+
+        if (!currentResponse.ok || !currentPayload?.post) {
+          setStatus({
+            type: "error",
+            message: currentPayload?.error ?? "Creation failed",
+          });
+          return;
+        }
+
+        // Save other locale
+        const otherDraft = draftByLocale[otherLocale]!;
+        const otherContentMarkdown = otherDraft.useBlocks ? blocksToMarkdown(otherDraft.blocks as any) : otherDraft.markdown;
+        const otherBlocksJson = otherDraft.useBlocks ? blocksToJson(otherDraft.blocks as any) : "";
+
+        // Reuse images from the first locale (already uploaded)
+        const savedImages = currentPayload.post!.images ?? [];
+        const otherImageMeta = savedImages.map((img) => ({
+          name: img.name,
+          size: img.size,
+          origin: "existing" as const,
+          url: img.url,
+        }));
+
+        const otherFormData = new FormData();
+        otherFormData.append("title", otherDraft.title);
+        otherFormData.append("slug", slug); // Use same slug
+        otherFormData.append("excerpt", otherDraft.excerpt);
+        otherFormData.append("markdown", otherContentMarkdown);
+        otherFormData.append("blocksJson", otherBlocksJson);
+        otherFormData.append("useBlocks", String(otherDraft.useBlocks));
+        otherFormData.append("date", date); // Use same date as current locale
+        otherFormData.append("locale", otherLocale);
+        otherFormData.append("published", String(published)); // Use same published status as current locale
+        otherFormData.append("imageMeta", JSON.stringify(otherImageMeta));
+        otherFormData.append("featuredImage", otherDraft.featuredImage ?? "");
+        // No need to upload images again - they're already uploaded with the first locale
+
+        const otherResponse = await fetch("/api/admin/news", {
+          method: "POST",
+          body: otherFormData,
+        });
+
+        const otherPayload = (await otherResponse.json().catch(() => null)) as {
+          error?: string;
+          post?: PostItem;
+        } | null;
+
+        if (!otherResponse.ok || !otherPayload?.post) {
+          console.error("Failed to save other locale version");
+          // Don't fail the whole operation, but show a warning
+          setStatus({
+            type: "error",
+            message: `Created in ${locale.toUpperCase()} but failed to save ${otherLocale.toUpperCase()} version`,
+          });
+          // Still update UI with current locale post
+          setPosts((prev) => {
+            const filtered = prev.filter((post) => post.id !== currentPayload.post!.id);
+            return [currentPayload.post!, ...filtered];
+          });
+          return;
+        }
+
+        // Update UI with both posts if we're viewing the locale that was just created
+        // Note: The UI shows posts filtered by current locale, so we only add the current locale's post
+        setPosts((prev) => {
+          const filtered = prev.filter((post) => post.id !== currentPayload.post!.id);
+          return [currentPayload.post!, ...filtered];
+        });
+
+        cleanupNewPreviews(imagesRef.current);
+        resetForm();
+        // Clear drafts but preserve useBlocks setting
+        const currentUseBlocks = useBlocks;
+        const otherUseBlocks = otherDraft.useBlocks;
+        setDraftByLocale({
+          bg: {
+            title: "",
+            slug: "",
+            slugTouched: false,
+            excerpt: "",
+            markdown: "",
+            date: getTodayInputValue(),
+            published: false,
+            images: [],
+            featuredImage: null,
+            blocks: [],
+            useBlocks: locale === "bg" ? currentUseBlocks : otherUseBlocks,
+          },
+          en: {
+            title: "",
+            slug: "",
+            slugTouched: false,
+            excerpt: "",
+            markdown: "",
+            date: getTodayInputValue(),
+            published: false,
+            images: [],
+            featuredImage: null,
+            blocks: [],
+            useBlocks: locale === "en" ? currentUseBlocks : otherUseBlocks,
+          },
+        });
+        setStatus({
+          type: "success",
+          message: "Post created successfully in both languages",
+        });
+        return;
+      }
+
+      // For editing existing posts, save only current locale
       const contentMarkdown = useBlocks ? blocksToMarkdown(blocks) : markdown;
       const blocksJson = useBlocks ? blocksToJson(blocks) : "";
 
@@ -567,9 +752,8 @@ function NewsManagerInner({
         }
       });
 
-      const endpoint =
-        isEditing && editingId ? `/api/admin/news/${editingId}` : "/api/admin/news";
-      const method = isEditing ? "PUT" : "POST";
+      const endpoint = `/api/admin/news/${editingId}`;
+      const method = "PUT";
 
       const response = await fetch(endpoint, {
         method,
@@ -584,7 +768,7 @@ function NewsManagerInner({
       if (!response.ok || !payload?.post) {
         setStatus({
           type: "error",
-          message: payload?.error ?? (isEditing ? "Update failed" : "Creation failed"),
+          message: payload?.error ?? "Update failed",
         });
         return;
       }
@@ -592,19 +776,12 @@ function NewsManagerInner({
       const updatedPost = payload.post as PostItem;
       const originalEditingId = editingId;
 
-      if (isEditing && originalEditingId) {
-        setPosts((prev) => {
-          const filtered = prev.filter(
-            (post) => post.id !== originalEditingId && post.id !== updatedPost.id
-          );
-          return [updatedPost, ...filtered];
-        });
-      } else {
-        setPosts((prev) => {
-          const filtered = prev.filter((post) => post.id !== updatedPost.id);
-          return [updatedPost, ...filtered];
-        });
-      }
+      setPosts((prev) => {
+        const filtered = prev.filter(
+          (post) => post.id !== originalEditingId && post.id !== updatedPost.id
+        );
+        return [updatedPost, ...filtered];
+      });
 
       cleanupNewPreviews(imagesRef.current);
       resetForm();
@@ -626,7 +803,7 @@ function NewsManagerInner({
       }));
       setStatus({
         type: "success",
-        message: isEditing ? "Post updated successfully" : "Post created successfully",
+        message: "Post updated successfully",
       });
     } catch (error) {
       console.error("News create client error", error);
@@ -679,6 +856,23 @@ function NewsManagerInner({
                         <p className="text-xs text-brand-700/80 dark:text-brand-100/80">
                           Changes will replace the current data.
                         </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Missing Locale Warning Banner */}
+                  {!isEditing && !hasOtherLocaleContent && (
+                    <div className="flex flex-col gap-2 rounded-lg border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+                      <div className="flex items-start gap-2">
+                        <svg className="h-5 w-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        <div className="flex-1">
+                          <p className="font-medium">Both languages required</p>
+                          <p className="text-xs text-amber-700/80 dark:text-amber-100/80">
+                            Please switch to {otherLocale.toUpperCase()} and add content before saving. Use the language toggle in the toolbar.
+                          </p>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -888,8 +1082,8 @@ function NewsManagerInner({
                   </div>
 
                   {/* Block Mode Actions: Version History & Auto-Translate */}
-                  {isEditing && (
-                    <div className="flex items-center gap-2 pt-3">
+                  <div className="flex items-center gap-2 pt-3">
+                    {isEditing && (
                       <button
                         type="button"
                         onClick={async () => {
@@ -915,76 +1109,76 @@ function NewsManagerInner({
                       >
                         Version history
                       </button>
+                    )}
 
-                      <button
-                        type="button"
-                        disabled={published || status.type === "loading" || isPrefilling}
-                        onClick={async () => {
-                          if (published) return;
-                          const target = locale === "bg" ? "en" : "bg";
-                          setStatus({ type: "loading" });
-                          try {
-                            const res = await fetch("/api/admin/news/translate", {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({
-                                sourceLocale: locale,
-                                targetLocale: target,
-                                title,
-                                excerpt,
-                                markdown: blocksToMarkdown(blocks),
-                              }),
-                            });
-                            const payload = (await res.json().catch(() => null)) as {
-                              title?: string;
-                              excerpt?: string;
-                              markdown?: string;
-                              error?: string;
-                            } | null;
-                            if (!res.ok || !payload) {
-                              setStatus({
-                                type: "error",
-                                message: payload?.error ?? "Translate failed",
-                              });
-                              return;
-                            }
-                            const nextTitle = payload.title ?? title;
-                            const nextExcerpt = payload.excerpt !== undefined ? payload.excerpt : excerpt;
-                            const nextMarkdown = payload.markdown ?? "";
-                            const translatedBlocks = nextMarkdown ? markdownToBlocks(nextMarkdown) : blocks;
-                            setDraftByLocale((prev) => ({
-                              ...prev,
-                              [target]: {
-                                title: nextTitle,
-                                slug,
-                                slugTouched,
-                                excerpt: nextExcerpt,
-                                markdown: "",
-                                date,
-                                published: false,
-                                images,
-                                featuredImage,
-                                blocks: translatedBlocks,
-                                useBlocks: true,
-                              },
-                            }));
-                            if (editingId) setEditingId(null);
-                            if (onLocaleChange) onLocaleChange(target);
+                    <button
+                      type="button"
+                      disabled={published || status.type === "loading" || isPrefilling}
+                      onClick={async () => {
+                        if (published) return;
+                        const target = locale === "bg" ? "en" : "bg";
+                        setStatus({ type: "loading" });
+                        try {
+                          const res = await fetch("/api/admin/news/translate", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              sourceLocale: locale,
+                              targetLocale: target,
+                              title,
+                              excerpt,
+                              markdown: blocksToMarkdown(blocks),
+                            }),
+                          });
+                          const payload = (await res.json().catch(() => null)) as {
+                            title?: string;
+                            excerpt?: string;
+                            markdown?: string;
+                            error?: string;
+                          } | null;
+                          if (!res.ok || !payload) {
                             setStatus({
-                              type: "success",
-                              message: `Translated to ${target.toUpperCase()} (set as draft)`,
+                              type: "error",
+                              message: payload?.error ?? "Translate failed",
                             });
-                          } catch {
-                            setStatus({ type: "error", message: "Translate error" });
+                            return;
                           }
-                        }}
-                        title={published ? "Switch to Draft to enable auto-translate" : undefined}
-                        className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
-                      >
-                        Auto-translate to {locale === "bg" ? "EN" : "BG"}
-                      </button>
-                    </div>
-                  )}
+                          const nextTitle = payload.title ?? title;
+                          const nextExcerpt = payload.excerpt !== undefined ? payload.excerpt : excerpt;
+                          const nextMarkdown = payload.markdown ?? "";
+                          const translatedBlocks = nextMarkdown ? markdownToBlocks(nextMarkdown) : blocks;
+                          setDraftByLocale((prev) => ({
+                            ...prev,
+                            [target]: {
+                              title: nextTitle,
+                              slug,
+                              slugTouched,
+                              excerpt: nextExcerpt,
+                              markdown: "",
+                              date,
+                              published: false,
+                              images,
+                              featuredImage,
+                              blocks: translatedBlocks,
+                              useBlocks: true,
+                            },
+                          }));
+                          // Don't clear editingId - preserve edit mode during translation
+                          if (onLocaleChange) onLocaleChange(target);
+                          setStatus({
+                            type: "success",
+                            message: `Translated to ${target.toUpperCase()} (set as draft)`,
+                          });
+                        } catch {
+                          setStatus({ type: "error", message: "Translate error" });
+                        }
+                      }}
+                      title={published ? "Switch to Draft to enable auto-translate" : undefined}
+                      className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                    >
+                      Auto-translate to {locale === "bg" ? "EN" : "BG"}
+                    </button>
+                  </div>
 
                   {status.type === "error" && (
                     <span className="text-sm text-red-600">{status.message}</span>
@@ -1009,6 +1203,23 @@ function NewsManagerInner({
                     <p className="text-xs text-brand-700/80 dark:text-brand-100/80">
                       Changes will replace the current data.
                     </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Missing Locale Warning Banner */}
+              {!isEditing && !hasOtherLocaleContent && (
+                <div className="flex flex-col gap-2 rounded-lg border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+                  <div className="flex items-start gap-2">
+                    <svg className="h-5 w-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    <div className="flex-1">
+                      <p className="font-medium">Both languages required</p>
+                      <p className="text-xs text-amber-700/80 dark:text-amber-100/80">
+                        Please switch to {otherLocale.toUpperCase()} and add content before saving. Use the language toggle in the toolbar.
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1265,7 +1476,8 @@ function NewsManagerInner({
                 <button
                   type="submit"
                   disabled={submitDisabled}
-                  className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-500 disabled:opacity-50"
+                  title={!isEditing && !hasOtherLocaleContent ? `Please add content in ${otherLocale.toUpperCase()} before saving` : undefined}
+                  className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {status.type === "loading" ? (
                     <>
@@ -1369,7 +1581,7 @@ function NewsManagerInner({
                           useBlocks: false,
                         },
                       }));
-                      if (editingId) setEditingId(null);
+                      // Don't clear editingId - preserve edit mode during translation
                       if (onLocaleChange) onLocaleChange(target);
                       setStatus({
                         type: "success",
@@ -1672,7 +1884,7 @@ function VersionsModal(props: {
             <p className="text-sm text-slate-500 dark:text-slate-400">No versions yet.</p>
           ) : (
             <ul className="space-y-2">
-              {props.versions.map((v) => {
+              {props.versions.map((v, i) => {
                 const dateLabel = v.createdAt ? new Date(v.createdAt).toLocaleString() : "";
                 const byLabel = v.createdBy?.name || v.createdBy?.email || "";
                 return (
@@ -1684,12 +1896,12 @@ function VersionsModal(props: {
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400">{dateLabel}{byLabel ? ` · ${byLabel}` : ""}</p>
                     </div>
-                    <button
+                    {i != 0 && (<button
                       onClick={() => props.onRestore(v.version)}
                       className="rounded border border-brand-500 px-2 py-1 text-xs font-medium text-brand-700 hover:bg-brand-50 dark:border-brand-400 dark:text-brand-300 dark:hover:bg-brand-900/20"
                     >
                       Restore
-                    </button>
+                    </button>)}
                   </li>
                 );
               })}
