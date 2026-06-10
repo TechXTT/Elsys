@@ -196,6 +196,22 @@
       "monthsAgo": "{count} month ago",
       "monthsAgoPlural": "{count} months ago"
     },
+    "carousel": {
+      "labelSingular": "Slide",
+      "labelPlural": "Carousel",
+      "fields": {
+        "locale": "Language",
+        "title": "Title",
+        "subtitle": "Subtitle",
+        "imageDesktop": "Image (desktop)",
+        "imageTablet": "Image (tablet)",
+        "imagePhone": "Image (phone)",
+        "linkUrl": "Link URL",
+        "linkLabel": "Button text",
+        "status": "Status",
+        "order": "Order"
+      }
+    },
     "content": {
       "navLabel": "Content",
       "newRecord": "New record",

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import "./types"; // register all content types
 import { getAllContentTypes } from "./registry";
 import { PageHeader } from "@/app/admin/components/PageHeader";
 import { EmptyState } from "@/app/admin/components/EmptyState";

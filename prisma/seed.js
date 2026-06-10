@@ -650,6 +650,42 @@ Registration for the first workshop is now open!`,
 
   console.log(`✓ Seeded ${newsArticles.length} news articles (${newsArticles.length / 2} unique articles in 2 languages)`);
   console.log(`✓ Created version 1 for ${seededVersions.size} unique articles`);
+
+  // Seed carousel slides
+  const carouselSlides = [
+    {
+      id: 'carousel-admission-2026-bg',
+      locale: 'bg',
+      title: 'Прием 2026 — Кандидатствай за ТУЕС',
+      subtitle: 'Водещото технологично училище в България. Специалности: Компютърни мрежи, Изкуствен интелект, Системно програмиране.',
+      imageDesktop: '/images/carousel/admission-2026.jpg',
+      linkUrl: '/bg/priem',
+      linkLabel: 'Научи повече',
+      status: 'PUBLISHED',
+      order: 1,
+    },
+    {
+      id: 'carousel-hack-tues-2026-bg',
+      locale: 'bg',
+      title: 'Hack TUES 2026',
+      subtitle: 'Годишният hackathon на ТУЕС. 48 часа, неограничени идеи, реални решения.',
+      imageDesktop: '/images/carousel/hack-tues.jpg',
+      linkUrl: '/bg/uchenicheski-jivot/hack-tues',
+      linkLabel: 'Виж повече',
+      status: 'PUBLISHED',
+      order: 2,
+    },
+  ];
+
+  for (const slide of carouselSlides) {
+    await prisma.carousel.upsert({
+      where: { id: slide.id },
+      update: slide,
+      create: { ...slide, authorId: user.id },
+    });
+  }
+
+  console.log(`✓ Seeded ${carouselSlides.length} carousel slides`);
 }
 
 main()

@@ -196,6 +196,22 @@
       "monthsAgo": "преди {count} месец",
       "monthsAgoPlural": "преди {count} месеца"
     },
+    "carousel": {
+      "labelSingular": "Слайд",
+      "labelPlural": "Карусел",
+      "fields": {
+        "locale": "Език",
+        "title": "Заглавие",
+        "subtitle": "Подзаглавие",
+        "imageDesktop": "Снимка (десктоп)",
+        "imageTablet": "Снимка (таблет)",
+        "imagePhone": "Снимка (телефон)",
+        "linkUrl": "URL на връзката",
+        "linkLabel": "Текст на бутона",
+        "status": "Статус",
+        "order": "Поредност"
+      }
+    },
     "content": {
       "navLabel": "Съдържание",
       "newRecord": "Нов запис",

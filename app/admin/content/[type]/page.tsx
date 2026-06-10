@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import "../types"; // register all content types
 import { getContentType } from "../registry";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/app/admin/components/PageHeader";

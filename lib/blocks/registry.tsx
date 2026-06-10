@@ -5,10 +5,11 @@ import remarkBreaks from "remark-breaks";
 import Hero from "@/components/Hero";
 import { Section } from "@/components/Section";
 import { NewsCard } from "@/components/news-card";
+import { CarouselHero, type CarouselSlide } from "@/components/CarouselHero";
 import type { Locale } from "@/i18n/config";
 import type { PostItem } from "@/lib/types";
 
-export type BlockContext = { locale?: Locale; news?: PostItem[] };
+export type BlockContext = { locale?: Locale; news?: PostItem[]; carouselSlides?: CarouselSlide[] };
 
 export type BlockDefinition<P extends Record<string, unknown> = any> = {
   type: string;
@@ -105,6 +106,11 @@ const NewsListBlock: BlockDefinition<{ title?: string; description?: string; lim
   },
 };
 
+const CarouselHeroBlock: BlockDefinition<Record<string, unknown>> = {
+  type: "CarouselHero",
+  render: (_, ctx) => <CarouselHero slides={ctx?.carouselSlides ?? []} />,
+};
+
 // Placeholders for upcoming blocks
 const Placeholder = ({ name }: { name: string }) => (
   <div className="container-page my-6 rounded border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700">
@@ -142,6 +148,7 @@ export const blockRegistry: BlockDefinition[] = [
   SectionBlock,
   MarkdownBlock,
   NewsListBlock,
+  CarouselHeroBlock,
   TestimonialsBlock,
   AdmissionsTimelineBlock,
   CTABlock,

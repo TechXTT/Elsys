@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import "../../types"; // register all content types
 import { getContentType } from "../../registry";
 import { updateContentRecord } from "../../actions";
 import { prisma } from "@/lib/prisma";

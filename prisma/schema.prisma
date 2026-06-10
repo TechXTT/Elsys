@@ -31,6 +31,7 @@ model User {
   newsPosts      NewsPost[]
   pageVersionsCreated PageVersion[]
   newsPostVersionsCreated NewsPostVersion[]
+  carousels       Carousel[]
 
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -274,4 +275,39 @@ enum PageKind {
   LINK    // External URL (no content body)
   FOLDER  // Structural grouping without content (can still have locale variants for label)
   ROUTE   // References an existing app route; uses routePath for href (supports subpaths)
+}
+
+/// Content lifecycle status shared across all content types (§4.1)
+enum PublishStatus {
+  DRAFT
+  PREVIEW
+  PUBLISHED
+  SCHEDULED
+  ARCHIVED
+}
+
+/// Hero carousel slides — rendered as CarouselHero block (§4.3 #1)
+model Carousel {
+  id           String        @id @default(cuid())
+  locale       String        @default("bg")
+  title        String
+  subtitle     String?
+  imageDesktop String
+  imageTablet  String?
+  imagePhone   String?
+  linkUrl      String?
+  linkLabel    String?
+  status       PublishStatus @default(PUBLISHED)
+  order        Int           @default(0)
+  publishAt    DateTime?
+  unpublishAt  DateTime?
+  legacyId     Int?
+
+  authorId     String?
+  author       User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([locale, status, order])
 }

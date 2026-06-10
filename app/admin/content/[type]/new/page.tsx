@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import "../../types"; // register all content types
 import { getContentType } from "../../registry";
 import { createContentRecord } from "../../actions";
 import { PageHeader } from "@/app/admin/components/PageHeader";
