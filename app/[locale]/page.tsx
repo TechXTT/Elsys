@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 import { BookOpen, Users, Handshake, BrainCircuit, GraduationCap } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
@@ -77,7 +78,7 @@ export default async function HomePage({ params }: { params: { locale: Locale } 
                 <div className="group hover-lift flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-subtle transition hover:border-brand-400/70 hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
                   {t.image && (
                     <div className="relative h-40 w-full overflow-hidden">
-                      <img src={t.image} alt="" loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                      <Image fill src={t.image} alt="" sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition duration-500 group-hover:scale-105" />
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-slate-900/20 to-transparent opacity-70 mix-blend-multiply" />
                       <div className="absolute left-2 top-2 inline-flex rounded bg-brand-600/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white shadow-sm backdrop-blur-sm dark:bg-brand-500/80">{t.key}</div>
                     </div>
@@ -115,7 +116,7 @@ export default async function HomePage({ params }: { params: { locale: Locale } 
             return (
               <div key={i} className="group relative flex flex-col gap-3 overflow-hidden rounded-lg border border-slate-200 bg-white p-5 shadow-subtle transition hover:border-brand-400/70 hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
                 {w.image && (
-                  <img src={w.image} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-0 transition duration-500 group-hover:opacity-20" />
+                  <Image fill src={w.image} alt="" sizes="(max-width: 768px) 100vw, 25vw" className="object-cover opacity-0 transition duration-500 group-hover:opacity-20" />
                 )}
                 <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-brand-600/10 ring-1 ring-inset ring-brand-600/20 dark:bg-brand-400/10 dark:ring-brand-400/20">
                   <Icon className="h-5 w-5 text-brand-700 dark:text-brand-400" />

@@ -1,5 +1,6 @@
 import React from "react";
 import NextLink from "next/link";
+import Image from "next/image";
 import { defaultLocale, type Locale } from "@/i18n/config";
 import { PostItem } from "@/lib/types";
 
@@ -45,8 +46,8 @@ export const NewsCard: React.FC<NewsCardProps> = ({ post, locale = defaultLocale
       className="hover-lift block overflow-hidden rounded-lg border border-slate-200 bg-white transition dark:border-slate-700 dark:bg-slate-800"
     >
       {coverImage && (
-        <div className="aspect-[4/3] overflow-hidden border-b border-slate-200 dark:border-slate-700">
-          <img src={coverImage} alt={post.title} className="h-full w-full object-cover" />
+        <div className="relative aspect-[4/3] overflow-hidden border-b border-slate-200 dark:border-slate-700">
+          <Image fill src={coverImage} alt={post.title} sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw" className="object-cover" />
         </div>
       )}
       <div className="p-4">

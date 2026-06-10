@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 
 import { Link, usePathname } from "@/i18n/routing";
@@ -82,7 +83,7 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({ initialNav }) => {
           className="cursor-pointer flex items-center gap-2 font-semibold text-slate-800 hover:text-brand-700 dark:text-slate-100 dark:hover:text-brand-300"
           aria-label={tHeader("homeAria")}
         >
-          <img src="/images/logo.svg" alt={brandLabel} className="h-8 w-8" />
+          <Image src="/images/logo.svg" alt={brandLabel} width={32} height={32} className="h-8 w-8" />
           <span className="hidden sm:inline">{brandLabel}</span>
         </Link>
         <nav className="hidden md:flex gap-6 text-sm" aria-label={tHeader("menu")}>

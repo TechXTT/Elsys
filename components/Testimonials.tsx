@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { Reveal } from "./Reveal";
 
 export interface Testimonial {
@@ -35,10 +36,11 @@ export function Testimonials({ title, subtitle, items }: {
               </blockquote>
               <figcaption className="mt-auto flex items-center gap-4 pt-2">
                 {t.image ? (
-                  <img
+                  <Image
                     src={t.image}
                     alt={t.name}
-                    loading="lazy"
+                    width={48}
+                    height={48}
                     className="h-12 w-12 rounded-full object-cover ring-2 ring-brand-600/30 dark:ring-brand-400/30"
                   />
                 ) : (

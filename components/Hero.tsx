@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 
 interface HeroCTA { label: string; href: string }
 interface HeroProps { heading: string; subheading?: string; image?: string; imageLarge?: string; cta?: HeroCTA }
@@ -8,11 +9,13 @@ const Hero: React.FC<HeroProps> = ({ heading, subheading, image, imageLarge, cta
     {/* Large photo background (optional) */}
     {imageLarge && (
       <>
-        <img
+        <Image
+          fill
           src={imageLarge}
           alt=""
-          loading="lazy"
-          className="absolute inset-0 h-full w-full object-cover opacity-100 mix-blend-luminosity dark:opacity-80 dark:brightness-75"
+          sizes="100vw"
+          priority
+          className="object-cover opacity-100 mix-blend-luminosity dark:opacity-80 dark:brightness-75"
         />
         {/* Additional dim overlay only in dark mode for better contrast */}
         <div aria-hidden className="absolute inset-0 hidden dark:block bg-slate-950/40" />
