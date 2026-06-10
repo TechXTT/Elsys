@@ -64,10 +64,33 @@ jobs:
       - name: Build
         run: pnpm build
 
+      # Gate: no JS chunk exceeds 150 KB gzipped (target: 100 KB per §7.3)
+      - name: Bundle budget
+        run: pnpm check-bundle-size
+
+      # Gate: fail on critical CVEs in production dependencies
+      - name: Security audit
+        run: pnpm audit --audit-level critical --prod
+
+      # Gate: schema.prisma must be in sync with the migrations directory
+      - name: Check schema drift
+        run: |
+          pnpm prisma migrate status 2>&1 | tee /tmp/migrate-status.txt
+          if grep -q "Following migrations have not yet been applied" /tmp/migrate-status.txt; then
+            echo "::error::Unapplied migrations detected — run: pnpm prisma migrate dev"
+            exit 1
+          fi
+
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
       - name: E2E tests
         run: pnpm test:e2e
+        env:
+          CI: true
+
+      # Gate: no critical/serious axe violations on representative public pages
+      - name: Accessibility check
+        run: pnpm exec playwright test tests/e2e/accessibility.spec.ts
         env:
           CI: true
