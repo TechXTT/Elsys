@@ -31,3 +31,10 @@ logs
 .vscode/
 node_modules/
 .next/
+
+# TypeScript incremental build info (machine-local, not useful in git)
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+# Claude Code local settings
+.claude/settings.local.json
