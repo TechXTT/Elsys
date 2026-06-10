@@ -4,6 +4,9 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { invalidatePageCache } from "@/lib/cms/compile";
 import { recordAudit } from "@/lib/audit";
+import { invalidateNavigationCache } from "@/lib/navigation-cache";
+import { invalidateNavigationTree } from "@/lib/navigation-build";
+import { revalidatePublicPages } from "@/lib/revalidate";
 
 function ensureAdmin(session: any): asserts session is { user: { id: string; role?: string } } {
   if (!session || !(session.user as any)?.id || (session.user as any)?.role !== "ADMIN") {
@@ -88,6 +91,14 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       console.error("create page version snapshot failed", e);
     }
     try { invalidatePageCache(updated.slug, updated.locale as any); } catch {}
+    // Pages feed the nav tree; bump nav caches, then revalidate rendered pages
+    try {
+      invalidateNavigationCache();
+      await invalidateNavigationTree();
+      await revalidatePublicPages();
+    } catch (e) {
+      console.error("page update revalidation failed", e);
+    }
     return NextResponse.json({ id: updated.id });
   } catch (err: any) {
     if (err instanceof Response) return err;
@@ -97,11 +108,36 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
     ensureAdmin(session);
+    const userId = (session!.user as any).id as string;
+    const existing = await (prisma as any).page.findUnique({
+      where: { id: params.id },
+      select: { slug: true, locale: true, title: true },
+    });
     await (prisma as any).page.delete({ where: { id: params.id } });
+    try {
+      await recordAudit({
+        req,
+        userId,
+        action: "PAGE_DELETE",
+        entity: "Page",
+        entityId: params.id,
+        details: existing ? { slug: existing.slug, locale: existing.locale, title: existing.title } : undefined,
+      });
+    } catch {}
+    if (existing) {
+      try { invalidatePageCache(existing.slug, existing.locale as any); } catch {}
+    }
+    try {
+      invalidateNavigationCache();
+      await invalidateNavigationTree();
+      await revalidatePublicPages();
+    } catch (e) {
+      console.error("page delete revalidation failed", e);
+    }
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     if (err instanceof Response) return err;

@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { locales as supportedLocales, defaultLocale } from "@/i18n/config";
 import { invalidateNavigationCache } from "@/lib/navigation-cache";
 import { invalidateNavigationTree } from "@/lib/navigation-build";
+import { recordAudit } from "@/lib/audit";
+import { revalidatePublicPages } from "@/lib/revalidate";
 
 const NAV_LOCALES = Array.from(supportedLocales);
 const NAV_PAGE_SELECT = {
@@ -205,6 +207,21 @@ export async function POST(req: Request) {
     for (const loc of locales) {
       invalidateNavigationCache(loc);
       await invalidateNavigationTree(loc);
+    }
+    try {
+      await recordAudit({
+        req,
+        userId: (session!.user as any).id as string,
+        action: "NAV_CREATE",
+        entity: "Page",
+        entityId: createdIds[0] ?? groupId,
+        details: { groupId, kind, createdIds },
+      });
+    } catch {}
+    try {
+      await revalidatePublicPages();
+    } catch (e) {
+      console.error("navigation create revalidation failed", e);
     }
     return NextResponse.json({ groupId }, { status: 201 });
   } catch (err: any) {

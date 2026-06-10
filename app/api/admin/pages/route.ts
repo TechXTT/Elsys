@@ -4,6 +4,9 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/audit";
 import { invalidatePageCache } from "@/lib/cms/compile";
+import { invalidateNavigationCache } from "@/lib/navigation-cache";
+import { invalidateNavigationTree } from "@/lib/navigation-build";
+import { revalidatePublicPages } from "@/lib/revalidate";
 
 function ensureAdmin(session: any): asserts session is { user: { id: string; role?: string } } {
   if (!session || !(session.user as any)?.id || (session.user as any)?.role !== "ADMIN") {
@@ -107,6 +110,14 @@ export async function POST(req: Request) {
     }
     // Invalidate compile cache for this slug/locale
     try { invalidatePageCache(slug, locale as any); } catch {}
+    // Pages feed the nav tree; bump nav caches, then revalidate rendered pages
+    try {
+      invalidateNavigationCache();
+      await invalidateNavigationTree();
+      await revalidatePublicPages();
+    } catch (e) {
+      console.error("page create revalidation failed", e);
+    }
     return NextResponse.json({ id: created.id }, { status: 201 });
   } catch (err: any) {
     if (err instanceof Response) return err;

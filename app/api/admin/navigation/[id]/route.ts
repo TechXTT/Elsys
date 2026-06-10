@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { invalidateNavigationCache } from "@/lib/navigation-cache";
 import { invalidateNavigationTree } from "@/lib/navigation-build";
+import { recordAudit } from "@/lib/audit";
+import { revalidatePublicPages } from "@/lib/revalidate";
 
 function ensureAdmin(session: any): asserts session is { user: { id: string; role?: string } } {
   if (!session || !(session.user as any)?.id || (session.user as any)?.role !== "ADMIN") {
@@ -48,6 +50,21 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       await (prisma as any).page.update({ where: { id: params.id }, data });
       invalidateNavigationCache(existing.locale);
       await invalidateNavigationTree(existing.locale);
+      try {
+        await recordAudit({
+          req,
+          userId: (session!.user as any).id as string,
+          action: "NAV_UPDATE",
+          entity: "Page",
+          entityId: params.id,
+          details: { locale: existing.locale, fields: Object.keys(data) },
+        });
+      } catch {}
+      try {
+        await revalidatePublicPages();
+      } catch (e) {
+        console.error("navigation update revalidation failed", e);
+      }
       return NextResponse.json({ ok: true });
     }
 
@@ -125,6 +142,21 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       invalidateNavigationCache(loc);
       await invalidateNavigationTree(loc);
     }
+    try {
+      await recordAudit({
+        req,
+        userId: (session!.user as any).id as string,
+        action: "NAV_UPDATE",
+        entity: "Page",
+        entityId: params.id,
+        details: { structural: true, fields: Object.keys(body) },
+      });
+    } catch {}
+    try {
+      await revalidatePublicPages();
+    } catch (e) {
+      console.error("navigation update revalidation failed", e);
+    }
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     if (err instanceof Response) return err;
@@ -133,7 +165,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
     ensureAdmin(session);
@@ -156,6 +188,21 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     await (prisma as any).page.deleteMany({ where: { groupId: { in: Array.from(toDeleteGroupIds) } } });
     invalidateNavigationCache();
     await invalidateNavigationTree();
+    try {
+      await recordAudit({
+        req,
+        userId: (session!.user as any).id as string,
+        action: "NAV_DELETE",
+        entity: "Page",
+        entityId: params.id,
+        details: { groupIds: Array.from(toDeleteGroupIds) },
+      });
+    } catch {}
+    try {
+      await revalidatePublicPages();
+    } catch (e) {
+      console.error("navigation delete revalidation failed", e);
+    }
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     if (err instanceof Response) return err;
