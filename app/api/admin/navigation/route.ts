@@ -82,7 +82,7 @@ export async function GET(req: Request) {
     // map groupId -> chosen primary page
     const primaryByGroup = new Map<string, any>();
     for (const [gid, arr] of groups) {
-      let primary = arr.find((x) => x.locale === preferredLocale)
+      const primary = arr.find((x) => x.locale === preferredLocale)
         || arr.find((x) => x.locale === defaultLocale)
         || arr[0];
       // synthesize x-locale maps
@@ -237,7 +237,7 @@ async function fetchNavPageRows(): Promise<NavPageRow[]> {
 }
 
 async function ensureNavigationLocaleCoverage(): Promise<NavPageRow[]> {
-  let rows = await fetchNavPageRows();
+  const rows = await fetchNavPageRows();
   if (!rows.length) return rows;
   const pageById = new Map<string, NavPageRow>(rows.map((row) => [row.id, row]));
   const groupInfo = new Map<string, { nodes: NavPageRow[]; parentGroupId: string | null }>();

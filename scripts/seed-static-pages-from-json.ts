@@ -162,7 +162,7 @@ async function ensurePageGroupId(fullSlug: string, bgLeafSlug: string, enLeafSlu
     where: { slug: { in: slugCandidates } },
     select: { id: true, groupId: true },
   });
-  let groupId = related.find((r) => r.groupId)?.groupId ?? gid();
+  const groupId = related.find((r) => r.groupId)?.groupId ?? gid();
   const updates = related.filter((r) => r.groupId !== groupId).map((r) =>
     prisma.page.update({ where: { id: r.id }, data: { groupId } })
   );
@@ -221,7 +221,7 @@ async function ensureFolder(segment: string, locale: string, options?: EnsureFol
     where: { slug: { in: slugCandidates } },
     select: { id: true, slug: true, locale: true, groupId: true, title: true, navLabel: true, kind: true },
   });
-  let groupId = folderGroupCache.get(canonicalKey)
+  const groupId = folderGroupCache.get(canonicalKey)
     ?? related.find((r) => r.groupId)?.groupId
     ?? gid('G|folder');
   folderGroupCache.set(canonicalKey, groupId);
