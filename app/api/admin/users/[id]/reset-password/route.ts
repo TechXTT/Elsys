@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
+import { recordAudit } from "@/lib/audit";
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
@@ -12,7 +13,7 @@ async function requireAdmin() {
   }
   const me = await prisma.user.findUnique({ where: { id: (session.user as any).id as string } });
   if (!me || (me as any).role !== "ADMIN") return { ok: false as const, status: 403 as const };
-  return { ok: true as const };
+  return { ok: true as const, me };
 }
 
 function generatePassword(len = 14) {
@@ -47,6 +48,16 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
       expiresAt,
     },
   });
+
+  try {
+    await recordAudit({
+      req: _req,
+      userId: auth.me.id,
+      action: "USER_RESET_PASSWORD",
+      entity: "User",
+      entityId: params.id,
+    });
+  } catch {}
 
   return NextResponse.json({ oneTimeLink: `/one-time/${token}` });
 }

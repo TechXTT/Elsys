@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
+import { recordAudit } from "@/lib/audit";
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
@@ -80,6 +81,17 @@ export async function POST(request: Request) {
       expiresAt,
     },
   });
+
+  try {
+    await recordAudit({
+      req: request,
+      userId: auth.me.id,
+      action: "USER_CREATE",
+      entity: "User",
+      entityId: (user as any).id,
+      details: { email, role },
+    });
+  } catch {}
 
   return NextResponse.json({ user, oneTimeLink: `/one-time/${token}` }, { status: 201 });
 }

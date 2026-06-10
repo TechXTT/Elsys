@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { recordAudit } from "@/lib/audit";
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
@@ -26,6 +27,18 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if (body.name !== undefined) data.name = body.name;
 
   const user = await prisma.user.update({ where: { id }, data: data as any });
+
+  try {
+    await recordAudit({
+      req: request,
+      userId: auth.me.id,
+      action: "ADMIN_UPDATE",
+      entity: "User",
+      entityId: id,
+      details: { fields: Object.keys(data) },
+    });
+  } catch {}
+
   return NextResponse.json({ id: user.id, email: user.email, name: user.name, role: (user as any).role });
 }
 
@@ -37,5 +50,16 @@ export async function DELETE(_request: Request, { params }: { params: { id: stri
   if (auth.me.id === id) return NextResponse.json({ error: "Cannot delete yourself" }, { status: 400 });
 
   await prisma.user.delete({ where: { id } });
+
+  try {
+    await recordAudit({
+      req: _request,
+      userId: auth.me.id,
+      action: "ADMIN_DELETE",
+      entity: "User",
+      entityId: id,
+    });
+  } catch {}
+
   return NextResponse.json({ ok: true });
 }

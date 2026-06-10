@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getNewsPostVersions, restoreNewsPostVersion } from "@/lib/news-versions";
 import { recordAudit } from "@/lib/audit";
+import { revalidateNews } from "@/lib/news";
 
 function ensureAdmin(session: any): asserts session is { user: { id: string; role?: string } } {
   if (!session || !(session.user as any)?.id || (session.user as any)?.role !== "ADMIN") {
@@ -63,6 +64,12 @@ export async function POST(
 
     if (!result.success) {
       return NextResponse.json({ error: result.error || "Restore failed" }, { status: 400 });
+    }
+
+    try {
+      await revalidateNews([params.id]);
+    } catch (error) {
+      console.error("News versions restore revalidation error", error);
     }
 
     try {

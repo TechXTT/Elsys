@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { recordAudit } from "@/lib/audit";
 
 const REGISTRATION_ENABLED = process.env.ALLOW_ADMIN_REGISTRATION === "true" || process.env.NODE_ENV !== "production";
 
@@ -43,13 +44,23 @@ export async function POST(req: Request) {
     }
 
     const hashedPassword = await bcrypt.hash(rawPassword, 12);
-    await prisma.user.create({
+    const created = await prisma.user.create({
       data: {
         email: normalizedEmail,
         password: hashedPassword,
         name: trimmedName,
       },
     });
+
+    try {
+      await recordAudit({
+        req,
+        action: "ADMIN_REGISTER",
+        entity: "User",
+        entityId: created.id,
+        details: { email: normalizedEmail, name: trimmedName },
+      });
+    } catch {}
 
     return NextResponse.json({ success: true });
   } catch (error) {
