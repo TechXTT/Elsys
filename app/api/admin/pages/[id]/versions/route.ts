@@ -4,6 +4,9 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/audit";
 import { invalidatePageCache } from "@/lib/cms/compile";
+import { invalidateNavigationCache } from "@/lib/navigation-cache";
+import { invalidateNavigationTree } from "@/lib/navigation-build";
+import { revalidatePublicPages } from "@/lib/revalidate";
 
 function ensureAdmin(session: any): asserts session is { user: { id: string; role?: string } } {
   if (!session || !(session.user as any)?.id || (session.user as any)?.role !== "ADMIN") {
@@ -63,6 +66,13 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     });
     await recordAudit({ req, userId, action: "PAGE_ROLLBACK", entity: "Page", entityId: params.id, details: { restoredFrom: src.id, version } });
     try { invalidatePageCache(page.slug, page.locale as any); } catch {}
+    try {
+      invalidateNavigationCache();
+      await invalidateNavigationTree();
+      await revalidatePublicPages();
+    } catch (e) {
+      console.error("page rollback revalidation failed", e);
+    }
     return NextResponse.json({ ok: true, version });
   } catch (err: any) {
     if (err instanceof Response) return err;

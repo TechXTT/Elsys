@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { recordAudit } from "@/lib/audit";
 
 export async function GET() {
   try {
@@ -83,6 +84,22 @@ export async function PATCH(req: Request) {
     if (Object.keys(update).length > 0) {
       await prisma.user.update({ where: { id: userId }, data: update });
     }
+
+    try {
+      await recordAudit({
+        req,
+        userId,
+        action: "ME_UPDATE",
+        entity: "User",
+        entityId: userId,
+        details: {
+          fields: [
+            ...(body.changePassword ? ["password"] : []),
+            ...Object.keys(update),
+          ],
+        },
+      });
+    } catch {}
 
     return NextResponse.json({ ok: true });
   } catch (err) {

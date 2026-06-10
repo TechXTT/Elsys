@@ -63,3 +63,11 @@ jobs:
       # next build statically renders public pages, which reads the DB
       - name: Build
         run: pnpm build
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: E2E tests
+        run: pnpm test:e2e
+        env:
+          CI: true
