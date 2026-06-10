@@ -1,19 +1,28 @@
 import { prisma } from "./prisma";
-import { defaultLocale, type Locale } from "@/i18n/config";
+import { defaultLocale, locales, type Locale } from "@/i18n/config";
+import { bumpCacheVersion, getCached } from "@/lib/cache";
 import type { PostItem } from "@/lib/types";
 
-// Lightweight in-memory TTL cache for list queries to reduce DB load
-interface CacheEntry<T> { value: T; expires: number }
-const LIST_CACHE = new Map<string, CacheEntry<PostItem[]>>();
-const LIST_TTL_MS = 60_000; // 60s
-function cacheGet(key: string): PostItem[] | null {
-  const entry = LIST_CACHE.get(key);
-  if (!entry) return null;
-  if (Date.now() > entry.expires) { LIST_CACHE.delete(key); return null; }
-  return entry.value;
+const NEWS_CACHE_NAMESPACE = "news";
+const LIST_TTL_MS = 60_000; // 60s in memory; 5× in Redis (see lib/cache.ts)
+
+/** Orphans every cached news read; call from admin mutations BEFORE revalidatePath. */
+export async function invalidateNewsCache(): Promise<void> {
+  await bumpCacheVersion(NEWS_CACHE_NAMESPACE);
 }
-function cacheSet(key: string, value: PostItem[]) {
-  LIST_CACHE.set(key, { value, expires: Date.now() + LIST_TTL_MS });
+
+/**
+ * Full post-mutation refresh: bump the cache version FIRST (so rebuilt pages
+ * re-read the DB), then revalidate the news surfaces for every locale.
+ */
+export async function revalidateNews(slugs: string[] = []): Promise<void> {
+  await invalidateNewsCache();
+  const { revalidatePath } = await import("next/cache");
+  for (const loc of locales) {
+    revalidatePath(`/${loc}`);
+    revalidatePath(`/${loc}/news`);
+    for (const slug of slugs) revalidatePath(`/${loc}/news/${slug}`);
+  }
 }
 
 type ImageMeta = NonNullable<PostItem["images"]>[number];
@@ -49,47 +58,47 @@ function toPostItem(row: NewsRow): PostItem {
 
 export async function getNewsPosts(locale?: Locale, includeDrafts = false): Promise<PostItem[]> {
   const loc = (locale ?? defaultLocale) as string;
-  const cacheKey = `${loc}|${includeDrafts ? 'all' : 'pub'}`;
-  const cached = cacheGet(cacheKey);
-  if (cached) return cached;
+  const cacheKey = `${NEWS_CACHE_NAMESPACE}:list:${loc}:${includeDrafts ? 'all' : 'pub'}`;
+  return getCached(cacheKey, {
+    ttlMs: LIST_TTL_MS,
+    loader: async () => {
+      // Fetch from the requested locale first
+      const now = new Date();
+      const primaryRows: NewsRow[] = await (prisma as any).newsPost.findMany({
+        where: {
+          locale: loc,
+          ...(includeDrafts ? {} : {
+            published: true,
+            // Only show posts with date in the past or today (scheduled publishing)
+            date: { lte: now }
+          })
+        },
+        orderBy: { date: "desc" },
+        select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true },
+      });
 
-  // Fetch from the requested locale first
-  const now = new Date();
-  const primaryRows: NewsRow[] = await (prisma as any).newsPost.findMany({
-    where: {
-      locale: loc,
-      ...(includeDrafts ? {} : {
-        published: true,
-        // Only show posts with date in the past or today (scheduled publishing)
-        date: { lte: now }
-      })
+      // If locale is not default, also fetch defaults to fill gaps (only when not includeDrafts)
+      let fallbackRows: NewsRow[] = [];
+      if (loc !== defaultLocale && !includeDrafts) {
+        fallbackRows = await (prisma as any).newsPost.findMany({
+          where: {
+            locale: defaultLocale,
+            published: true,
+            date: { lte: now }
+          },
+          orderBy: { date: "desc" },
+          select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true },
+        });
+      }
+
+      // Merge: primary locale takes precedence, fallback fills gaps
+      const seenIds = new Set(primaryRows.map(r => r.id));
+      const effective = [...primaryRows, ...fallbackRows.filter(r => !seenIds.has(r.id))];
+      effective.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      return effective.map(toPostItem);
     },
-    orderBy: { date: "desc" },
-    select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true },
   });
-
-  // If locale is not default, also fetch defaults to fill gaps (only when not includeDrafts)
-  let fallbackRows: NewsRow[] = [];
-  if (loc !== defaultLocale && !includeDrafts) {
-    fallbackRows = await (prisma as any).newsPost.findMany({
-      where: {
-        locale: defaultLocale,
-        published: true,
-        date: { lte: now }
-      },
-      orderBy: { date: "desc" },
-      select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true },
-    });
-  }
-
-  // Merge: primary locale takes precedence, fallback fills gaps
-  const seenIds = new Set(primaryRows.map(r => r.id));
-  const effective = [...primaryRows, ...fallbackRows.filter(r => !seenIds.has(r.id))];
-  effective.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-  const out = effective.map(toPostItem);
-  cacheSet(cacheKey, out);
-  return out;
 }
 
 export async function getNewsPost(slug: string, locale?: Locale, includeDrafts = false): Promise<{ post: PostItem; markdown: string; blocks: unknown[] | null; useBlocks: boolean; published: boolean } | null> {

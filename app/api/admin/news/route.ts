@@ -4,7 +4,7 @@ import { put } from "@vercel/blob";
 import path from "path";
 import { authOptions } from "@/lib/auth";
 import { defaultLocale } from "@/i18n/config";
-import { createNewsPost as dbCreateNewsPost, existsNewsSlug as dbExistsNewsSlug, getNewsPosts } from "@/lib/news";
+import { createNewsPost as dbCreateNewsPost, existsNewsSlug as dbExistsNewsSlug, getNewsPosts, revalidateNews } from "@/lib/news";
 import { recordAudit } from "@/lib/audit";
 import type { PostItem } from "@/lib/types";
 
@@ -342,6 +342,12 @@ export async function POST(req: Request) {
       });
     } catch {}
     return NextResponse.json({ error: "Неуспешно записване" }, { status: 500 });
+  }
+
+  try {
+    await revalidateNews([normalizedSlug]);
+  } catch (error) {
+    console.error("News create revalidation error", error);
   }
 
   try {

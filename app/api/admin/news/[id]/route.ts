@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { put } from "@vercel/blob";
 import { authOptions } from "@/lib/auth";
 import { defaultLocale } from "@/i18n/config";
-import { getNewsPost as dbGetNewsPost, updateNewsPost as dbUpdateNewsPost } from "@/lib/news";
+import { getNewsPost as dbGetNewsPost, updateNewsPost as dbUpdateNewsPost, revalidateNews } from "@/lib/news";
 import { getNewsPostVersions, restoreNewsPostVersion } from "@/lib/news-versions";
 import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/audit";
@@ -333,6 +333,12 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 
   try {
+    await revalidateNews(Array.from(new Set([params.id, updatedPost.id])));
+  } catch (error) {
+    console.error("News update revalidation error", error);
+  }
+
+  try {
     await recordAudit({
       req: request,
       userId: (session.user as any)?.id as string | undefined,
@@ -366,6 +372,12 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       await recordAudit({ req: request, userId: (session.user as any)?.id as string | undefined, action: "newsPost.delete.notfound", entity: "newsPost", entityId: params.id, details: { locale } });
     } catch {}
     return NextResponse.json({ error: "Публикацията не е намерена" }, { status: 404 });
+  }
+
+  try {
+    await revalidateNews([params.id]);
+  } catch (error) {
+    console.error("News delete revalidation error", error);
   }
 
   try {
@@ -407,6 +419,12 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
       if (!result.success) {
         return NextResponse.json({ error: result.error || "Restore failed" }, { status: 400 });
+      }
+
+      try {
+        await revalidateNews([params.id]);
+      } catch (error) {
+        console.error("News restore revalidation error", error);
       }
 
       try {
