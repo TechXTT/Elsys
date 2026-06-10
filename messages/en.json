@@ -114,6 +114,7 @@
     "nav": {
       "dashboard": "Dashboard",
       "news": "News",
+      "content": "Content",
       "pages": "Pages",
       "users": "Users",
       "audit": "Audit Log",
@@ -194,6 +195,28 @@
       "weeksAgoPlural": "{count} weeks ago",
       "monthsAgo": "{count} month ago",
       "monthsAgoPlural": "{count} months ago"
+    },
+    "content": {
+      "navLabel": "Content",
+      "newRecord": "New record",
+      "editRecord": "Edit",
+      "save": "Save changes",
+      "create": "Create",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "search": "Search",
+      "searchPlaceholder": "Search…",
+      "noRecords": "No records",
+      "noRecordsDesc": "Get started by adding the first record.",
+      "add": "Add",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleteConfirm": "Are you sure? This action cannot be undone.",
+      "records": "{total} records — page {page} of {totalPages}",
+      "prev": "← Previous",
+      "next": "Next →",
+      "required": "Required",
+      "selectPlaceholder": "— Select —"
     }
   }
 }

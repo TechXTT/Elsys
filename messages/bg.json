@@ -114,6 +114,7 @@
     "nav": {
       "dashboard": "Табло",
       "news": "Новини",
+      "content": "Съдържание",
       "pages": "Страници",
       "users": "Потребители",
       "audit": "Одит лог",
@@ -194,6 +195,28 @@
       "weeksAgoPlural": "преди {count} седмици",
       "monthsAgo": "преди {count} месец",
       "monthsAgoPlural": "преди {count} месеца"
+    },
+    "content": {
+      "navLabel": "Съдържание",
+      "newRecord": "Нов запис",
+      "editRecord": "Редактиране",
+      "save": "Запази промените",
+      "create": "Създай",
+      "saving": "Запазване…",
+      "cancel": "Отказ",
+      "search": "Търси",
+      "searchPlaceholder": "Търси…",
+      "noRecords": "Няма записи",
+      "noRecordsDesc": "Започни като добавиш първия запис.",
+      "add": "Добави",
+      "edit": "Редактирай",
+      "delete": "Изтрий",
+      "deleteConfirm": "Сигурни ли сте? Това действие не може да бъде отменено.",
+      "records": "{total} записа — страница {page} от {totalPages}",
+      "prev": "← Предишна",
+      "next": "Следваща →",
+      "required": "Задължително поле",
+      "selectPlaceholder": "— Избери —"
     }
   }
 }
