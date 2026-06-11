@@ -1,230 +1,84 @@
 # CLAUDE.md — Working context for Claude Code
 
-You are working on the **ТУЕС (Elsys) school website rewrite**. Read this file first, every session.
+You are working on the **ТУЕС (Elsys) school website rewrite**: a Next.js 14 App Router replacement for `https://elsys-bg.org/` (legacy: Sweboo by StudioX, PHP-style admin, ~20 content types). Multilingual BG/EN, Prisma-backed CMS, block-based page builder, real auth.
+
+Your task brief (pasted per session by the operator) is the source of truth for current state and scope. This file holds only the standing rules. The delivery plan is `docs/PLAN.md` — read the milestone your brief names, not the whole file.
 
 ---
 
-## 1. What this project is
+## 1. Constraints (drive every design decision)
 
-The live site is `https://elsys-bg.org/` running **Sweboo by StudioX 4.0.0** — a PHP-style admin built around ~20 first-class content types and a widget-based page builder. The site is run by students who graduate every year, so admin knowledge dies on a 2-year cycle. Some editors are teachers, not engineers. The site is a public-sector EU school, so GDPR and WCAG 2.1 AA matter.
+1. **Generational admin turnover.** Student admins graduate every 2 years. The system must teach itself to successors: in-app runbooks, notes-for-successors, audit log, handover flow.
+2. **Teachers edit without learning the block model.** Simple vs Advanced mode, templates, friendly Bulgarian validation, auto-save.
+3. **Public-sector EU production.** WCAG 2.1 AA, GDPR, JSON-LD, 2FA for admins. Free-tier infrastructure only — flag anything that needs a paid plan.
 
-This repo is the replacement: a Next.js 14 App Router rewrite with multilingual (BG/EN) support, a block-based page builder, a Prisma-backed CMS, and a real auth layer. The engine is partially built — Pages, News, Navigation, Auth, Audit, Dashboard. The rest of the content types and the editor UX still need to ship before we can cut over.
+If a task conflicts with one of these, stop and surface it.
 
-**The full delivery plan lives in `docs/PARITY_AND_IMPROVEMENT_PLAN.md`. Read it before any task. Don't infer scope from this file.**
+## 2. Locked tech choices
 
----
+Do not re-debate or silently swap. Next.js 14 App Router · Prisma 6 · Postgres on Neon · Upstash Redis · Vercel Blob · NextAuth v4 (credentials + bcrypt; Google OAuth maybe later) · Resend · `next/image` · Postgres FTS · TipTap · React Hook Form + Zod · Cloudflare Turnstile · DeepL · Vercel Web Analytics.
 
-## 2. Project constraints (drive every design decision)
+Observability = Vercel built-ins + free uptime ping on `/api/health`. No Sentry/Axiom/Better Stack (decision D1, 2026-06-10).
 
-1. **Generational admin turnover.** The system has to onboard a new admin without tribal knowledge — runbooks inside the admin, "notes for successors" per record, a sandbox environment, audit log with humans, annual review reminders, an `/admin/handover` succession flow. See plan §6.
-2. **Teachers must be able to edit without learning the block model.** Simple vs Advanced editor mode, page templates with 3–5 fields, inline editing on the public site, auto-save, friendly Bulgarian validation messages, inline image cropper. See plan §5.
-3. **Public-sector EU production.** WCAG 2.1 AA, full GDPR (consent, retention, export/delete), JSON-LD, sitemap-news, OAuth-restricted-to-school-domain, 2FA for admins, backups + restore drills. See plan §7 and §8.
+New admin mutations use **Server Actions**. `app/api/admin/**/route.ts` is deprecated for new code but stays alive.
 
-If a task seems to conflict with one of these, stop and surface it.
+## 3. Working agreements (non-negotiable)
 
----
+1. One change per branch. Unrelated cleanup → log a TODO and skip.
+2. Prisma schema change ⇒ migration + seed update in the same PR.
+3. Every admin mutation: write `AuditLog` (`lib/audit.ts`), invalidate the relevant cache **before** `revalidatePath`, revalidate both `bg` and `en`.
+4. Every public Prisma read uses explicit `select`. No unprojected `findMany()` on public paths.
+5. Every public list read goes through `lib/cache.ts` (`getCached`/`bumpCacheVersion`, memory → Redis → DB, versioned invalidation). It exists — follow `lib/news.ts` as the reference consumer.
+6. Every user-facing string lives in `messages/bg.json` / `messages/en.json`. No hardcoded Cyrillic or English in JSX. Bulgarian is the default admin language.
+7. All input validation via Zod, wrapped in friendly Bulgarian messages (`lib/content/validation.ts`, create if missing).
+8. Never run a destructive migration or delete data without explicit human approval.
+9. Stop and ask if a task touches auth, deletion of production data, or schema renames.
 
-## 3. Locked tech choices
+## 4. Workflow per task
 
-Do not re-debate these. If you think one is wrong, say so and stop — don't silently swap.
+1. Open the files the brief names. Confirm state matches.
+2. Reply with what you'll change in 5 bullets with absolute paths. STOP, wait for "go".
+3. After "go": branch `feat|fix/<phase>-<task>`, implement, migrate + seed if schema changed, update `messages/{bg,en}.json`, add/update one Playwright happy-path test.
+4. While iterating: `pnpm typecheck` (fast). Before reporting done: `pnpm lint && pnpm build` once, plus only the affected Playwright test file.
+5. Verify manually with `pnpm dev`.
+6. Report: branch, files changed, acceptance checklist, TODOs, deviations.
 
-| Concern | Pick |
-|---|---|
-| Framework | Next.js 14 App Router |
-| ORM | Prisma 6 |
-| DB | Postgres on Neon |
-| Cache | Upstash Redis |
-| Blob | Vercel Blob |
-| Auth | NextAuth v4 (credentials + Google OAuth later) |
-| Email | Resend |
-| Images | `next/image` w/ Vercel loader |
-| Search | Postgres FTS → Meilisearch only if scale demands |
-| WYSIWYG | TipTap |
-| Forms | React Hook Form + Zod |
-| Validation | Zod (one schema, server + client) |
-| Bot mitigation | Cloudflare Turnstile |
-| Errors | Sentry |
-| Logs | Axiom |
-| Uptime | Better Stack |
-| Translation | DeepL (already wired for News) |
-| Analytics | Vercel Web Analytics (cookieless) |
-
-New admin mutations use **Server Actions**, not REST. Existing `app/api/admin/**/route.ts` stays alive but is deprecated for new code.
-
----
-
-## 4. Working agreements (non-negotiable)
-
-1. **One change per branch.** No bundled refactors. Unrelated cleanup → log a TODO and skip it.
-2. **Every Prisma schema change ships with a migration AND a seed update in the same PR.**
-3. **Every admin mutation writes to `AuditLog`** (`lib/audit.ts`) and calls `revalidatePath` for both `bg` and `en`, and bumps the nav cache version key (see `lib/navigation-cache.ts`).
-4. **Every public Prisma read uses explicit `select`.** No `findMany()` without projection on any code path that public routes hit.
-5. **Every public list read goes through the memory→Redis→DB cache helper** (`lib/cache.ts` once created in Phase 0.2; until then, follow the pattern in `lib/navigation-cache.ts` + `lib/redis.ts`).
-6. **Every user-facing string lives in `messages/bg.json` or `messages/en.json`** under namespaces. This includes admin labels, button text, empty states, error messages. No hardcoded Cyrillic or English in JSX.
-7. **Bulgarian is the default admin language.** English is opt-in.
-8. **All input validation uses Zod.** Wrap default Zod errors in friendly Bulgarian messages via `lib/content/validation.ts` (create it if missing).
-9. **Never run a destructive migration in production without explicit human "yes, drop it" approval.** Same for any code that deletes data or rotates secrets.
-10. **Stop and ask** if a task touches auth, billing, deletion of production data, or schema rename. Don't push through.
-
----
-
-## 5. Workflow per task
-
-1. Open the files the task references. Confirm current state matches the plan's description.
-2. Reply with: what you'll change, in 5 bullets, with absolute file paths. Then STOP and wait for "go".
-3. After "go": branch (`feat/<phase>-<task>` or `fix/<phase>-<task>`), implement, migrate if schema changed, update seed, update `messages/{bg,en}.json` for new strings, add or update one Playwright happy-path test for the new behavior.
-4. Run `pnpm lint && pnpm build` — must pass.
-5. Run `pnpm prisma migrate dev` if schema changed — must apply cleanly.
-6. Manually verify with `pnpm dev` against the affected route or admin screen.
-7. Open a PR using `.github/PULL_REQUEST_TEMPLATE.md` (create it if missing): what / why / screenshots if UI / migration notes / rollback plan.
-
----
-
-## 6. Repo map (where things live)
+## 5. Repo map
 
 ```
-app/
-  [locale]/                  Public routes, BG/EN
-    page.tsx                 Home (Hero/Tracks/Admissions/Testimonials/Numbers)
-    [...slug]/page.tsx       Hierarchical resolver with batched query, ISR revalidate=300
-    news/                    News index + detail
-    blog/                    Blog index + detail
-    layout.tsx               Locale shell
-  admin/                     Protected admin UI
-    page.tsx                 Dashboard entry
-    DashboardClient.tsx      Stats + activity feed
-    pages/                   Page editor (uses PageBuilder)
-    news/                    News editor (block + markdown, see BUILDER_UX_ANALYSIS.md)
-    navigation/              Navigation tree editor
-    users/                   Admin user management
-    audit/                   Audit log viewer
-    components/              page-builder/, DataTable, PageHeader, Card, etc.
-  api/
-    admin/                   REST endpoints (deprecated; prefer Server Actions for new code)
-    auth/[...nextauth]/
-    navigation/
-    route-alias/             Used by middleware for slug aliasing
-components/                  Public-side components (Hero, NewsCard, PostCard, Section, etc.)
+app/[locale]/                 Public routes (BG/EN); [...slug] = batched hierarchical resolver, ISR 300s
+app/admin/                    Admin UI: pages (PageBuilder), news, navigation, users, audit, components/
+app/api/admin/                Deprecated REST endpoints
+components/                   Public components
 lib/
-  auth.ts                    NextAuth config (credentials + bcrypt + JWT)
-  audit.ts                   AuditLog write helper
-  blocks/registry.tsx        Block registry for PageBuilder (Hero, Section, Markdown today)
-  cms/compile.tsx            Compile blocks → React
-  cms.tsx                    renderBlocks export
-  content.ts                 Filesystem JSON loaders (legacy; being replaced by DB)
-  nav.ts                     Public nav tree builder
-  navigation-build.ts        DB-backed nav builder
-  navigation-cache.ts        Memory cache for nav tree (60s TTL)
-  news-versions.ts           News version restore logic
-  news.ts                    News public reads + in-memory 60s list cache (Phase 0.2 target)
-  prisma.ts                  Prisma singleton
-  redis.ts                   ioredis singleton
-  types.ts                   Shared TS types
-prisma/
-  schema.prisma              Source of truth — Page, NewsPost, NavigationItem, User, AuditLog, etc.
-  migrations/                Applied migrations
-  seed.js                    Seed script (block-based news included)
-scripts/
-  import-from-elsys-bg.mjs   Legacy site scraper (partial)
-  scrape-static-pages.ts     Static page scraper
-content/{bg,en}/             Filesystem content (home.json today; being lifted into DB)
-messages/{bg,en}.json        next-intl translation files
-i18n/                        next-intl config + routing
-middleware.ts                Auth gate for /admin + route-alias rewriting
-docs/
-  PARITY_AND_IMPROVEMENT_PLAN.md   ← THE PLAN
-  BUILDER_UX_ANALYSIS.md           UI patterns for News + Page builders
-  PERFORMANCE_OPTIMIZATIONS.md     N+1 fixes, ISR, cache layers
-  TROUBLESHOOTING.md               Common issues + Redis incident notes
-  authentication-authorization-audit.md
-  navigation-system.md
-  news-system.md
-  page-builder-system.md
-  runbooks/                  (To be created — see plan §8.7)
-  adr/                       (To be created)
-  handover/                  (To be created)
+  cache.ts                    Memory→Redis→DB cache helper (getCached/invalidateCache/bumpCacheVersion)
+  news.ts                     News reads/writes; reference consumer of cache.ts; revalidateNews()
+  navigation-cache.ts         Nav memory cache; nav also uses a Redis version key
+  auth.ts / audit.ts / prisma.ts / redis.ts / blocks/registry.tsx / cms.tsx
+prisma/schema.prisma          Source of truth; migrations/; seed.js
+messages/{bg,en}.json         All UI strings (next-intl)
+middleware.ts                 Admin auth gate + route-alias rewrites
+docs/                         PLAN.md (THE PLAN), news-system.md, navigation-system.md,
+                              page-builder-system.md, TROUBLESHOOTING.md, audits/, runbooks/
+scripts/                      import-from-elsys-bg.mjs, scrape-static-pages.ts (migration is scrape-based)
 ```
 
----
+Doc to read per area: builder → `page-builder-system.md`; news → `news-system.md`; nav → `navigation-system.md`; auth → `authentication-authorization-audit.md`.
 
-## 7. Common commands
+## 6. Commands
 
 ```bash
-pnpm install
-pnpm dev                          # next dev on :3000
-pnpm build                        # next build
-pnpm lint
-pnpm prisma generate
-pnpm prisma migrate dev --name <descriptive_name>
-pnpm prisma db seed
-pnpm prisma studio                # local only — never prod
-pnpm cms:import-live              # scrape legacy site
-pnpm pages:scrape                 # scrape static pages
+pnpm dev | build | lint | typecheck | test | test:e2e
+pnpm prisma:generate | prisma:migrate | prisma:seed
+pnpm cms:import-live | pages:scrape
 ```
 
-DB connection via `PRISMA_DATABASE_URL` (Postgres). Redis via `REDIS_URL`. NextAuth via `NEXTAUTH_SECRET` + `NEXTAUTH_URL`. Vercel Blob via `BLOB_READ_WRITE_TOKEN`. DeepL via `DEEPL_API_KEY`. Full env matrix → `docs/runbooks/ENV_VARS.md` (create in Phase 0).
+Env: `PRISMA_DATABASE_URL`, `REDIS_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `BLOB_READ_WRITE_TOKEN`, `DEEPL_API_KEY`.
 
----
+## 7. Refuse to do
 
-## 8. Existing state — what's already done (do not redo)
+Destructive prod migrations without approval · hardcoded strings in JSX · new REST admin routes · schema change without migration · mutation without AuditLog or revalidation · unprojected public `findMany()` · new top-level dependency without justification against §2 · bundling multiple tasks in one PR.
 
-- Next.js 14 App Router + next-intl BG/EN
-- Prisma schema for `User`, `Account`, `Session`, `Page` (with `PageKind` enum: PAGE/LINK/FOLDER/ROUTE), `NewsPost`, `PageVersion`, `NewsPostVersion`, `NavigationItem`, `AuditLog`, `OneTimeSecret`
-- Public hierarchical resolver `app/[locale]/[...slug]/page.tsx` with **batched query** (avoids N+1), ISR `revalidate=300`
-- News list with in-memory 60s cache, locale fallback, scheduled publishing via future-dated `date`
-- Three-tier nav cache (memory → Redis → DB) with versioned invalidation
-- NextAuth (credentials + bcrypt + JWT) with admin gate in `middleware.ts`
-- One-time password reveal flow at `/one-time` for initial admin bootstrap
-- Audit log table + writes from admin routes
-- PageBuilder: palette/canvas/property panel, undo/redo, device preview, keyboard shortcuts (Ctrl+S, Ctrl+Z, Ctrl+Shift+Z) — see `app/admin/components/page-builder/` and `docs/BUILDER_UX_ANALYSIS.md`
-- News builder: block + markdown modes, image upload, featured image picker, version history, DeepL auto-translate
-- Route-alias middleware at `middleware.ts` for legacy slug redirects (foundation; UI to add Phase 2.3)
+## 8. If you have no brief
 
----
-
-## 9. What is NOT done yet (the work)
-
-See plan §4 for the gap matrix. Highest level summary:
-
-- 18 content types beyond Pages + News (Carousel, Club, Gallery, Document, Event, TeamMember, Partner, Leader, Award, Internship + InternshipApplication, Course, Project, Testimonial, NumberStat, HeaderAccent, BlockPreset, RouteRedirect, ContactSubmission).
-- Generic admin scaffold at `app/admin/content/[type]/...` driven by a Zod registry.
-- Editor UX layer (templates, Simple/Advanced toggle, inline editing, auto-save, version diff, image cropper).
-- Generational handoff layer (roles, onboarding wizard, in-app runbooks, comments, sandbox env, succession flow).
-- Operational layer (Sentry, Axiom, Better Stack, backups, runbooks, GDPR flows).
-- Migration importers + visual-diff cutover.
-
----
-
-## 10. How to brief yourself before any task
-
-Before writing code on any task from the plan:
-
-1. Read the relevant phase + task in `docs/PARITY_AND_IMPROVEMENT_PLAN.md`.
-2. Open every file the task names. Confirm what's there.
-3. Read the relevant existing doc:
-   - Page builder work → `docs/BUILDER_UX_ANALYSIS.md` + `docs/page-builder-system.md`
-   - News work → `docs/news-system.md`
-   - Navigation work → `docs/navigation-system.md`
-   - Auth/permissions → `docs/authentication-authorization-audit.md`
-   - Performance / caching → `docs/PERFORMANCE_OPTIMIZATIONS.md`
-4. If anything is ambiguous, stop and ask. Don't guess.
-
----
-
-## 11. Refuse to do
-
-- Make a destructive prod migration without explicit approval.
-- Hardcode strings (especially Cyrillic) in JSX.
-- Add a new REST admin route when a Server Action would do.
-- Skip the migration when changing schema.
-- Skip `AuditLog` write on a mutation.
-- Skip `revalidatePath` on a mutation.
-- Run `findMany()` without `select` on a public read path.
-- Add a new top-level dependency without justifying it against the locked tech list in §3.
-- Bundle multiple tasks into one PR.
-
----
-
-## 12. Where to find the current task
-
-The user will tell you which phase and task they want. The plan is the menu. If they don't specify, the first task is in plan §13: **Phase 0, Task 0.2 — promote the news cache into a reusable `lib/cache.ts` helper.**
+Ask the operator for one. Do not pick a task from the plan yourself.

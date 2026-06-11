@@ -650,6 +650,92 @@ Registration for the first workshop is now open!`,
 
   console.log(`✓ Seeded ${newsArticles.length} news articles (${newsArticles.length / 2} unique articles in 2 languages)`);
   console.log(`✓ Created version 1 for ${seededVersions.size} unique articles`);
+
+  // Seed carousel slides
+  const carouselSlides = [
+    {
+      id: 'carousel-admission-2026-bg',
+      locale: 'bg',
+      title: 'Прием 2026 — Кандидатствай за ТУЕС',
+      subtitle: 'Водещото технологично училище в България. Специалности: Компютърни мрежи, Изкуствен интелект, Системно програмиране.',
+      imageDesktop: '/images/carousel/admission-2026.jpg',
+      linkUrl: '/bg/priem',
+      linkLabel: 'Научи повече',
+      status: 'PUBLISHED',
+      order: 1,
+    },
+    {
+      id: 'carousel-hack-tues-2026-bg',
+      locale: 'bg',
+      title: 'Hack TUES 2026',
+      subtitle: 'Годишният hackathon на ТУЕС. 48 часа, неограничени идеи, реални решения.',
+      imageDesktop: '/images/carousel/hack-tues.jpg',
+      linkUrl: '/bg/uchenicheski-jivot/hack-tues',
+      linkLabel: 'Виж повече',
+      status: 'PUBLISHED',
+      order: 2,
+    },
+  ];
+
+  for (const slide of carouselSlides) {
+    await prisma.carousel.upsert({
+      where: { id: slide.id },
+      update: slide,
+      create: { ...slide, authorId: user.id },
+    });
+  }
+
+  console.log(`✓ Seeded ${carouselSlides.length} carousel slides`);
+
+  // Seed student clubs
+  const clubs = [
+    {
+      id: 'club-roboklub-bg',
+      locale: 'bg',
+      slug: 'roboklub',
+      title: 'Роботика и автоматизация',
+      description: 'Сглобяване и програмиране на роботи, подготовка за състезания по роботика.',
+      color: 'BLUE',
+      meetingSchedule: 'Всеки вторник, 16:00 — лаборатория 304',
+      contactEmail: 'roboklub@elsys-bg.org',
+      status: 'PUBLISHED',
+      order: 1,
+    },
+    {
+      id: 'club-competitive-programming-bg',
+      locale: 'bg',
+      slug: 'sustezatelno-programirane',
+      title: 'Състезателно програмиране',
+      description: 'Алгоритми, структури от данни и подготовка за олимпиади по информатика.',
+      color: 'GREEN',
+      meetingSchedule: 'Всеки четвъртък, 15:30 — кабинет 210',
+      contactEmail: 'cp@elsys-bg.org',
+      status: 'PUBLISHED',
+      order: 2,
+    },
+    {
+      id: 'club-foto-bg',
+      locale: 'bg',
+      slug: 'fotografski-klub',
+      title: 'Фотографски клуб',
+      description: 'Композиция, обработка и документиране на училищния живот.',
+      color: 'PURPLE',
+      meetingSchedule: 'Всеки петък, 14:00 — медиен център',
+      contactEmail: 'foto@elsys-bg.org',
+      status: 'DRAFT',
+      order: 3,
+    },
+  ];
+
+  for (const club of clubs) {
+    await prisma.club.upsert({
+      where: { slug_locale: { slug: club.slug, locale: club.locale } },
+      update: club,
+      create: { ...club, authorId: user.id },
+    });
+  }
+
+  console.log(`✓ Seeded ${clubs.length} student clubs`);
 }
 
 main()
