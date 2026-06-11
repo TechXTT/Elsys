@@ -234,6 +234,13 @@
       "required": "Required",
       "selectPlaceholder": "— Select —"
     }
+  },
+  "Clubs": {
+    "title": "Clubs",
+    "description": "Extracurricular clubs and activities at TUES.",
+    "empty": "No clubs published yet.",
+    "meetingSchedule": "Meeting schedule",
+    "contact": "Contact"
   }
 }
 

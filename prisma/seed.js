@@ -686,6 +686,56 @@ Registration for the first workshop is now open!`,
   }
 
   console.log(`✓ Seeded ${carouselSlides.length} carousel slides`);
+
+  // Seed student clubs
+  const clubs = [
+    {
+      id: 'club-roboklub-bg',
+      locale: 'bg',
+      slug: 'roboklub',
+      title: 'Роботика и автоматизация',
+      description: 'Сглобяване и програмиране на роботи, подготовка за състезания по роботика.',
+      color: 'BLUE',
+      meetingSchedule: 'Всеки вторник, 16:00 — лаборатория 304',
+      contactEmail: 'roboklub@elsys-bg.org',
+      status: 'PUBLISHED',
+      order: 1,
+    },
+    {
+      id: 'club-competitive-programming-bg',
+      locale: 'bg',
+      slug: 'sustezatelno-programirane',
+      title: 'Състезателно програмиране',
+      description: 'Алгоритми, структури от данни и подготовка за олимпиади по информатика.',
+      color: 'GREEN',
+      meetingSchedule: 'Всеки четвъртък, 15:30 — кабинет 210',
+      contactEmail: 'cp@elsys-bg.org',
+      status: 'PUBLISHED',
+      order: 2,
+    },
+    {
+      id: 'club-foto-bg',
+      locale: 'bg',
+      slug: 'fotografski-klub',
+      title: 'Фотографски клуб',
+      description: 'Композиция, обработка и документиране на училищния живот.',
+      color: 'PURPLE',
+      meetingSchedule: 'Всеки петък, 14:00 — медиен център',
+      contactEmail: 'foto@elsys-bg.org',
+      status: 'DRAFT',
+      order: 3,
+    },
+  ];
+
+  for (const club of clubs) {
+    await prisma.club.upsert({
+      where: { slug_locale: { slug: club.slug, locale: club.locale } },
+      update: club,
+      create: { ...club, authorId: user.id },
+    });
+  }
+
+  console.log(`✓ Seeded ${clubs.length} student clubs`);
 }
 
 main()

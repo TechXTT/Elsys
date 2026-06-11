@@ -32,6 +32,7 @@ model User {
   pageVersionsCreated PageVersion[]
   newsPostVersionsCreated NewsPostVersion[]
   carousels       Carousel[]
+  clubs           Club[]
 
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -284,6 +285,49 @@ enum PublishStatus {
   PUBLISHED
   SCHEDULED
   ARCHIVED
+}
+
+/// Color tag used by content types that display a color accent (Club, Gallery, etc.)
+enum ColorTag {
+  RED
+  ORANGE
+  YELLOW
+  GREEN
+  TEAL
+  BLUE
+  INDIGO
+  PURPLE
+  PINK
+  GRAY
+}
+
+/// Student clubs — rendered as ClubGrid / ClubSpotlight blocks and at /uchenicheski-jivot/klubove/[slug]
+model Club {
+  id              String        @id @default(cuid())
+  locale          String        @default("bg")
+  slug            String
+  title           String
+  description     String?
+  body            Json?
+  color           ColorTag      @default(BLUE)
+  coverImage      String?
+  gallery         Json?
+  meetingSchedule String?
+  contactEmail    String?
+  status          PublishStatus @default(DRAFT)
+  order           Int           @default(0)
+  publishAt       DateTime?
+  unpublishAt     DateTime?
+  legacyId        Int?
+
+  authorId        String?
+  author          User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([slug, locale])
+  @@index([locale, status, order])
 }
 
 /// Hero carousel slides — rendered as CarouselHero block (§4.3 #1)
