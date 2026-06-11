@@ -15,6 +15,9 @@ export default async function EditContentPage({ params }: Props) {
   const config = getContentType(params.type);
   if (!config) notFound();
 
+  // Strip the Zod schema — not serializable across the Server -> Client boundary.
+  const { schema: _schema, ...clientConfig } = config;
+
   const model = (prisma as Record<string, any>)[
     config.modelName.charAt(0).toLowerCase() + config.modelName.slice(1)
   ];
@@ -37,7 +40,7 @@ export default async function EditContentPage({ params }: Props) {
         ]}
       />
       <div className="max-w-2xl rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800">
-        <ContentForm config={config} record={record} action={action} />
+        <ContentForm config={clientConfig} record={record} action={action} />
       </div>
     </div>
   );

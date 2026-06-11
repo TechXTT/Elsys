@@ -43,4 +43,10 @@ export type ContentTypeConfig = {
   schema: z.ZodTypeAny;
 };
 
+// Client-safe projection of a content type: everything except the Zod `schema`,
+// which is a class instance and cannot cross the Server -> Client component
+// boundary (RSC serialization). The form never needs the schema — validation
+// runs server-side in the Server Action via getContentType(type).schema.
+export type ClientContentTypeConfig = Omit<ContentTypeConfig, "schema">;
+
 export type ContentRecord = Record<string, unknown> & { id: string };

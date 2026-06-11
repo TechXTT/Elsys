@@ -43,6 +43,10 @@ registerContentType({
     linkLabel: z.string().optional().or(z.literal("")),
     status: z.enum(["PUBLISHED", "DRAFT", "PREVIEW", "SCHEDULED", "ARCHIVED"]),
     order: z.coerce.number().int().default(0),
-    publishAt: z.string().datetime({ offset: true }).optional().or(z.literal("")),
+    // Empty -> undefined (Prisma rejects "" for DateTime); a value -> Date.
+    publishAt: z
+      .string()
+      .optional()
+      .transform((v) => (v ? new Date(v) : undefined)),
   }),
 });

@@ -1,13 +1,13 @@
 "use client";
 import { useFormState, useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
-import type { ContentTypeConfig, ContentRecord } from "@/lib/content/shared";
+import type { ClientContentTypeConfig, ContentRecord } from "@/lib/content/shared";
 
 type FormState = { ok: true; id: string } | { ok: false; errors: Record<string, string> } | null;
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
 
 interface ContentFormProps {
-  config: ContentTypeConfig;
+  config: ClientContentTypeConfig;
   record?: ContentRecord;
   action: ActionFn;
 }

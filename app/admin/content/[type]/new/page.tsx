@@ -13,6 +13,9 @@ export default function NewContentPage({ params }: Props) {
   const config = getContentType(params.type);
   if (!config) notFound();
 
+  // Strip the Zod schema — it's a class instance and not serializable across the
+  // Server -> Client boundary. Validation runs server-side in the action.
+  const { schema: _schema, ...clientConfig } = config;
   const action = createContentRecord.bind(null, params.type);
 
   return (
@@ -26,7 +29,7 @@ export default function NewContentPage({ params }: Props) {
         ]}
       />
       <div className="max-w-2xl rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800">
-        <ContentForm config={config} action={action} />
+        <ContentForm config={clientConfig} action={action} />
       </div>
     </div>
   );
