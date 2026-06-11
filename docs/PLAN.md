@@ -29,10 +29,10 @@ Other findings from the live admin: Team and Text/HTML grids are littered with u
 
 ### Scope ruling (operator decision, overridable by Martin)
 
-- **First-class content types (CRUD + public routes + blocks):** News, Page, Document, Club, Gallery, TeamMember(+category), Partner(+category), Project.
-- **Demoted to page content** (a block with editable props or a curated static page — no dedicated model/admin): Numbers, Testimonials, Awards, Leaders. They change ~yearly at most; a page with blocks is enough and is one less grid to teach successors.
+- **First-class content types (CRUD + public routes + blocks):** News, Page, Document, Club, Gallery, TeamMember(+category), Partner(+category), Project, **Award, Leader** (image-bearing yearly-append lists — promoted per D-10 ruling).
+- **Demoted to page content** (Zod-formed block props via the builder — no dedicated model/admin): Numbers, Testimonials. Rarely edited; blocks with proper field forms suffice. All content stays publicly visible.
 - **Kept minimal:** Carousel (already built; it's the homepage hero), HeaderAccent (tiny, useful for announcements).
-- **Dropped:** Calendar, Internships, Prep Courses — dead for 5–9 years. Their legacy URLs get redirects to sensible pages. ⚠ DECISION D-10 for Martin: confirm dropping these three. Resurrecting any later is one content-type PR.
+- **Dropped:** Calendar, Internships, Prep Courses — dead for 5–9 years; Internships' application log is also a GDPR liability we decline to inherit. Their legacy URLs get redirects to sensible pages. Resurrecting any later is one content-type PR. ✅ DECISION D-10 RESOLVED 2026-06-11 (Martin): compromise — Awards + Leaders first-class, Numbers + Testimonials blocks, dead three dropped.
 
 ## 3. Architecture verdicts (full-freedom review)
 
@@ -69,7 +69,7 @@ Milestone-driven, no calendar. Each ends deployable. (Free tiers only; observabi
 ### M2 — Content engine completion
 - 2.1 R4 block system rework (Zod + data deps + real block set).
 - 2.2 Media library (folders, drag-drop, required alt, `consentRecordedAt` for minors' photos) + picker used everywhere.
-- 2.3 Content types per §2 ruling: Document, Gallery, Club (finish), TeamMember, Partner, Project — one PR each, cookie-cutter off the Carousel/Club pattern; write `docs/patterns/new-content-type.md` after the first.
+- 2.3 Content types per §2 ruling: Document, Gallery, Club (finish), TeamMember, Partner, Project, Award, Leader — one PR each, cookie-cutter off the Carousel/Club pattern; write `docs/patterns/new-content-type.md` after the first.
 - 2.4 News: category (parent page) + color tag for parity with Sweboo; related posts.
 
 ### M3 — Editors win
@@ -116,3 +116,4 @@ A visitor can't tell the school changed CMSes except everything is faster and fi
 - **[LOW] `app/api/navigation/route.ts` `force-dynamic` reverted.** The mid-task working tree carried an unexplained `export const dynamic = "force-dynamic"` on the navigation API route (unrelated to M0). Reverted during cleanup to keep the branch scoped — re-apply deliberately if the nav route needs to bypass Next's full-route cache.
 - **[LOW] `.gitignore` hygiene.** `tsconfig.tsbuildinfo` is tracked but is a generated TS incremental cache (re-dirties on every build); `.playwright-mcp/` (MCP screenshots) is untracked junk. Both should be git-ignored (and `tsconfig.tsbuildinfo` `git rm --cached`).
 - **[LOW] Migration `20260610152704_init` is mis-named.** Content is a clean additive `add_club` migration, but it's already applied to the shared dev DB (Accelerate/Neon), so renaming the folder would cause drift. Rename only via a coordinated reset, or leave as-is.
+- **[LOW] `CarouselHero` uses `next/image`, which won't render the seeded SVG placeholders without `dangerouslyAllowSVG`.** Moot until a page actually places a `CarouselHero` block (none does today); resolve by replacing the carousel placeholders with real images via the M2.2 media library, not by enabling SVG optimization (security posture).
