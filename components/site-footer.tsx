@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/routing";
@@ -14,7 +15,7 @@ export const SiteFooter: React.FC = () => {
       <div className="container-page grid gap-8 py-10 md:grid-cols-3">
         <div>
           <div className="flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-100">
-            <img src="/images/logo.svg" alt="TUES" className="h-8 w-8" />
+            <Image src="/images/logo.svg" alt="TUES" width={32} height={32} className="h-8 w-8" />
             {t("title")}
           </div>
           <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">{t("description")}</p>
