@@ -2,6 +2,7 @@ import React from "react";
 import { prisma } from "@/lib/prisma";
 import { validateBlocks, renderBlockInstance, type BlockInstance } from "@/lib/blocks/registry";
 import { getNewsPosts } from "@/lib/news";
+import { isPublic } from "@/lib/content/shared";
 import type { Locale } from "@/i18n/config";
 
 interface CompileOptions {
@@ -49,9 +50,10 @@ export async function compilePage(opts: CompileOptions): Promise<CompiledPage | 
   });
   if (!page) return null;
 
-  // Determine source fields (prefer currentVersion snapshot if present)
+  // Content comes from the current published version snapshot (if any); public
+  // visibility is the page's canonical status (R3 — isPublic). Pages have no date.
   const source = page.currentVersion ?? page;
-  const published = !!(page.currentVersion ? page.currentVersion.published : page.published);
+  const published = isPublic(page);
   if (!includeDrafts && !published) return null; // hide drafts if not requested
 
   // Validate blocks

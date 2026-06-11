@@ -8,6 +8,7 @@ import { invalidateNavigationCache } from "@/lib/navigation-cache";
 import { invalidateNavigationTree } from "@/lib/navigation-build";
 import { revalidatePublicPages } from "@/lib/revalidate";
 import { bumpCacheVersion } from "@/lib/cache";
+import { statusFromPublished } from "@/lib/content/shared";
 
 function ensureAdmin(session: any): asserts session is { user: { id: string; role?: string } } {
   if (!session || !(session.user as any)?.id || (session.user as any)?.role !== "ADMIN") {
@@ -64,7 +65,10 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     if (body.excerpt !== undefined) data.excerpt = body.excerpt ?? null;
     if (body.bodyMarkdown !== undefined) data.bodyMarkdown = body.bodyMarkdown ?? null;
     if (body.blocks !== undefined) data.blocks = body.blocks as any;
-    if (body.published !== undefined) data.published = !!body.published;
+    if (body.published !== undefined) {
+      data.published = !!body.published;
+      data.status = statusFromPublished(!!body.published);
+    }
 
     const updated = await (prisma as any).page.update({ where: { id: params.id }, data, select: { id: true, slug: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, published: true } });
     // Create version snapshot

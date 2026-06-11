@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { renderBlocks } from "@/lib/cms";
 import { getNewsPosts } from "@/lib/news";
 import { resolveAlias } from "@/lib/routes";
+import { isPublic } from "@/lib/content/shared";
 
 // Render the page content (extracted to avoid duplication)
 function PageContent({
@@ -59,10 +60,10 @@ async function resolvePageHierarchical(
   // 1) Try exact full-path match
   const page = await (prisma as any).page.findUnique({
     where: { slug_locale: { slug: joined, locale } },
-    select: { id: true, title: true, excerpt: true, published: true, blocks: true, bodyMarkdown: true },
+    select: { id: true, title: true, excerpt: true, published: true, status: true, blocks: true, bodyMarkdown: true },
   }).catch(() => null);
 
-  if (page?.published) return { page, foundAt: "exact" };
+  if (page && isPublic(page)) return { page, foundAt: "exact" };
 
   // 2) Hierarchical fallback: batch fetch all needed paths at once (avoids N+1)
   // Build all parent-segment combinations to check
@@ -79,7 +80,7 @@ async function resolvePageHierarchical(
       slug: { in: slugParts },
       // This is still a limitation, but we can optimize by fetching strategically
     },
-    select: { id: true, parentId: true, slug: true, title: true, excerpt: true, published: true, blocks: true, bodyMarkdown: true },
+    select: { id: true, parentId: true, slug: true, title: true, excerpt: true, published: true, status: true, blocks: true, bodyMarkdown: true },
   });
 
   // Build a map for quick lookup
@@ -99,7 +100,7 @@ async function resolvePageHierarchical(
     currentParentId = current.id;
   }
 
-  if (current?.published) return { page: current, foundAt: "hierarchical" };
+  if (current && isPublic(current)) return { page: current, foundAt: "hierarchical" };
   return null;
 }
 

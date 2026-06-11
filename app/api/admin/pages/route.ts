@@ -8,6 +8,7 @@ import { invalidateNavigationCache } from "@/lib/navigation-cache";
 import { invalidateNavigationTree } from "@/lib/navigation-build";
 import { revalidatePublicPages } from "@/lib/revalidate";
 import { bumpCacheVersion } from "@/lib/cache";
+import { statusFromPublished } from "@/lib/content/shared";
 
 function ensureAdmin(session: any): asserts session is { user: { id: string; role?: string } } {
   if (!session || !(session.user as any)?.id || (session.user as any)?.role !== "ADMIN") {
@@ -81,6 +82,7 @@ export async function POST(req: Request) {
         bodyMarkdown: body.bodyMarkdown ?? null,
         blocks: body.blocks as any,
         published: body.published ?? true,
+        status: statusFromPublished(body.published ?? true),
         authorId: userId,
       },
       select: { id: true },

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getCached } from "@/lib/cache";
+import { publicWhere } from "@/lib/content/shared";
 import type { Locale } from "@/i18n/config";
 
 /**
@@ -36,7 +37,9 @@ async function getRouteAliasRows(locale: Locale): Promise<RouteAliasRow[]> {
     ttlMs: ALIAS_TTL_MS,
     loader: () =>
       (prisma as { page: { findMany: (args: unknown) => Promise<RouteAliasRow[]> } }).page.findMany({
-        where: { locale, kind: "ROUTE", routeOverride: { not: null } },
+        // Only PUBLISHED ROUTE nodes advertise a live alias (a draft node has no
+        // public footprint — content, nav, or alias). R3.
+        where: { locale, kind: "ROUTE", routeOverride: { not: null }, ...publicWhere() },
         select: { routeOverride: true, routePath: true, slug: true },
       }),
   });

@@ -8,6 +8,7 @@ import { invalidateNavigationTree } from "@/lib/navigation-build";
 import { recordAudit } from "@/lib/audit";
 import { revalidatePublicPages } from "@/lib/revalidate";
 import { bumpCacheVersion } from "@/lib/cache";
+import { statusFromPublished } from "@/lib/content/shared";
 
 const NAV_LOCALES = Array.from(supportedLocales);
 const NAV_PAGE_SELECT = {
@@ -193,6 +194,7 @@ export async function POST(req: Request) {
             order: 9999,
             title: navLabelValue,
             published: true,
+            status: "PUBLISHED",
             groupId,
           },
           select: { id: true }
@@ -335,6 +337,7 @@ async function ensureNavigationLocaleCoverage(): Promise<NavPageRow[]> {
           bodyMarkdown: template.bodyMarkdown,
           blocks: template.blocks,
           published: template.published,
+          status: statusFromPublished(template.published),
           authorId: template.authorId,
         },
         select: NAV_PAGE_SELECT,

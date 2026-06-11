@@ -1,6 +1,7 @@
 import { defaultLocale, locales } from "@/i18n/config";
 import { prisma } from "@/lib/prisma";
 import { getRedisClient, type RedisClient } from "@/lib/redis";
+import { publicWhere } from "@/lib/content/shared";
 
 // Minimal Type reused across server/client
 export interface UiNavNode { label: string; href?: string; external?: boolean; children?: UiNavNode[]; kind?: string }
@@ -158,7 +159,7 @@ function mapWithPath(n: any, parentSegments: string[], inRoute: boolean, routeBa
 async function buildNavigation(locale: string, role?: string | null): Promise<NavigationResult> {
   const localesToFetch = locale === defaultLocale ? [locale] : [locale, defaultLocale];
   const pages = await (prisma as any).page.findMany({
-    where: { locale: { in: localesToFetch }, published: true },
+    where: { locale: { in: localesToFetch }, ...publicWhere() },
     orderBy: [{ parentId: 'asc' }, { order: 'asc' }],
     select: { id: true, groupId: true, parentId: true, order: true, slug: true, visible: true, externalUrl: true, routePath: true, routeOverride: true, navLabel: true, kind: true, locale: true, accessRole: true }
   });
