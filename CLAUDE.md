@@ -2,7 +2,7 @@
 
 You are working on the **ТУЕС (Elsys) school website rewrite**: a Next.js 14 App Router replacement for `https://elsys-bg.org/` (legacy: Sweboo by StudioX, PHP-style admin, ~20 content types). Multilingual BG/EN, Prisma-backed CMS, block-based page builder, real auth.
 
-Your task brief (pasted per session by the operator) is the source of truth for current state and scope. This file holds only the standing rules. The full delivery plan is `docs/PARITY_AND_IMPROVEMENT_PLAN.md` — read the section your brief names, not the whole file.
+Your task brief (pasted per session by the operator) is the source of truth for current state and scope. This file holds only the standing rules. The delivery plan is `docs/PLAN.md` — read the milestone your brief names, not the whole file.
 
 ---
 
@@ -58,13 +58,12 @@ lib/
 prisma/schema.prisma          Source of truth; migrations/; seed.js
 messages/{bg,en}.json         All UI strings (next-intl)
 middleware.ts                 Admin auth gate + route-alias rewrites
-docs/                         PARITY_AND_IMPROVEMENT_PLAN.md (THE PLAN), BUILDER_UX_ANALYSIS.md,
-                              news-system.md, navigation-system.md, page-builder-system.md,
-                              PERFORMANCE_OPTIMIZATIONS.md, TROUBLESHOOTING.md, audits/
+docs/                         PLAN.md (THE PLAN), news-system.md, navigation-system.md,
+                              page-builder-system.md, TROUBLESHOOTING.md, audits/, runbooks/
 scripts/                      import-from-elsys-bg.mjs, scrape-static-pages.ts (migration is scrape-based)
 ```
 
-Doc to read per area: builder → `BUILDER_UX_ANALYSIS.md` + `page-builder-system.md`; news → `news-system.md`; nav → `navigation-system.md`; auth → `authentication-authorization-audit.md`; caching/perf → `PERFORMANCE_OPTIMIZATIONS.md`.
+Doc to read per area: builder → `page-builder-system.md`; news → `news-system.md`; nav → `navigation-system.md`; auth → `authentication-authorization-audit.md`.
 
 ## 6. Commands
 
