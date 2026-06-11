@@ -35,3 +35,6 @@ logs
 .vscode/
 node_modules/
 .next/
+
+# Claude Code local settings (machine-specific override)
+.claude/settings.local.json
