@@ -6,6 +6,7 @@ import { invalidateNavigationCache } from "@/lib/navigation-cache";
 import { invalidateNavigationTree } from "@/lib/navigation-build";
 import { recordAudit } from "@/lib/audit";
 import { revalidatePublicPages } from "@/lib/revalidate";
+import { bumpCacheVersion } from "@/lib/cache";
 
 function ensureAdmin(session: any): asserts session is { user: { id: string; role?: string } } {
   if (!session || !(session.user as any)?.id || (session.user as any)?.role !== "ADMIN") {
@@ -60,6 +61,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
           details: { locale: existing.locale, fields: Object.keys(data) },
         });
       } catch {}
+      // ROUTE pages define URL aliases — bump the routes cache before revalidating.
+      await bumpCacheVersion("routes");
       try {
         await revalidatePublicPages();
       } catch (e) {
@@ -198,6 +201,8 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
         details: { groupIds: Array.from(toDeleteGroupIds) },
       });
     } catch {}
+    // Deleting nav nodes can remove ROUTE alias pages — bump the routes cache.
+    await bumpCacheVersion("routes");
     try {
       await revalidatePublicPages();
     } catch (e) {

@@ -8,6 +8,7 @@ import type { Locale } from "@/i18n/config";
 import { prisma } from "@/lib/prisma";
 import { renderBlocks } from "@/lib/cms";
 import { getNewsPosts } from "@/lib/news";
+import { resolveAlias } from "@/lib/routes";
 
 // Render the page content (extracted to avoid duplication)
 function PageContent({
@@ -111,8 +112,17 @@ export default async function DynamicPage({ params }: { params: { locale: Locale
     return <div className="container-page py-20">{tCommon("pageNotFound")}</div>;
   }
 
-  // Resolve the page (exact or hierarchical)
-  const resolved = await resolvePageHierarchical(locale, slugParts);
+  // Resolve the page (exact or hierarchical), then fall back to a route alias.
+  let resolved = await resolvePageHierarchical(locale, slugParts);
+  if (!resolved) {
+    // Alias resolution (replaces the old middleware -> /api/route-alias hop):
+    // map the path through a cached `routes`-namespace alias table, then render
+    // the same content the target route would.
+    const aliasTarget = await resolveAlias(locale, slugParts);
+    if (aliasTarget) {
+      resolved = await resolvePageHierarchical(locale, aliasTarget);
+    }
+  }
   if (!resolved) {
     return <div className="container-page py-20">{tCommon("pageNotFound")}</div>;
   }

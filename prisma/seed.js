@@ -736,6 +736,45 @@ Registration for the first workshop is now open!`,
   }
 
   console.log(`✓ Seeded ${clubs.length} student clubs`);
+
+  // Seed a page + a kind=ROUTE alias that points at it.
+  // This is living documentation of the ROUTE alias feature AND the fixture the
+  // route-alias e2e relies on (CI seeds the DB, so the test can't depend on
+  // dev-machine state). /bg/za-nas/za-uchilishteto resolves to the same content
+  // as the canonical /bg/za-uchilishteto via lib/routes.ts.
+  const pages = [
+    {
+      slug: 'za-uchilishteto',
+      locale: 'bg',
+      title: 'За училището',
+      bodyMarkdown: 'ТУЕС е водещо технологично училище в България.',
+      published: true,
+      kind: 'PAGE',
+    },
+    {
+      // ROUTE alias node: routeOverride "za-nas" -> routePath "[...slug]"
+      // (catch-all). The remainder of the URL becomes the resolved target path.
+      slug: 'za-uchilishteto-route',
+      locale: 'bg',
+      title: 'За училището (route alias)',
+      navLabel: 'За нас',
+      published: true,
+      visible: true,
+      kind: 'ROUTE',
+      routeOverride: 'za-nas',
+      routePath: '[...slug]',
+    },
+  ];
+
+  for (const page of pages) {
+    await prisma.page.upsert({
+      where: { slug_locale: { slug: page.slug, locale: page.locale } },
+      update: page,
+      create: { ...page, authorId: user.id },
+    });
+  }
+
+  console.log(`✓ Seeded ${pages.length} pages (incl. 1 ROUTE alias)`);
 }
 
 main()
