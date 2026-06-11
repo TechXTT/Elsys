@@ -9,6 +9,7 @@ This document tracks issues encountered during development and their solutions.
 1. [Redis Connection Issues](#redis-connection-issues)
 2. [Prisma Database Issues](#prisma-database-issues)
 3. [Build & Development Issues](#build--development-issues)
+4. [Pages Render But Never Hydrate (Console Ninja)](#pages-render-but-never-hydrate-console-ninja)
 
 ---
 
@@ -352,6 +353,41 @@ npx prisma db pull --print
 # List all env vars (be careful with secrets!)
 npx env-cmd -f .env.local -- printenv | grep -E "REDIS|DATABASE"
 ```
+
+---
+
+## Pages Render But Never Hydrate (Console Ninja)
+
+**Symptoms:**
+- Every page (public *and* admin) server-renders correctly, but nothing is interactive: buttons, the locale switcher, forms — all dead.
+- In the browser console of a *clean* browser (not your editor's): `Invalid or unexpected token`.
+- In your normal editor browser: **no** console error and no Next.js dev overlay (Console Ninja redirects/suppresses console output, so you never see it).
+- `window.next` is `undefined`; no `__reactFiber$…` keys on any DOM node; `self.__next_f` is populated and `webpackChunk_N_E` exists, yet nothing runs.
+- Survives `rm -rf .next` + restart; reproduces in Chrome *and* Safari.
+
+**Root cause:**
+The **Console Ninja** VS Code extension (`wallabyjs.console-ninja`) patches files *inside the installed `next` package* — `node_modules/next/dist/compiled/webpack/bundle5.js` and `node_modules/next/dist/server/lib/start-server.js`. The patched compiler injects Console Ninja's network-logging handler into the served **webpack runtime chunk** (`/_next/static/chunks/webpack.js`). That injected blob is malformed, so the runtime chunk fails to parse. The webpack runtime is what drains the chunk queue and runs the entry that calls `hydrateRoot` — when it can't parse, hydration never starts. The injection survives env/terminal/`.next` changes because it lives in the package files themselves (a bare `node -e` is *not* injected).
+
+This is **local-dev only** — CI and production do a clean install without Console Ninja, so the deployed site hydrates fine.
+
+**How to confirm:**
+```bash
+# 1. With the dev server running, syntax-check the served runtime chunk:
+curl -s "http://localhost:3000/_next/static/chunks/webpack.js" -o /tmp/wp.js
+node --check /tmp/wp.js          # SyntaxError at a `(0,eval)("…console-ninja…")` block = confirmed
+
+# 2. Check the installed package for the injection:
+grep -l "_triedToInstallNetworkLoggingHandler" \
+  node_modules/next/dist/compiled/webpack/bundle5.js \
+  node_modules/next/dist/server/lib/start-server.js
+```
+
+**Solution:**
+1. Disable Console Ninja's Next.js integration (or the whole extension) in VS Code so it stops re-patching.
+2. Restore the `next` package: `pnpm install --force` (re-verifies the content-addressed store and re-fetches the corrupted files). Confirm clean: the `grep` above returns nothing.
+3. Verify: `window.next` is defined and the locale switcher navigates. The Playwright guard `tests/e2e/hydration.spec.ts` fails on this exact failure mode — run `pnpm exec playwright test hydration`.
+
+**Prevention:** Keep Console Ninja off for this project (or pin to a known-good version). The hydration guard test catches regressions of this class.
 
 ---
 
