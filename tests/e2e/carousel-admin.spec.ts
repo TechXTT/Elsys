@@ -1,13 +1,16 @@
 import { test, expect } from "@playwright/test";
 
+async function login(page: import("@playwright/test").Page) {
+  await page.goto("/admin/login");
+  await page.fill('input[name="email"]', process.env.TEST_ADMIN_EMAIL ?? "admin@elsys.bg");
+  await page.fill('input[name="password"]', process.env.TEST_ADMIN_PASSWORD ?? "admin123");
+  await page.click('button[type="submit"]');
+  await page.waitForURL(/\/admin$/);
+}
+
 test.describe("Carousel admin CRUD (Phase 2.1)", () => {
   test.beforeEach(async ({ page }) => {
-    // Log in as admin
-    await page.goto("/admin/login");
-    await page.fill('input[name="email"]', process.env.TEST_ADMIN_EMAIL ?? "admin@elsys.bg");
-    await page.fill('input[name="password"]', process.env.TEST_ADMIN_PASSWORD ?? "admin123");
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/\/admin$/);
+    await login(page);
   });
 
   test("carousel list page loads", async ({ page }) => {
@@ -15,18 +18,20 @@ test.describe("Carousel admin CRUD (Phase 2.1)", () => {
     await expect(page.getByRole("heading")).toContainText("Карусел");
   });
 
-  test("can create a carousel slide", async ({ page }) => {
+  test("can create a carousel slide and it persists in the list", async ({ page }) => {
+    const title = `Test Slide E2E ${Date.now()}`;
+
     await page.goto("/admin/content/carousel/new");
     await expect(page.getByRole("heading")).toContainText("Нов — Слайд");
 
-    await page.fill('input[name="title"]', "Test Slide E2E");
-    await page.fill('input[name="imageDesktop"]', "https://via.placeholder.com/1366x564.jpg");
     await page.selectOption('select[name="locale"]', "bg");
+    await page.fill('input[name="title"]', title);
+    await page.fill('input[name="imageDesktop"]', "https://via.placeholder.com/1366x564.jpg");
     await page.selectOption('select[name="status"]', "PUBLISHED");
     await page.click('button[type="submit"]');
 
-    // Should redirect back to list
+    // Redirect back to the list, and the new slide must actually be persisted.
     await page.waitForURL(/\/admin\/content\/carousel$/);
-    await expect(page.getByText("Test Slide E2E")).toBeVisible();
+    await expect(page.getByText(title)).toBeVisible();
   });
 });
