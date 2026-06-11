@@ -7,6 +7,7 @@ import { invalidatePageCache } from "@/lib/cms/compile";
 import { invalidateNavigationCache } from "@/lib/navigation-cache";
 import { invalidateNavigationTree } from "@/lib/navigation-build";
 import { revalidatePublicPages } from "@/lib/revalidate";
+import { bumpCacheVersion } from "@/lib/cache";
 
 function ensureAdmin(session: any): asserts session is { user: { id: string; role?: string } } {
   if (!session || !(session.user as any)?.id || (session.user as any)?.role !== "ADMIN") {
@@ -114,6 +115,8 @@ export async function POST(req: Request) {
     try {
       invalidateNavigationCache();
       await invalidateNavigationTree();
+      // A new slug can be an alias target — bump the routes cache before revalidating.
+      await bumpCacheVersion("routes");
       await revalidatePublicPages();
     } catch (e) {
       console.error("page create revalidation failed", e);

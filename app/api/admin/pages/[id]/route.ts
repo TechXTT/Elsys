@@ -7,6 +7,7 @@ import { recordAudit } from "@/lib/audit";
 import { invalidateNavigationCache } from "@/lib/navigation-cache";
 import { invalidateNavigationTree } from "@/lib/navigation-build";
 import { revalidatePublicPages } from "@/lib/revalidate";
+import { bumpCacheVersion } from "@/lib/cache";
 
 function ensureAdmin(session: any): asserts session is { user: { id: string; role?: string } } {
   if (!session || !(session.user as any)?.id || (session.user as any)?.role !== "ADMIN") {
@@ -95,6 +96,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     try {
       invalidateNavigationCache();
       await invalidateNavigationTree();
+      // slug / page changes can affect route aliases — bump routes before revalidating.
+      await bumpCacheVersion("routes");
       await revalidatePublicPages();
     } catch (e) {
       console.error("page update revalidation failed", e);
@@ -134,6 +137,8 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     try {
       invalidateNavigationCache();
       await invalidateNavigationTree();
+      // slug / page changes can affect route aliases — bump routes before revalidating.
+      await bumpCacheVersion("routes");
       await revalidatePublicPages();
     } catch (e) {
       console.error("page delete revalidation failed", e);
