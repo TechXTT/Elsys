@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { defaultLocale } from "@/i18n/config";
 import { getNewsPost as dbGetNewsPost, updateNewsPost as dbUpdateNewsPost, revalidateNews } from "@/lib/news";
 import { getNewsPostVersions, restoreNewsPostVersion } from "@/lib/news-versions";
+import { statusFromPublished } from "@/lib/content/shared";
 import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/audit";
 import type { PostItem } from "@/lib/types";
@@ -316,6 +317,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
           where: { id_locale: { id: params.id, locale: otherLocale } },
           data: {
             published,
+            status: statusFromPublished(published),
             date: safeDate,
           },
         });

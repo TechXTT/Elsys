@@ -132,7 +132,10 @@ model Page {
   excerpt      String?
   bodyMarkdown String?
   blocks       Json?
+  /// Legacy boolean — kept and dual-written during the R3 transition (drop after M1 soak, PLAN §8).
   published    Boolean  @default(true)
+  /// Canonical publication state (R3). Public visibility = isPublic() in lib/content/shared.ts.
+  status       PublishStatus @default(PUBLISHED)
 
   // Navigation hierarchy & presentation (merged from NavigationItem)
   parentId     String?
@@ -160,7 +163,7 @@ model Page {
 
   @@unique([slug, locale])
   @@index([slug, locale])
-  @@index([locale, published]) // For hierarchical lookups filtering by published status
+  @@index([locale, status]) // For hierarchical lookups filtering by publication status (R3)
   @@index([locale, parentId, slug]) // Critical for hierarchical path resolution (avoids N+1)
   @@index([groupId])
   @@index([parentId, order])
@@ -186,8 +189,10 @@ model NewsPost {
   images        Json?
   /// Featured image URL (card cover)
   featuredImage String?
-  /// Published status (draft=false)
+  /// Legacy boolean — kept and dual-written during the R3 transition (drop after M1 soak, PLAN §8).
   published     Boolean  @default(true)
+  /// Canonical publication state (R3). Public visibility = isPublic() (status PUBLISHED + date <= now).
+  status        PublishStatus @default(PUBLISHED)
 
   authorId      String?
   author        User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -197,8 +202,8 @@ model NewsPost {
 
   @@id([id, locale])
   @@index([date])
-  /// Composite index to speed locale + published + date queries
-  @@index([locale, published, date])
+  /// Composite index to speed locale + status + date queries (R3)
+  @@index([locale, status, date])
 }
 
 /// Version history for news posts (for rollback functionality)

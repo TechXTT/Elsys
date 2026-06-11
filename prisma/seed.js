@@ -601,6 +601,8 @@ Registration for the first workshop is now open!`,
   const seededVersions = new Set();
 
   for (const article of newsArticles) {
+    // Dual-write status (R3): boolean -> PublishStatus. Scheduling stays date-encoded.
+    const article2 = { ...article, status: article.published === false ? 'DRAFT' : 'PUBLISHED' };
     await prisma.newsPost.upsert({
       where: {
         id_locale: {
@@ -608,8 +610,8 @@ Registration for the first workshop is now open!`,
           locale: article.locale
         }
       },
-      update: article,
-      create: { ...article, authorId: user.id },
+      update: article2,
+      create: { ...article2, authorId: user.id },
     });
 
     // Create version 1 only once per slug (shared across all locales)
@@ -749,6 +751,7 @@ Registration for the first workshop is now open!`,
       title: 'За училището',
       bodyMarkdown: 'ТУЕС е водещо технологично училище в България.',
       published: true,
+      status: 'PUBLISHED',
       kind: 'PAGE',
     },
     {
@@ -759,10 +762,21 @@ Registration for the first workshop is now open!`,
       title: 'За училището (route alias)',
       navLabel: 'За нас',
       published: true,
+      status: 'PUBLISHED',
       visible: true,
       kind: 'ROUTE',
       routeOverride: 'za-nas',
       routePath: '[...slug]',
+    },
+    {
+      // R3 fixture: a DRAFT page must 404 publicly but still list in admin.
+      slug: 'chernova-stranica',
+      locale: 'bg',
+      title: 'Чернова страница',
+      bodyMarkdown: 'Това е чернова и не трябва да е видима публично.',
+      published: false,
+      status: 'DRAFT',
+      kind: 'PAGE',
     },
   ];
 
@@ -774,7 +788,28 @@ Registration for the first workshop is now open!`,
     });
   }
 
-  console.log(`✓ Seeded ${pages.length} pages (incl. 1 ROUTE alias)`);
+  console.log(`✓ Seeded ${pages.length} pages (incl. 1 ROUTE alias, 1 draft)`);
+
+  // R3 fixture: a PUBLISHED news post dated far in the future — hidden from
+  // /bg/news by the isPublic date gate until its date passes (scheduling stays
+  // encoded as a future date; status is PUBLISHED, not SCHEDULED).
+  const scheduledNews = {
+    id: 'm04-scheduled-news',
+    locale: 'bg',
+    title: 'Насрочена новина (M0.4)',
+    excerpt: 'Публикувана, но с бъдеща дата — не се вижда още.',
+    bodyMarkdown: 'Тази новина е насрочена за бъдеща дата.',
+    date: new Date('2099-01-01'),
+    featuredImage: '/images/news/workshops.svg',
+    published: true,
+    status: 'PUBLISHED',
+  };
+  await prisma.newsPost.upsert({
+    where: { id_locale: { id: scheduledNews.id, locale: scheduledNews.locale } },
+    update: scheduledNews,
+    create: { ...scheduledNews, authorId: user.id },
+  });
+  console.log('✓ Seeded 1 scheduled (future-dated) news post');
 }
 
 main()

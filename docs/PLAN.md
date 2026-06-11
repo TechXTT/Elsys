@@ -101,7 +101,7 @@ Unchanged and still the #1 project risk: this is a student initiative; nobody wi
 
 ## 6. Standing decisions
 
-D1 free-tier observability · D2 scrape-only migration · D3 EN = DeepL + human review on key pages · D4 no deadline, quality wins · D5 no formal teacher testing, one hallway test · D6 credentials + 2FA, OAuth only if school Workspace materializes · D7–D9 (state-audit, seeded sandbox, T-A gate) · **D-10 (pending Martin): drop Calendar/Internships/Courses; demote Numbers/Testimonials/Awards/Leaders to page content** · D-11 (this doc): rewrite rulings R1–R7.
+D1 free-tier observability · D2 scrape-only migration · D3 EN = DeepL + human review on key pages · D4 no deadline, quality wins · D5 no formal teacher testing, one hallway test · D6 credentials + 2FA, OAuth only if school Workspace materializes · D7–D9 (state-audit, seeded sandbox, T-A gate) · D-10 ✅ resolved (compromise — see §2) · D-11 (this doc): rewrite rulings R1–R7 · D-12 (2026-06-11, Martin): operator decides autonomously; Martin is consulted only on real-world irreversibles (destructive prod data ops, DNS cutover, spending, school-binding commitments) or genuine uncertainty. Schema-change approvals previously reserved for Martin now sit with the operator.
 
 ## 7. What success looks like
 
@@ -117,3 +117,5 @@ A visitor can't tell the school changed CMSes except everything is faster and fi
 - **[LOW] `.gitignore` hygiene.** `tsconfig.tsbuildinfo` is tracked but is a generated TS incremental cache (re-dirties on every build); `.playwright-mcp/` (MCP screenshots) is untracked junk. Both should be git-ignored (and `tsconfig.tsbuildinfo` `git rm --cached`).
 - **[LOW] Migration `20260610152704_init` is mis-named.** Content is a clean additive `add_club` migration, but it's already applied to the shared dev DB (Accelerate/Neon), so renaming the folder would cause drift. Rename only via a coordinated reset, or leave as-is.
 - **[LOW] `CarouselHero` uses `next/image`, which won't render the seeded SVG placeholders without `dangerouslyAllowSVG`.** Moot until a page actually places a `CarouselHero` block (none does today); resolve by replacing the carousel placeholders with real images via the M2.2 media library, not by enabling SVG optimization (security posture).
+- **[MED] R3 phase-two cleanup: drop the `Page.published` / `NewsPost.published` boolean columns.** M0.4 added `status PublishStatus` and dual-writes both during the transition; once M1 has soaked, a follow-up PR removes the booleans, the dual-write in the mutation handlers + `lib/news.ts` + `prisma/seed.js`, and the `published` field from `PostItem`/selects. `PageVersion`/`NewsPostVersion` keep their boolean (snapshots).
+- **[LOW] `app/sitemap.ts` is static (hardcoded routes, no DB read).** When R2/M1.4 makes it dynamic, route its Page/NewsPost reads through `publicWhere()` (lib/content/shared.ts) so unpublished/scheduled content stays out of the sitemap.

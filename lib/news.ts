@@ -1,6 +1,7 @@
 import { prisma } from "./prisma";
 import { defaultLocale, locales, type Locale } from "@/i18n/config";
 import { bumpCacheVersion, getCached } from "@/lib/cache";
+import { isPublic, publicWhere, statusFromPublished } from "@/lib/content/shared";
 import type { PostItem } from "@/lib/types";
 
 const NEWS_CACHE_NAMESPACE = "news";
@@ -39,6 +40,7 @@ interface NewsRow {
   images: ImageMeta[] | null;
   featuredImage: string | null;
   published: boolean;
+  status?: string;
 }
 
 function toPostItem(row: NewsRow): PostItem {
@@ -67,14 +69,11 @@ export async function getNewsPosts(locale?: Locale, includeDrafts = false): Prom
       const primaryRows: NewsRow[] = await (prisma as any).newsPost.findMany({
         where: {
           locale: loc,
-          ...(includeDrafts ? {} : {
-            published: true,
-            // Only show posts with date in the past or today (scheduled publishing)
-            date: { lte: now }
-          })
+          // Public reads: status PUBLISHED + date <= now (scheduling stays date-encoded).
+          ...(includeDrafts ? {} : publicWhere({ gateDate: true, now })),
         },
         orderBy: { date: "desc" },
-        select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true },
+        select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true },
       });
 
       // If locale is not default, also fetch defaults to fill gaps (only when not includeDrafts)
@@ -83,11 +82,10 @@ export async function getNewsPosts(locale?: Locale, includeDrafts = false): Prom
         fallbackRows = await (prisma as any).newsPost.findMany({
           where: {
             locale: defaultLocale,
-            published: true,
-            date: { lte: now }
+            ...publicWhere({ gateDate: true, now }),
           },
           orderBy: { date: "desc" },
-          select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true },
+          select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true },
         });
       }
 
@@ -106,11 +104,11 @@ export async function getNewsPost(slug: string, locale?: Locale, includeDrafts =
   const localesToFetch = loc === defaultLocale ? [loc] : [loc, defaultLocale];
   const rows: NewsRow[] = await (prisma as any).newsPost.findMany({
     where: { id: slug, locale: { in: localesToFetch } },
-    select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true },
+    select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true },
   });
   const now = new Date();
-  // Helper to check if post should be visible publicly (published AND date is not in future)
-  const isPubliclyVisible = (row: NewsRow) => row.published && row.date <= now;
+  // Public visibility: status PUBLISHED + date not in the future (canonical helper).
+  const isPubliclyVisible = (row: NewsRow) => isPublic(row, now);
 
   const primary = rows.find(r => r.locale === loc);
   if (primary && (includeDrafts || isPubliclyVisible(primary))) return { post: toPostItem(primary), markdown: primary.bodyMarkdown, blocks: primary.blocks, useBlocks: primary.useBlocks, published: primary.published };
@@ -147,6 +145,7 @@ export async function createNewsPost(input: {
       images: input.images ?? null,
       featuredImage: input.featuredImage ?? null,
       published: input.published ?? true,
+      status: statusFromPublished(input.published ?? true),
       authorId: input.authorId ?? null,
     },
   });
@@ -246,6 +245,7 @@ export async function updateNewsPost(args: {
         images: args.images ?? null,
         featuredImage: args.featuredImage ?? null,
         published: args.published ?? true,
+        status: statusFromPublished(args.published ?? true),
         authorId: args.authorId ?? null,
       },
     });
@@ -264,6 +264,7 @@ export async function updateNewsPost(args: {
       images: args.images ?? null,
       featuredImage: args.featuredImage ?? null,
       published: args.published ?? true,
+      status: statusFromPublished(args.published ?? true),
       authorId: args.authorId ?? null,
     },
   });

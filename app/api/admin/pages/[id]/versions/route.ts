@@ -7,6 +7,7 @@ import { invalidatePageCache } from "@/lib/cms/compile";
 import { invalidateNavigationCache } from "@/lib/navigation-cache";
 import { invalidateNavigationTree } from "@/lib/navigation-build";
 import { revalidatePublicPages } from "@/lib/revalidate";
+import { bumpCacheVersion } from "@/lib/cache";
 
 function ensureAdmin(session: any): asserts session is { user: { id: string; role?: string } } {
   if (!session || !(session.user as any)?.id || (session.user as any)?.role !== "ADMIN") {
@@ -62,13 +63,15 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     });
     await (prisma as any).page.update({
       where: { id: params.id },
-      data: { currentVersionId: pv.id, title: src.title, excerpt: src.excerpt, bodyMarkdown: src.bodyMarkdown, blocks: src.blocks, published: true },
+      data: { currentVersionId: pv.id, title: src.title, excerpt: src.excerpt, bodyMarkdown: src.bodyMarkdown, blocks: src.blocks, published: true, status: "PUBLISHED" },
     });
     await recordAudit({ req, userId, action: "PAGE_ROLLBACK", entity: "Page", entityId: params.id, details: { restoredFrom: src.id, version } });
     try { invalidatePageCache(page.slug, page.locale as any); } catch {}
     try {
       invalidateNavigationCache();
       await invalidateNavigationTree();
+      // Restore flips the page to published — its status gates nav + alias visibility.
+      await bumpCacheVersion("routes");
       await revalidatePublicPages();
     } catch (e) {
       console.error("page rollback revalidation failed", e);
