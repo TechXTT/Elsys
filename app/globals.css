@@ -69,7 +69,8 @@ a:not([data-ui]):focus-visible, button:not([data-ui]):focus-visible, select:not(
 }
 .section-accent > * { position: relative; z-index: 1; }
 
-header { box-shadow: 0 1px 0 rgba(2,6,23,0.04), 0 2px 10px rgba(2,6,23,0.04); }
+/* Legacy global header shadow removed in Phase C — SiteHeader owns its chrome
+   (flat brand bar by default, surface + bottom border when scrolled). */
 
 .btn-primary { display:inline-flex; align-items:center; justify-content:center; gap:0.375rem; border:none; cursor:pointer; background: var(--color-brand); color:#fff; font-size:0.875rem; font-weight:600; padding:0.5rem 1rem; border-radius:6px; box-shadow:0 2px 4px rgba(0,0,0,0.06); transition: background-color var(--transition-fast), box-shadow var(--transition-fast); text-decoration:none; }
 .btn-primary:hover { background: var(--color-brand-accent); }

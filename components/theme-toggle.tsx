@@ -1,9 +1,13 @@
 "use client";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { MdDarkMode, MdLightMode } from "react-icons/md";
+import { Moon, Sun } from "lucide-react";
+
+import { cn } from "@/lib/cn";
 
 const storageKey = "elsys-theme";
+
+type Tone = "brand" | "surface";
 
 function getStoredTheme(): "dark" | "light" | null {
   if (typeof window === "undefined") return null;
@@ -16,7 +20,12 @@ function getSystemPreference(): "dark" | "light" {
   return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
-export const ThemeToggle: React.FC = () => {
+/**
+ * ThemeToggle (Figma 20:17) — a pill switch driving data-theme on <html>.
+ * Persists the explicit choice (localStorage + cookie); clears it to follow
+ * prefers-color-scheme. `tone` adapts to the brand header vs a light surface.
+ */
+export function ThemeToggle({ tone = "surface" }: { tone?: Tone }) {
   const [theme, setTheme] = useState<"dark" | "light" | "system">("system");
   const [isMounted, setIsMounted] = useState(false);
   const t = useTranslations("Theme");
@@ -44,8 +53,7 @@ export const ThemeToggle: React.FC = () => {
   useEffect(() => {
     if (!isMounted) return;
     if (theme === "system") {
-      const systemTheme = getSystemPreference();
-      setDocumentTheme(systemTheme);
+      setDocumentTheme(getSystemPreference());
       clearStoredTheme();
     } else {
       setDocumentTheme(theme);
@@ -57,8 +65,7 @@ export const ThemeToggle: React.FC = () => {
     if (!media) return;
     const listener = (event: MediaQueryListEvent) => {
       if (getStoredTheme() === null) {
-        const mode = event.matches ? "dark" : "light";
-        setDocumentTheme(mode);
+        setDocumentTheme(event.matches ? "dark" : "light");
         setTheme("system");
       }
     };
@@ -74,47 +81,51 @@ export const ThemeToggle: React.FC = () => {
     } else {
       const system = getSystemPreference();
       const root = document.documentElement;
-      if (system === "dark") {
-        root.classList.add("dark");
-        root.dataset.theme = "dark";
-      } else {
-        root.classList.remove("dark");
-        root.dataset.theme = "light";
-      }
+      root.classList.toggle("dark", system === "dark");
+      root.dataset.theme = system;
       clearStoredTheme();
       setTheme("system");
     }
     setIsMounted(true);
   }, [setDocumentTheme, clearStoredTheme]);
 
-  const activeMode = isMounted ? (theme === "system" ? getSystemPreference() : theme) : "light";
-  const targetMode: "dark" | "light" = activeMode === "dark" ? "light" : "dark";
-  const currentLabel = targetMode === "dark" ? t("toDark") : t("toLight");
+  const isDark = isMounted && (theme === "system" ? getSystemPreference() : theme) === "dark";
+  const switchLabel = isDark ? t("toLight") : t("toDark");
 
   const handleToggle = () => {
     if (!isMounted) return;
     const active = theme === "system" ? getSystemPreference() : theme;
-    const next = active === "dark" ? "light" : "dark";
-    setTheme(next);
+    setTheme(active === "dark" ? "light" : "dark");
   };
 
   return (
     <button
-      onClick={handleToggle}
-      className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white p-2 text-slate-700 shadow-sm hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
       type="button"
+      onClick={handleToggle}
+      aria-pressed={isDark}
       aria-label={t("toggleAria")}
-      title={currentLabel}
-    >
-      {/* Show the icon for the mode we will switch to (sun => light, moon => dark) */}
-      {targetMode === "light" ? (
-        // Sun icon
-        <MdLightMode />
-      ) : (
-        // Moon icon
-        <MdDarkMode />
+      title={switchLabel}
+      data-ui="theme-toggle"
+      className={cn(
+        "relative inline-flex h-7 w-12 shrink-0 items-center rounded-[var(--radius-full)] border transition-colors",
+        tone === "brand"
+          ? "border-[var(--color-text-on-brand)] bg-transparent"
+          : "border-[var(--color-border-default)] bg-[var(--color-bg-surface)]",
       )}
-      <span className="sr-only">{currentLabel}</span>
+    >
+      <span className="sr-only">{switchLabel}</span>
+      <span
+        aria-hidden
+        className={cn(
+          "inline-flex h-5 w-5 items-center justify-center rounded-[var(--radius-full)] transition-transform",
+          isDark ? "translate-x-[22px]" : "translate-x-[3px]",
+          tone === "brand"
+            ? "bg-[var(--color-text-on-brand)] text-[var(--color-bg-header)]"
+            : "bg-[var(--color-action-primary)] text-[var(--color-text-on-brand)]",
+        )}
+      >
+        {isDark ? <Moon size={12} /> : <Sun size={12} />}
+      </span>
     </button>
   );
-};
+}

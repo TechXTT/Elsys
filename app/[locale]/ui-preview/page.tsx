@@ -6,7 +6,6 @@ import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { Button, type ButtonSize, type ButtonVariant } from "@/components/ui/Button";
 import { Pagination } from "@/components/ui/Pagination";
 import { SearchBar } from "@/components/ui/SearchBar";
-import { SkipLink } from "@/components/ui/SkipLink";
 
 import { FormDemo } from "./FormDemo";
 
@@ -120,12 +119,10 @@ function BadgeGrid() {
 
 export default function UiPreviewPage() {
   return (
-    <main
+    <div
       data-testid="ui-preview"
       className="mx-auto flex max-w-5xl flex-col gap-[var(--spacing-2xl)] px-[var(--spacing-lg)] py-[var(--spacing-2xl)]"
     >
-      <SkipLink href="#preview-content">Към съдържанието</SkipLink>
-
       <header className="flex flex-col gap-[var(--spacing-2xs)]">
         <h1 className="text-h2 text-ink-heading">UI primitives</h1>
         <p className="text-body text-ink">Phase B · diff each against its Figma node.</p>
@@ -206,6 +203,6 @@ export default function UiPreviewPage() {
           </Panel>
         </Section>
       </div>
-    </main>
+    </div>
   );
 }

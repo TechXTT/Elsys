@@ -1,187 +1,284 @@
 "use client";
-import React, { useState, useRef, useEffect } from "react";
+
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { Menu, Search, X } from "lucide-react";
 
 import { Link, usePathname } from "@/i18n/routing";
+import type { UiNavNode } from "@/lib/navigation-build";
+import { SearchBar } from "@/components/ui/SearchBar";
+import { cn } from "@/lib/cn";
 
-import { LocaleSwitcher } from "./locale-switcher";
+import { LanguageSwitcher } from "./language-switcher";
+import { NavDropdown } from "./nav-dropdown";
 import { ThemeToggle } from "./theme-toggle";
 
-interface MobileSectionProps { label: string; children: React.ReactNode }
-  const MobileSection: React.FC<MobileSectionProps> = ({ label, children }) => {
+type Tone = "brand" | "surface";
+
+function MobileAccordion({
+  item,
+  isActive,
+  onNavigate,
+}: {
+  item: UiNavNode;
+  isActive: (href?: string) => boolean;
+  onNavigate: () => void;
+}) {
   const [open, setOpen] = useState(false);
   return (
-    <div>
-      <button onClick={() => setOpen(o=>!o)} className="cursor-pointer flex w-full items-center justify-between py-2 font-medium text-slate-700 dark:text-slate-200">
-        <span>{label}</span><span className="text-xs">{open ? '−' : '+'}</span>
+    <div className="border-b border-[var(--color-border-default)]">
+      <button
+        type="button"
+        data-ui="nav"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between py-[var(--spacing-sm)] text-body font-medium text-[var(--color-text-body)]"
+      >
+        <span>{item.label}</span>
+        <span aria-hidden>{open ? "−" : "+"}</span>
       </button>
-      {open && <div className="pl-3 pb-2 space-y-1">{children}</div>}
+      {open ? (
+        <ul className="flex flex-col gap-[var(--spacing-2xs)] pb-[var(--spacing-sm)] pl-[var(--spacing-sm)]">
+          {(item.children ?? []).map((child, idx) => (
+            <li key={idx}>
+              <Link
+                data-ui="nav"
+                href={child.href ?? "#"}
+                aria-current={isActive(child.href) ? "page" : undefined}
+                onClick={onNavigate}
+                className="block rounded-[var(--radius-sm)] py-[var(--spacing-2xs)] text-body-sm text-[var(--color-text-link)]"
+              >
+                {child.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
-};
+}
 
-export type UiNavNode = { label: string; href?: string; external?: boolean; children?: UiNavNode[] };
-
-interface SiteHeaderProps { initialNav?: UiNavNode[] }
-
-export const SiteHeader: React.FC<SiteHeaderProps> = ({ initialNav }) => {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [openMenu, setOpenMenu] = useState<number | null>(null);
-  const openTimer = useRef<number | null>(null);
-  const closeTimer = useRef<number | null>(null);
-  const pathname = usePathname();
-  const tHeader = useTranslations("Header");
-  const brandLabel = tHeader("brandShort");
-  const [navItems, setNavItems] = useState<UiNavNode[] | null>(initialNav ?? null);
-  const [navError, setNavError] = useState<string | null>(null);
+export function SiteHeader({ initialNav }: { initialNav?: UiNavNode[] }) {
+  const t = useTranslations("Header");
   const locale = useLocale();
+  const pathname = usePathname();
+  const nav = initialNav ?? [];
 
-  const isActive = (href?: string) => {
-    if (!href || !pathname) return false;
-    if (pathname === href) return true;
-    return pathname.startsWith(`${href}/`);
-  };
+  const [scrolled, setScrolled] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
 
-  const clearTimers = () => {
-    if (openTimer.current) { window.clearTimeout(openTimer.current); openTimer.current = null; }
-    if (closeTimer.current) { window.clearTimeout(closeTimer.current); closeTimer.current = null; }
-  };
+  const tone: Tone = scrolled ? "surface" : "brand";
+  const onBrand = tone === "brand";
+  const searchAction = `/${locale}/search`;
 
-  const scheduleOpen = (i: number) => {
-    clearTimers();
-    openTimer.current = window.setTimeout(() => setOpenMenu(i), 80);
-  };
+  const isActive = useCallback(
+    (href?: string) => {
+      if (!href || !pathname) return false;
+      return pathname === href || pathname.startsWith(`${href}/`);
+    },
+    [pathname],
+  );
 
-  const scheduleClose = (i: number) => {
-    clearTimers();
-    closeTimer.current = window.setTimeout(() => {
-      setOpenMenu(curr => curr === i ? null : curr);
-    }, 220);
-  };
-
-  useEffect(() => () => clearTimers(), []);
+  // Scroll → surface state.
   useEffect(() => {
-    if (initialNav) return; // Provided by server, skip client fetch
-    let aborted = false;
-    const qp = locale ? `?locale=${encodeURIComponent(locale)}` : "";
-    fetch(`/api/navigation${qp}`, { cache: "force-cache" })
-      .then(async (r) => {
-        const d = await r.json();
-        if (!r.ok) throw new Error(d.error || "Failed");
-        if (!aborted) setNavItems(d.items as UiNavNode[]);
-      })
-      .catch((e) => { if (!aborted) setNavError(e.message || "nav failed"); });
-    return () => { aborted = true; };
-  }, [locale, initialNav]);
-  const nav = navItems ?? [];
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const closeDrawer = useCallback(() => {
+    setDrawerOpen(false);
+    hamburgerRef.current?.focus();
+  }, []);
+
+  // Drawer: focus trap, Esc, body scroll lock; focus first item on open.
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const panel = drawerRef.current;
+    if (!panel) return;
+    document.body.style.overflow = "hidden";
+    const focusables = () =>
+      Array.from(
+        panel.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => el.offsetParent !== null);
+    focusables()[0]?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        closeDrawer();
+        return;
+      }
+      if (e.key === "Tab") {
+        const f = focusables();
+        if (!f.length) return;
+        const first = f[0];
+        const last = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [drawerOpen, closeDrawer]);
+
+  const logoColor = onBrand ? "text-[var(--color-text-on-brand)]" : "text-[var(--color-text-heading)]";
+  const tagColor = onBrand ? "text-[var(--color-text-on-brand)] opacity-80" : "text-[var(--color-text-muted)]";
+  const navLinkColor = onBrand ? "text-[var(--color-text-on-brand)]" : "text-[var(--color-text-body)]";
+  const iconColor = onBrand ? "text-[var(--color-text-on-brand)]" : "text-[var(--color-text-body)]";
+
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-700 dark:bg-slate-900/80">
-      <div className="container-page flex h-16 items-center gap-4">
-        <Link
-          href="/"
-          className="cursor-pointer flex items-center gap-2 font-semibold text-slate-800 hover:text-brand-700 dark:text-slate-100 dark:hover:text-brand-300"
-          aria-label={tHeader("homeAria")}
-        >
-          <img src="/images/logo.svg" alt={brandLabel} className="h-8 w-8" />
-          <span className="hidden sm:inline">{brandLabel}</span>
+    <header
+      className={cn(
+        "sticky top-0 z-50 w-full transition-colors",
+        scrolled
+          ? "border-b border-[var(--color-border-default)] bg-[var(--color-bg-surface)]"
+          : "bg-[var(--color-bg-header)]",
+      )}
+    >
+      <div className="mx-auto flex h-16 w-full max-w-[90rem] items-center gap-[var(--spacing-md)] px-[var(--spacing-md)] md:h-20 lg:gap-[var(--spacing-lg)] lg:px-[var(--spacing-xl)]">
+        <Link href="/" aria-label={t("homeAria")} className="flex shrink-0 flex-col justify-center leading-tight no-underline">
+          <span className={cn("text-h4 font-semibold", logoColor)}>{t("brandShort")}</span>
+          <span className={cn("hidden whitespace-nowrap text-caption lg:block", tagColor)}>{t("tagline")}</span>
         </Link>
-        <nav className="hidden md:flex gap-6 text-sm" aria-label={tHeader("menu")}>
-          {(nav.length === 0 ? [] : nav).map((item, i) => (item.children && item.children.length ? (
-            <div
-              key={i}
-              className="relative"
-              onMouseEnter={() => scheduleOpen(i)}
-              onMouseLeave={() => scheduleClose(i)}
-            >
-              <button
-                className={`cursor-pointer font-medium transition hover:text-brand-600 focus:outline-none dark:hover:text-brand-300 ${openMenu === i ? "text-brand-600 dark:text-brand-300" : "text-slate-700 dark:text-slate-200"}`}
-                aria-haspopup="true"
-                aria-expanded={openMenu===i}
-                onFocus={() => scheduleOpen(i)}
-                onBlur={(e) => {
-                  if (!e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) scheduleClose(i);
-                }}
-              >{item.label}</button>
-              <div
-                className={`absolute left-0 top-full z-30 mt-2 min-w-[14rem] rounded-md border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-800 ${openMenu===i ? "opacity-100 visible" : "invisible opacity-0"} transition-opacity`}
-                role="menu"
-                onMouseEnter={() => scheduleOpen(i)}
-                onMouseLeave={() => scheduleClose(i)}
+
+        <nav aria-label={t("menu")} className="ml-[var(--spacing-lg)] hidden min-w-0 items-center gap-[var(--spacing-md)] lg:flex">
+          {nav.map((item, i) =>
+            item.children?.length ? (
+              <NavDropdown key={i} item={item} tone={tone} isActive={isActive} />
+            ) : item.external ? (
+              <a
+                key={i}
+                data-ui="nav"
+                href={item.href}
+                target="_blank"
+                rel="noreferrer noopener"
+                className={cn("whitespace-nowrap rounded-[var(--radius-sm)] text-body font-medium hover:underline", navLinkColor)}
               >
-                {item.children.map((c, idx) => c.external ? (
-                  <a key={idx} href={c.href} target="_blank" rel="noreferrer noopener" className={`cursor-pointer block rounded px-3 py-1.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200`}>{c.label}</a>
-                ) : (
-                  <Link
-                    key={idx}
-                    href={c.href!}
-                    aria-current={isActive(c.href) ? "page" : undefined}
-                    className={`cursor-pointer block rounded px-3 py-1.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 ${isActive(c.href) ? "bg-slate-100 font-semibold dark:bg-slate-700" : ""} text-slate-700 dark:text-slate-200`}
-                  >{c.label}</Link>
-                ))}
-              </div>
-            </div>
-          ) : (
-            item.external ? (
-              <a key={i} href={item.href} target="_blank" rel="noreferrer noopener" className={`cursor-pointer font-medium transition hover:text-brand-600 dark:hover:text-brand-300 text-slate-700 dark:text-slate-200`}>{item.label}</a>
+                {item.label}
+              </a>
             ) : (
               <Link
                 key={i}
-                href={item.href!}
+                data-ui="nav"
+                href={item.href ?? "#"}
                 aria-current={isActive(item.href) ? "page" : undefined}
-                className={`cursor-pointer font-medium transition hover:text-brand-600 dark:hover:text-brand-300 ${isActive(item.href) ? "text-brand-600 dark:text-brand-300" : "text-slate-700 dark:text-slate-200"}`}
-              >{item.label}</Link>
-            )
-          )))}
+                className={cn(
+                  "whitespace-nowrap rounded-[var(--radius-sm)] text-body font-medium hover:underline",
+                  navLinkColor,
+                  isActive(item.href) && "underline",
+                )}
+              >
+                {item.label}
+              </Link>
+            ),
+          )}
         </nav>
-        <div className="ml-auto flex items-center gap-2">
-          <LocaleSwitcher />
-          <ThemeToggle />
-          <button
-            onClick={() => setMobileOpen((o) => !o)}
-            className="md:hidden cursor-pointer inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+
+        {/* Desktop right cluster (lg+): search icon (lg–xl) → pill (xl+), lang, theme */}
+        <div className="ml-auto hidden items-center gap-[var(--spacing-md)] lg:flex">
+          <Link
+            data-ui="nav"
+            href="/search"
+            aria-label={t("search")}
+            className={cn("inline-flex h-11 w-11 items-center justify-center rounded-[var(--radius-md)] xl:hidden", iconColor)}
           >
-            {tHeader("menu")}
+            <Search aria-hidden size={20} />
+          </Link>
+          <div className="hidden w-48 xl:block">
+            <SearchBar label={t("search")} placeholder={t("searchPlaceholder")} action={searchAction} />
+          </div>
+          <LanguageSwitcher tone={tone} />
+          <ThemeToggle tone={tone} />
+        </div>
+
+        {/* Mobile cluster (< lg) */}
+        <div className="ml-auto flex items-center gap-[var(--spacing-sm)] lg:hidden">
+          <Link
+            data-ui="nav"
+            href="/search"
+            aria-label={t("search")}
+            className={cn("inline-flex h-11 w-11 items-center justify-center rounded-[var(--radius-md)]", iconColor)}
+          >
+            <Search aria-hidden size={22} />
+          </Link>
+          <button
+            ref={hamburgerRef}
+            type="button"
+            data-ui="nav"
+            aria-label={t("openMenu")}
+            aria-expanded={drawerOpen}
+            aria-controls="mobile-drawer"
+            onClick={() => setDrawerOpen(true)}
+            className={cn("inline-flex h-11 w-11 items-center justify-center rounded-[var(--radius-md)]", iconColor)}
+          >
+            <Menu aria-hidden size={24} />
           </button>
         </div>
       </div>
-      {mobileOpen && (
-        <div
-          className="md:hidden border-t border-slate-200 bg-white px-4 py-4 dark:border-slate-700 dark:bg-slate-900"
-          aria-label={tHeader("mobileMenu")}
-        >
-          <div className="space-y-4">
-            {(nav.length === 0 ? [] : nav).map((item, i) => item.children && item.children.length ? (
-              <MobileSection key={i} label={item.label}>
-                {item.children.map((c, j) => c.external ? (
-                  <a key={j} href={c.href} target="_blank" rel="noreferrer noopener" className="cursor-pointer block rounded px-2 py-1 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800" onClick={() => setMobileOpen(false)}>{c.label}</a>
+
+      {drawerOpen ? (
+        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label={t("drawerTitle")}>
+          <div className="absolute inset-0 bg-black/40" onClick={closeDrawer} aria-hidden />
+          <div
+            ref={drawerRef}
+            id="mobile-drawer"
+            className="absolute right-0 top-0 flex h-full w-[min(20rem,85vw)] flex-col overflow-y-auto bg-[var(--color-bg-surface)] p-[var(--spacing-lg)]"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-h4 font-semibold text-[var(--color-text-heading)]">{t("brandShort")}</span>
+              <button
+                type="button"
+                data-ui="nav"
+                aria-label={t("closeMenu")}
+                onClick={closeDrawer}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-[var(--radius-md)] text-[var(--color-text-body)]"
+              >
+                <X aria-hidden size={24} />
+              </button>
+            </div>
+
+            <div className="mt-[var(--spacing-md)]">
+              <SearchBar label={t("search")} placeholder={t("searchPlaceholder")} action={searchAction} />
+            </div>
+
+            <nav aria-label={t("menu")} className="mt-[var(--spacing-md)] flex flex-col">
+              {nav.map((item, i) =>
+                item.children?.length ? (
+                  <MobileAccordion key={i} item={item} isActive={isActive} onNavigate={() => setDrawerOpen(false)} />
                 ) : (
                   <Link
-                    key={j}
-                    href={c.href!}
-                    className="cursor-pointer block rounded px-2 py-1 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-                    onClick={() => setMobileOpen(false)}
+                    key={i}
+                    data-ui="nav"
+                    href={item.href ?? "#"}
+                    aria-current={isActive(item.href) ? "page" : undefined}
+                    onClick={() => setDrawerOpen(false)}
+                    className="border-b border-[var(--color-border-default)] py-[var(--spacing-sm)] text-body font-medium text-[var(--color-text-body)]"
                   >
-                    {c.label}
+                    {item.label}
                   </Link>
-                ))}
-              </MobileSection>
-            ) : (
-              item.external ? (
-                <a key={i} href={item.href} target="_blank" rel="noreferrer noopener" className="cursor-pointer block rounded px-2 py-1 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800" onClick={() => setMobileOpen(false)}>{item.label}</a>
-              ) : (
-                <Link
-                  key={i}
-                  href={item.href!}
-                  className="cursor-pointer block rounded px-2 py-1 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  {item.label}
-                </Link>
-              )
-            ))}
+                ),
+              )}
+            </nav>
+
+            <div className="mt-[var(--spacing-lg)] flex items-center justify-between border-t border-[var(--color-border-default)] pt-[var(--spacing-md)]">
+              <LanguageSwitcher tone="surface" />
+              <ThemeToggle tone="surface" />
+            </div>
           </div>
         </div>
-      )}
+      ) : null}
     </header>
   );
-};
+}
