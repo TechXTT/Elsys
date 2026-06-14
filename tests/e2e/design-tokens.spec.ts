@@ -34,7 +34,7 @@ test.describe("design tokens (Phase A)", () => {
     });
 
     expect(expandHex(light.bgPage)).toBe("#ffffff");
-    expect(expandHex(light.actionPrimary)).toBe("#017ae0"); // brand azure
+    expect(expandHex(light.actionPrimary)).toBe("#0163b4"); // brand/600 (AA: white-on-primary 6.1:1)
     expect(light.radiusLg).toBe("12px"); // tokens.json wins over legacy 14px
     expect(light.spacingMd).toBe("16px");
 

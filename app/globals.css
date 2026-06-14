@@ -42,7 +42,13 @@ body { background: var(--color-bg); color: var(--color-text); -webkit-font-smoot
 h1, h2, h3, .font-display { font-family: var(--font-display), var(--font-sans), ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
 ::selection { background: var(--color-brand-accent); color:#fff; }
 a { text-underline-offset: 2px; }
-a:focus-visible, button:focus-visible, select:focus-visible { outline: none; box-shadow: var(--shadow-focus); border-radius: var(--radius-sm); }
+/* Legacy focus ring for app chrome. Excludes design-system primitives, which
+   carry [data-ui] and own their token ring (rule below). */
+a:not([data-ui]):focus-visible, button:not([data-ui]):focus-visible, select:not([data-ui]):focus-visible { outline: none; box-shadow: var(--shadow-focus); border-radius: var(--radius-sm); }
+
+/* components/ui primitives: a single 2px --color-action-focus-ring, offset 2px
+   (WCAG 2.4.7). Applied on the focusable element, which sets data-ui. */
+[data-ui]:focus-visible { outline: 2px solid var(--color-action-focus-ring); outline-offset: 2px; }
 
 .container-page { margin-left:auto; margin-right:auto; width:100%; max-width:72rem; padding-left:1rem; padding-right:1rem; }
 .gradient-hero { background: radial-gradient(circle at 30% 30%, #1e6fb1 0%, #134f82 50%, #0a3d62 100%); opacity:0.85; }
@@ -79,13 +85,15 @@ header { box-shadow: 0 1px 0 rgba(2,6,23,0.04), 0 2px 10px rgba(2,6,23,0.04); }
 
 /* Form controls: consistent light/dark appearances */
 @layer base {
-	input[type="text"],
-	input[type="email"],
-	input[type="password"],
-	input[type="date"],
-	input[type="number"],
-	select,
-	textarea {
+	/* Legacy form styling for app chrome. Excludes [data-ui] primitives, which
+	   own their full token-bound styling (components/ui/Form.tsx). */
+	input[type="text"]:not([data-ui]),
+	input[type="email"]:not([data-ui]),
+	input[type="password"]:not([data-ui]),
+	input[type="date"]:not([data-ui]),
+	input[type="number"]:not([data-ui]),
+	select:not([data-ui]),
+	textarea:not([data-ui]) {
 		@apply rounded border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-400;
 	}
 
