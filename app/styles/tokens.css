@@ -1,0 +1,191 @@
+/* =========================================================================
+ * GENERATED FILE — DO NOT EDIT BY HAND.
+ * Source of truth: design/tokens.json (design-system.md §5).
+ * Regenerate: pnpm tokens:generate
+ * Light values from $value; dark values from $extensions.dark.
+ * Font families (--font-heading / --font-body) are wired in app/globals.css
+ * (Inter/Manrope stand-ins until M1.1 resolves the licensed Cyrillic families).
+ * ========================================================================= */
+
+:root {
+  /* Colours — light */
+  --color-bg-page: #FFFFFF;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-subtle: #F4F9FD;
+  --color-bg-header: #017AE0;
+  --color-bg-footer: #023A69;
+  --color-bg-brand-tint: #E5F2FC;
+  --color-text-heading: #042C53;
+  --color-text-body: #3E4C59;
+  --color-text-muted: #616E7C;
+  --color-text-on-brand: #FFFFFF;
+  --color-text-link: #0163B4;
+  --color-text-accent: #D9432F;
+  --color-action-primary: #017AE0;
+  --color-action-primary-hover: #0163B4;
+  --color-action-secondary-border: #017AE0;
+  --color-action-disabled-bg: #E4E7EB;
+  --color-action-disabled-text: #9AA5B1;
+  --color-action-focus-ring: #5AACE9;
+  --color-border-default: #E4E7EB;
+  --color-border-strong: #CBD2D9;
+  --color-status-success-bg: #C0DD97;
+  --color-status-success-text: #27500A;
+  --color-status-warning-bg: #FAC775;
+  --color-status-warning-text: #633806;
+  --color-status-danger-bg: #FDEEEC;
+  --color-status-danger-text: #8C2819;
+  --color-tag-tint-blue: #E5F2FC;
+  --color-tag-tint-green: #C0DD97;
+  --color-tag-tint-coral: #FDEEEC;
+  --color-tag-tint-purple: #E6E4F4;
+  --color-tag-tint-teal: #D5EDE7;
+  --color-tag-tint-amber: #FAE3BC;
+  --color-tag-ink-blue: #014C8A;
+  --color-tag-ink-green: #27500A;
+  --color-tag-ink-coral: #8C2819;
+  --color-tag-ink-purple: #322B6E;
+  --color-tag-ink-teal: #0A4A3A;
+  --color-tag-ink-amber: #5A3206;
+
+  /* Tag solids (Badge dots) — single mode */
+  --color-tag-blue: #017AE0;
+  --color-tag-green: #3B6D11;
+  --color-tag-coral: #F0594F;
+  --color-tag-purple: #534AB7;
+  --color-tag-teal: #0F6E56;
+  --color-tag-amber: #BA7517;
+
+  /* Spacing — 4px base */
+  --spacing-2xs: 4px;
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  --spacing-3xl: 64px;
+  --spacing-4xl: 96px;
+
+  /* Radius */
+  --radius-none: 0px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+}
+
+[data-theme="dark"] {
+  /* Colours — dark */
+  --color-bg-page: #1F2933;
+  --color-bg-surface: #283441;
+  --color-bg-subtle: #24303C;
+  --color-bg-header: #023A69;
+  --color-bg-footer: #0E1822;
+  --color-bg-brand-tint: #042C53;
+  --color-text-heading: #BFDFF8;
+  --color-text-body: #E4E7EB;
+  --color-text-muted: #9AA5B1;
+  --color-text-on-brand: #FFFFFF;
+  --color-text-link: #5AACE9;
+  --color-text-accent: #EF7F6E;
+  --color-action-primary: #2F94E4;
+  --color-action-primary-hover: #5AACE9;
+  --color-action-secondary-border: #5AACE9;
+  --color-action-disabled-bg: #52606D;
+  --color-action-disabled-text: #7B8794;
+  --color-action-focus-ring: #2F94E4;
+  --color-border-default: #52606D;
+  --color-border-strong: #616E7C;
+  --color-status-success-bg: #27500A;
+  --color-status-success-text: #C0DD97;
+  --color-status-warning-bg: #633806;
+  --color-status-warning-text: #FAC775;
+  --color-status-danger-bg: #661C10;
+  --color-status-danger-text: #F9CFC8;
+  --color-tag-tint-blue: #042C53;
+  --color-tag-tint-green: #27500A;
+  --color-tag-tint-coral: #661C10;
+  --color-tag-tint-purple: #322B6E;
+  --color-tag-tint-teal: #0A4A3A;
+  --color-tag-tint-amber: #5A3206;
+  --color-tag-ink-blue: #BFDFF8;
+  --color-tag-ink-green: #C0DD97;
+  --color-tag-ink-coral: #F9CFC8;
+  --color-tag-ink-purple: #E6E4F4;
+  --color-tag-ink-teal: #D5EDE7;
+  --color-tag-ink-amber: #FAE3BC;
+}
+
+/* Type scale — 10 styles. Headings use --font-heading; text uses --font-body. */
+.text-display {
+  font-family: var(--font-heading);
+  font-size: 48px;
+  line-height: 1.15;
+  font-weight: 700;
+}
+
+.text-h1 {
+  font-family: var(--font-heading);
+  font-size: 38px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.text-h2 {
+  font-family: var(--font-heading);
+  font-size: 30px;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.text-h3 {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.text-h4 {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.text-body-lg {
+  font-family: var(--font-body);
+  font-size: 18px;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.text-body {
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.text-body-sm {
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+.text-caption {
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 400;
+}
+
+.text-overline {
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

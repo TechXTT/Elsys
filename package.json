@@ -14,6 +14,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "prisma db seed",
     "postinstall": "prisma generate --no-engine",
+    "tokens:generate": "node scripts/generate-tokens.mjs",
     "cms:import-live": "node scripts/import-from-elsys-bg.mjs",
     "pages:scrape": "tsx scripts/scrape-static-pages.ts",
     "pages:seed-json": "tsx scripts/seed-static-pages-from-json.ts",
