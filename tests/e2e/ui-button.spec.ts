@@ -24,14 +24,13 @@ test.describe("Button (Phase B)", () => {
   test("variants resolve tokens, focus ring + a11y label colours hold", async ({ page }) => {
     await page.goto("/bg/ui-preview");
 
-    const light = page.getByTestId("matrix-light");
-    const primary = light.locator("section").nth(0); // primary
-    const secondary = light.locator("section").nth(1); // secondary
+    const light = page.getByTestId("button-light");
 
-    // Section order per row: [0..2] Default, [3..5] Hover, [6..8] Disabled.
-    const primaryDefault = primary.getByRole("button").nth(0);
-    const primaryDisabled = primary.getByRole("button").nth(6);
-    const secondaryDefault = secondary.getByRole("button").nth(0);
+    // Button DOM order in the matrix: primary 0–8, secondary 9–17, ghost 18–26;
+    // within a variant: [0..2] Default, [3..5] Hover, [6..8] Disabled.
+    const primaryDefault = light.getByRole("button").nth(0);
+    const primaryDisabled = light.getByRole("button").nth(6);
+    const secondaryDefault = light.getByRole("button").nth(9);
 
     // Primary default: brand/600 bg (AA: white-on-primary 6.1:1), white label.
     expect(await computed(primaryDefault)).toMatchObject({
@@ -77,7 +76,7 @@ test.describe("Button (Phase B)", () => {
     expect(focus.outlineColor).toBe("rgb(90, 172, 233)"); // --color-action-focus-ring #5aace9
 
     // Dark mode: the nested [data-theme="dark"] panel re-declares tokens.
-    const darkPrimary = page.getByTestId("matrix-dark").locator("section").nth(0).getByRole("button").nth(0);
+    const darkPrimary = page.getByTestId("button-dark").getByRole("button").nth(0);
     expect(await computed(darkPrimary)).toMatchObject({
       bg: "rgb(47, 148, 228)", // dark --color-action-primary brand/400 #2f94e4
     });
