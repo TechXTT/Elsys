@@ -11,7 +11,9 @@
     "missingHome": "Missing home.json file.",
     "pageNotFound": "Page not found.",
     "viewMore": "See more",
-    "skipToContent": "Skip to content"
+    "skipToContent": "Skip to content",
+    "home": "Home",
+    "breadcrumb": "Breadcrumb"
   },
   "Nav": {
     "news": "News",
@@ -104,13 +106,35 @@
     "tracksTitle": "Study tracks",
     "tracksDescription": "Specialized areas of education.",
     "whyTitle": "Why TUES?",
-    "numbersTitle": "TUES in numbers"
+    "numbersTitle": "TUES in numbers",
+    "metaTitle": "TUES — Technology School “Electronic Systems”",
+    "metaDescription": "Bulgaria's leading technology school. News, admissions, education and student life at TUES.",
+    "latestNews": "Latest",
+    "latestNewsAccent": "news",
+    "allNews": "All news",
+    "specialtiesTitle": "Our",
+    "specialtiesAccent": "specialties",
+    "clubsTitle": "Student",
+    "clubsAccent": "clubs",
+    "testimonialsTitle": "What our",
+    "testimonialsAccent": "alumni say",
+    "ctaTitle": "Become part of",
+    "ctaAccent": "TUES",
+    "ctaText": "Apply after 7th grade and join Bulgaria's strongest IT community.",
+    "ctaButton": "Apply now"
   },
   "News": {
     "title": "News",
     "empty": "No news available.",
     "publishedOn": "Published on {date}",
-    "missing": "The article could not be found."
+    "missing": "The article could not be found.",
+    "metaDescription": "News and events from TUES.",
+    "paginationLabel": "News pagination",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "by": "By {author}",
+    "relatedTitle": "Related",
+    "relatedAccent": "news"
   },
   "Blog": {
     "title": "Blog",

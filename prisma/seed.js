@@ -739,6 +739,45 @@ Registration for the first workshop is now open!`,
 
   console.log(`✓ Seeded ${clubs.length} student clubs`);
 
+  // Top-level header navigation (7 roots). The header builds from Page rows
+  // (lib/navigation-build.ts → label = navLabel ?? slug), so each root needs a
+  // navLabel in BOTH locales or it renders its raw slug (Phase-C flag). Slugs
+  // mirror lib/nav.ts canonical paths so links resolve where the section page
+  // exists (Новини → /novini via the E1 route, Блог → /blog). Top-level only;
+  // dropdown children seed in a later phase. Sections without a built content
+  // page (priem/obuchenie/uchilishteto/uchenicheski-zhivot/evroproekti) render
+  // an empty placeholder until E2/E3 — expected.
+  const navRoots = [
+    { slug: "novini", order: 1, bg: "Новини", en: "News" },
+    { slug: "priem", order: 2, bg: "Прием", en: "Admissions" },
+    { slug: "obuchenie", order: 3, bg: "Обучение", en: "Education" },
+    { slug: "uchilishteto", order: 4, bg: "Училището", en: "The School" },
+    { slug: "uchenicheski-zhivot", order: 5, bg: "Ученически живот", en: "Student Life" },
+    { slug: "blog", order: 6, bg: "Блог", en: "Blog" },
+    { slug: "evroproekti", order: 7, bg: "Евро проекти", en: "EU Projects" },
+  ];
+  for (const root of navRoots) {
+    for (const locale of ["bg", "en"]) {
+      const data = {
+        slug: root.slug,
+        locale,
+        title: locale === "bg" ? root.bg : root.en,
+        navLabel: locale === "bg" ? root.bg : root.en,
+        visible: true,
+        order: root.order,
+        published: true,
+        status: "PUBLISHED",
+        kind: "PAGE",
+      };
+      await prisma.page.upsert({
+        where: { slug_locale: { slug: root.slug, locale } },
+        update: data,
+        create: { ...data, authorId: user.id },
+      });
+    }
+  }
+  console.log(`✓ Seeded ${navRoots.length} top-level nav roots (bg + en)`);
+
   // Seed a page + a kind=ROUTE alias that points at it.
   // This is living documentation of the ROUTE alias feature AND the fixture the
   // route-alias e2e relies on (CI seeds the DB, so the test can't depend on

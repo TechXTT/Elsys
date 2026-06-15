@@ -11,7 +11,9 @@
     "missingHome": "Липсва файл home.json.",
     "pageNotFound": "Страницата не е намерена.",
     "viewMore": "Виж повече",
-    "skipToContent": "Към съдържанието"
+    "skipToContent": "Към съдържанието",
+    "home": "Начало",
+    "breadcrumb": "Навигация"
   },
   "Nav": {
     "news": "Новини",
@@ -104,13 +106,35 @@
     "tracksTitle": "Профили",
     "tracksDescription": "Специализирани направления на обучение.",
     "whyTitle": "Защо ТУЕС?",
-    "numbersTitle": "ТУЕС в числа"
+    "numbersTitle": "ТУЕС в числа",
+    "metaTitle": "ТУЕС — Технологично училище „Електронни системи“",
+    "metaDescription": "Водещото технологично училище в България. Новини, прием, обучение и ученически живот в ТУЕС.",
+    "latestNews": "Последни",
+    "latestNewsAccent": "новини",
+    "allNews": "Всички новини",
+    "specialtiesTitle": "Нашите",
+    "specialtiesAccent": "специалности",
+    "clubsTitle": "Ученически",
+    "clubsAccent": "клубове",
+    "testimonialsTitle": "Какво казват",
+    "testimonialsAccent": "възпитаниците",
+    "ctaTitle": "Стани част от",
+    "ctaAccent": "ТУЕС",
+    "ctaText": "Кандидатствай след 7. клас и се присъедини към най-силната ИТ общност в България.",
+    "ctaButton": "Кандидатствай"
   },
   "News": {
     "title": "Новини",
     "empty": "Няма новини.",
     "publishedOn": "Публикувано на {date}",
-    "missing": "Публикацията не е намерена."
+    "missing": "Публикацията не е намерена.",
+    "metaDescription": "Новини и събития от ТУЕС.",
+    "paginationLabel": "Странициране на новините",
+    "previousPage": "Предишна страница",
+    "nextPage": "Следваща страница",
+    "by": "От {author}",
+    "relatedTitle": "Свързани",
+    "relatedAccent": "новини"
   },
   "Blog": {
     "title": "Блог",

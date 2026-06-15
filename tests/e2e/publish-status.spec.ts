@@ -48,17 +48,18 @@ test.describe("publish status (M0.4 / R3)", () => {
       expect(res.ok()).toBeTruthy();
     };
 
-    // Future date → hidden from /bg/news.
+    // Future date → hidden from /bg/novini.
     await setDate("2099-01-01");
     await expect(async () => {
-      await page.goto("/bg/news");
+      await page.goto("/bg/novini");
       await expect(page.getByText(TITLE)).toHaveCount(0);
     }).toPass({ timeout: 15_000 });
 
-    // Date passes → visible.
-    await setDate("2020-01-01");
+    // Date passes → visible. Use a recent past date so the post sorts onto the
+    // first /novini page (the index paginates at 6/page — E1).
+    await setDate("2026-06-10");
     await expect(async () => {
-      await page.goto("/bg/news");
+      await page.goto("/bg/novini");
       await expect(page.getByText(TITLE)).toBeVisible();
     }).toPass({ timeout: 15_000 });
 
