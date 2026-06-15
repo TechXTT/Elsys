@@ -3,7 +3,7 @@
     "title": "Technological School of Electronic Systems",
     "subtitle": "Education in Computer Science and Informatics",
     "cta": { "label": "Learn more", "href": "/uchilishteto" },
-    "imageLarge": "/images/whytues.png"
+    "imageLarge": "/images/whytues.webp"
   },
   "tracks": [
     { "key": "sp", "title": "Systems Programming", "description": "Deep foundations in computer systems", "href": "/obuchenie", "image": "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=600&q=60" },

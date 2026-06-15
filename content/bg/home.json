@@ -3,7 +3,7 @@
     "title": "Технологично училище Електронни системи",
     "subtitle": "Образование по информатика и компютърни науки",
     "cta": { "label": "Научи повече", "href": "/uchilishteto" },
-    "imageLarge": "/images/whytues.png"
+    "imageLarge": "/images/whytues.webp"
   },
   "tracks": [
     { "key": "sp", "title": "Системно програмиране", "description": "Дълбоки основи в компютърните системи", "href": "/obuchenie", "image": "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=600&q=60" },
