@@ -11,6 +11,7 @@ import { JsonLd } from "@/components/JsonLd";
 import { NewsCard } from "@/components/news-card";
 import { SectionHeading } from "@/components/Section";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { Badge, colorTagToBadge } from "@/components/ui/Badge";
 import { locales, type Locale } from "@/i18n/config";
 import { getNewsPost, getNewsPosts, getRelatedNews } from "@/lib/news";
 import { absoluteUrl, alternatesFor } from "@/lib/site";
@@ -146,6 +147,11 @@ export default async function NewsArticle({ params }: { params: { locale: Locale
       />
 
       <header className="flex flex-col gap-[var(--spacing-sm)]">
+        {post.colorTag && post.category && (
+          <span>
+            <Badge color={colorTagToBadge(post.colorTag)} size="sm">{post.category}</Badge>
+          </span>
+        )}
         <h1 className="text-h1 text-ink-heading">{post.title}</h1>
         <p className="text-body-sm text-ink-muted">
           {displayDate && <span>{tNews("publishedOn", { date: displayDate })}</span>}
@@ -175,7 +181,7 @@ export default async function NewsArticle({ params }: { params: { locale: Locale
           <SectionHeading as="h2" title={tNews("relatedTitle")} highlight={tNews("relatedAccent")} />
           <div className="grid gap-[var(--spacing-lg)] sm:grid-cols-2 lg:grid-cols-3">
             {related.map((n) => (
-              <NewsCard key={n.id} post={n} locale={locale} />
+              <NewsCard key={n.id} post={n} locale={locale} category={n.colorTag} categoryLabel={n.category} />
             ))}
           </div>
         </section>

@@ -134,7 +134,9 @@
     "nextPage": "Next page",
     "by": "By {author}",
     "relatedTitle": "Related",
-    "relatedAccent": "news"
+    "relatedAccent": "news",
+    "filterAll": "All",
+    "filterLabel": "Filter by category"
   },
   "Blog": {
     "title": "Blog",

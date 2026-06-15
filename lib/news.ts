@@ -41,6 +41,8 @@ interface NewsRow {
   featuredImage: string | null;
   published: boolean;
   status?: string;
+  category?: string | null;
+  colorTag?: import("@prisma/client").ColorTag | null;
   author?: { name: string | null } | null;
 }
 
@@ -56,6 +58,8 @@ function toPostItem(row: NewsRow): PostItem {
     image,
     images,
     published: row.published,
+    category: row.category ?? undefined,
+    colorTag: row.colorTag ?? undefined,
   };
 }
 
@@ -74,7 +78,7 @@ export async function getNewsPosts(locale?: Locale, includeDrafts = false): Prom
           ...(includeDrafts ? {} : publicWhere({ gateDate: true, now })),
         },
         orderBy: { date: "desc" },
-        select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true },
+        select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true, category: true, colorTag: true },
       });
 
       // If locale is not default, also fetch defaults to fill gaps (only when not includeDrafts)
@@ -86,7 +90,7 @@ export async function getNewsPosts(locale?: Locale, includeDrafts = false): Prom
             ...publicWhere({ gateDate: true, now }),
           },
           orderBy: { date: "desc" },
-          select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true },
+          select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true, category: true, colorTag: true },
         });
       }
 
@@ -105,7 +109,7 @@ export async function getNewsPost(slug: string, locale?: Locale, includeDrafts =
   const localesToFetch = loc === defaultLocale ? [loc] : [loc, defaultLocale];
   const rows: NewsRow[] = await (prisma as any).newsPost.findMany({
     where: { id: slug, locale: { in: localesToFetch } },
-    select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true, author: { select: { name: true } } },
+    select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true, category: true, colorTag: true, author: { select: { name: true } } },
   });
   const now = new Date();
   // Public visibility: status PUBLISHED + date not in the future (canonical helper).

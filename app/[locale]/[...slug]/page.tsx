@@ -2,6 +2,8 @@ import React from "react";
 // Disable force-dynamic to enable ISR caching
 export const revalidate = 300; // 5-minute ISR (revalidate on-demand from admin API)
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import { getTranslations } from "next-intl/server";
 
 import type { Locale } from "@/i18n/config";
@@ -10,38 +12,46 @@ import { renderBlocks } from "@/lib/cms";
 import { getNewsPosts } from "@/lib/news";
 import { resolveAlias } from "@/lib/routes";
 import { isPublic } from "@/lib/content/shared";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import type { PostItem } from "@/lib/types";
 
-// Render the page content (extracted to avoid duplication)
+// Render a resolved Page: one <h1> (the page title) in a container, then its
+// blocks full-width (each block owns its layout), or a tokenised markdown body.
 function PageContent({
   page,
   locale,
-  tCommon,
-  hasNews,
+  news,
+  comingSoon,
+  homeLabel,
+  breadcrumbLabel,
 }: {
   page: any;
   locale: Locale;
-  tCommon: any;
-  hasNews: boolean;
+  news?: PostItem[];
+  comingSoon: string;
+  homeLabel: string;
+  breadcrumbLabel: string;
 }) {
+  const blocks = Array.isArray(page.blocks) ? page.blocks : [];
   return (
-    <div className="container-page py-10">
-      <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">{page.title}</h1>
-      {page.excerpt && <p className="mt-2 text-slate-600 dark:text-slate-400">{page.excerpt}</p>}
-      {hasNews && Array.isArray(page.blocks) ? (
-        <React.Suspense fallback={<div className="mt-6 text-sm text-slate-400">Loading...</div>}>
-          {renderBlocks(page.blocks as any, { locale, news: undefined as any })}
-        </React.Suspense>
-      ) : Array.isArray(page.blocks) ? (
-        renderBlocks(page.blocks as any, { locale, news: undefined as any })
-      ) : null}
-      {page.bodyMarkdown ? (
-        <div className="prose prose-slate mt-6 max-w-none dark:prose-invert">
-          <ReactMarkdown>{page.bodyMarkdown}</ReactMarkdown>
+    <>
+      <div className="container-page flex flex-col gap-[var(--spacing-md)] pt-[var(--spacing-2xl)]">
+        <Breadcrumbs label={breadcrumbLabel} items={[{ label: homeLabel, href: `/${locale}` }, { label: page.title }]} />
+        <div>
+          <h1 className="text-h1 text-ink-heading">{page.title}</h1>
+          {page.excerpt && <p className="text-body-lg mt-[var(--spacing-sm)] text-ink-muted">{page.excerpt}</p>}
+        </div>
+      </div>
+      {blocks.length > 0 ? (
+        renderBlocks(blocks as any, { locale, news })
+      ) : page.bodyMarkdown ? (
+        <div className="container-page py-[var(--spacing-2xl)] text-body flex flex-col gap-[var(--spacing-md)] text-ink [&_a]:text-ink-link [&_a]:underline [&_h2]:text-h3 [&_h2]:text-ink-heading [&_h3]:text-h4 [&_h3]:text-ink-heading [&_ol]:list-decimal [&_ol]:pl-[var(--spacing-lg)] [&_ul]:list-disc [&_ul]:pl-[var(--spacing-lg)]">
+          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{page.bodyMarkdown}</ReactMarkdown>
         </div>
       ) : (
-        <div className="mt-6 text-sm text-slate-500 dark:text-slate-400">{tCommon("comingSoon")}</div>
+        <div className="container-page py-[var(--spacing-2xl)] text-body text-ink-muted">{comingSoon}</div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -130,27 +140,18 @@ export default async function DynamicPage({ params }: { params: { locale: Locale
 
   const { page } = resolved;
 
-  // Check if page uses news blocks (avoid fetching news if not needed)
-  const hasNewsBlock = Array.isArray(page.blocks) && page.blocks.some((b: any) => b.type === "NewsList");
+  // Only fetch news if a block actually needs it.
+  const hasNewsBlock = Array.isArray(page.blocks) && page.blocks.some((b: any) => b?.type === "NewsList");
+  const news = hasNewsBlock ? await getNewsPosts(locale) : undefined;
 
-  // Only fetch news if the page actually uses it
-  if (hasNewsBlock) {
-    const news = await getNewsPosts(locale);
-    return (
-      <div className="container-page py-10">
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">{page.title}</h1>
-        {page.excerpt && <p className="mt-2 text-slate-600 dark:text-slate-400">{page.excerpt}</p>}
-        {Array.isArray(page.blocks) ? renderBlocks(page.blocks as any, { locale, news }) : null}
-        {page.bodyMarkdown ? (
-          <div className="prose prose-slate mt-6 max-w-none dark:prose-invert">
-            <ReactMarkdown>{page.bodyMarkdown}</ReactMarkdown>
-          </div>
-        ) : (
-          <div className="mt-6 text-sm text-slate-500 dark:text-slate-400">{tCommon("comingSoon")}</div>
-        )}
-      </div>
-    );
-  }
-
-  return <PageContent page={page} locale={locale} tCommon={tCommon} hasNews={false} />;
+  return (
+    <PageContent
+      page={page}
+      locale={locale}
+      news={news}
+      comingSoon={tCommon("comingSoon")}
+      homeLabel={tCommon("home")}
+      breadcrumbLabel={tCommon("breadcrumb")}
+    />
+  );
 }

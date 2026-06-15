@@ -134,7 +134,9 @@
     "nextPage": "Следваща страница",
     "by": "От {author}",
     "relatedTitle": "Свързани",
-    "relatedAccent": "новини"
+    "relatedAccent": "новини",
+    "filterAll": "Всички",
+    "filterLabel": "Филтър по категория"
   },
   "Blog": {
     "title": "Блог",

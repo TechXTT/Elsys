@@ -13,11 +13,10 @@ test.describe("route alias resolution (M0.3)", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("За училището");
 
     await page.goto(ALIASED);
-    // Same page, resolved through the alias — heading + body match the canonical route.
+    // Same page, resolved through the alias — heading + block content match the
+    // canonical route (E2 recomposed this page from blocks).
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("За училището");
-    await expect(
-      page.getByText("ТУЕС е водещо технологично училище в България.")
-    ).toBeVisible();
+    await expect(page.getByText(/водещо професионално училище/)).toBeVisible();
   });
 
   test("/api/route-alias no longer exists (404)", async ({ request }) => {

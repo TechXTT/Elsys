@@ -1,3 +1,5 @@
+import type { ColorTag } from "@prisma/client";
+
 export interface PostItem {
   id: string;
   title: string;
@@ -5,6 +7,10 @@ export interface PostItem {
   date?: string;
   href: string;
   image?: string;
+  /** Optional category chip label (NewsPost.category). */
+  category?: string;
+  /** Optional category chip colour (NewsPost.colorTag), mapped via colorTagToBadge. */
+  colorTag?: ColorTag;
   body?: string; // legacy HTML body support
   images?: Array<{
     name: string;

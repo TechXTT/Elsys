@@ -116,6 +116,28 @@ const defaultBlockProps: Record<string, Record<string, unknown>> = {
     type: "video",
     aspectRatio: "16:9",
   },
+  // E2 blocks (Phase-D design components)
+  TeamGrid: {
+    title: "Екип",
+    items: [],
+  },
+  PartnerGrid: {
+    title: "Партньори",
+    items: [],
+  },
+  DocumentList: {
+    title: "Документи",
+    items: [],
+  },
+  ClubGrid: {
+    title: "Клубове",
+    items: [],
+  },
+  HeaderAccent: {
+    id: "announcement",
+    message: "",
+    priority: "info",
+  },
 };
 
 function createBlock(blockType: string, props?: Record<string, unknown>): BlockInstance {

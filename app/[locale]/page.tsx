@@ -101,7 +101,7 @@ export default async function HomePage({ params }: { params: { locale: Locale } 
           ) : (
             <div className="grid gap-[var(--spacing-lg)] sm:grid-cols-2 lg:grid-cols-3">
               {latest.map((n) => (
-                <NewsCard key={n.id} post={n} locale={locale} />
+                <NewsCard key={n.id} post={n} locale={locale} category={n.colorTag} categoryLabel={n.category} />
               ))}
             </div>
           )}
