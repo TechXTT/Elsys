@@ -1,44 +1,82 @@
-import React from 'react';
+import Image from "next/image";
 
-interface HeroCTA { label: string; href: string }
-interface HeroProps { heading: string; subheading?: string; image?: string; imageLarge?: string; cta?: HeroCTA }
+import { ButtonLink } from "@/components/ui/Button";
+import { cn } from "@/lib/cn";
 
-const Hero: React.FC<HeroProps> = ({ heading, subheading, image, imageLarge, cta }) => (
-  <section className="relative mb-10 overflow-hidden rounded-xl bg-slate-900 text-white shadow-card">
-    {/* Large photo background (optional) */}
-    {imageLarge && (
-      <>
-        <img
-          src={imageLarge}
-          alt=""
-          loading="lazy"
-          className="absolute inset-0 h-full w-full object-cover opacity-100 mix-blend-luminosity dark:opacity-80 dark:brightness-75"
-        />
-        {/* Additional dim overlay only in dark mode for better contrast */}
-        <div aria-hidden className="absolute inset-0 hidden dark:block bg-slate-950/40" />
-      </>
-    )}
-    <div className="absolute inset-0 gradient-hero" aria-hidden="true" />
-    <div className="absolute inset-0 hero-overlay" aria-hidden="true" />
-    <div
-      className="absolute inset-0 hero-pattern"
-      aria-hidden="true"
-      style={{
-        backgroundImage: 'radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px)',
-        backgroundSize: '18px 18px'
-      }}
-    />
-    <div className="relative z-10 container-page flex flex-col gap-6 py-16 md:flex-row md:items-center">
-      <div className="max-w-2xl">
-        <h1 className="mb-4 text-3xl font-semibold tracking-tight md:text-5xl font-display">{heading}</h1>
-        {subheading && <p className="text-lg md:text-xl leading-relaxed text-slate-100/90">{subheading}</p>}
-        {cta && (
-          <div className="mt-6">
-            <a href={cta.href} className="btn-primary">{cta.label}</a>
+interface HeroCTA {
+  label: string;
+  href: string;
+}
+
+interface HeroProps {
+  heading: string;
+  subheading?: string;
+  /** Small accent line above the heading (e.g. "ТУЕС · ОТ 1991"). */
+  eyebrow?: string;
+  image?: string;
+  imageLarge?: string;
+  cta?: HeroCTA;
+  secondaryCta?: HeroCTA;
+}
+
+/** Internal hrefs are locale-relative for next-intl; strip any locale prefix. */
+function normalizeHref(href: string): { href: string; external: boolean } {
+  if (/^https?:\/\//.test(href) || href.startsWith("mailto:") || href.startsWith("tel:")) {
+    return { href, external: true };
+  }
+  return { href: href.replace(/^\/(?:bg|en)(?=\/|$)/, "") || "/", external: false };
+}
+
+function HeroCtas({ cta, secondaryCta }: { cta?: HeroCTA; secondaryCta?: HeroCTA }) {
+  if (!cta && !secondaryCta) return null;
+  return (
+    <div className="mt-[var(--spacing-xs)] flex flex-wrap gap-[var(--spacing-sm)]">
+      {cta && (
+        <ButtonLink variant="primary" size="lg" {...normalizeHref(cta.href)}>
+          {cta.label}
+        </ButtonLink>
+      )}
+      {secondaryCta && (
+        <ButtonLink variant="secondary" size="lg" {...normalizeHref(secondaryCta.href)}>
+          {secondaryCta.label}
+        </ButtonLink>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Hero (Figma 29:2) — bg-subtle section with a Display heading, body-lg lead,
+ * and primary + secondary CTAs. Variants: plain (centred) and with-image
+ * (two-column). The grey block in Figma is a placeholder; real imagery is
+ * wired via next/image.
+ */
+export default function Hero({ heading, subheading, eyebrow, image, imageLarge, cta, secondaryCta }: HeroProps) {
+  const photo = imageLarge ?? image;
+
+  const copy = (
+    <div className={cn("flex flex-col gap-[var(--spacing-md)]", !photo && "items-center text-center")}>
+      {eyebrow && <span className="text-overline text-ink-accent">{eyebrow}</span>}
+      <h1 className="text-h1 sm:text-display text-ink-heading">{heading}</h1>
+      {subheading && <p className="text-body-lg max-w-2xl text-ink-muted">{subheading}</p>}
+      <HeroCtas cta={cta} secondaryCta={secondaryCta} />
+    </div>
+  );
+
+  return (
+    <section className="rounded-[var(--radius-lg)] bg-subtle">
+      <div className="container-page py-[var(--spacing-3xl)]">
+        {photo ? (
+          <div className="grid items-center gap-[var(--spacing-2xl)] lg:grid-cols-2">
+            {copy}
+            <div className="relative aspect-[4/3] overflow-hidden rounded-[var(--radius-lg)]">
+              <Image fill src={photo} alt="" sizes="(min-width: 1024px) 560px, 100vw" className="object-cover" priority />
+            </div>
           </div>
+        ) : (
+          copy
         )}
       </div>
-    </div>
-  </section>
-);
-export default Hero;
+    </section>
+  );
+}

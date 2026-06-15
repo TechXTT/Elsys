@@ -268,6 +268,23 @@
     "empty": "No clubs published yet.",
     "meetingSchedule": "Meeting schedule",
     "contact": "Contact"
+  },
+  "Carousel": {
+    "carousel": "carousel",
+    "region": "Highlights carousel",
+    "slide": "slide",
+    "slideLabel": "{n} of {total}",
+    "previous": "Previous slide",
+    "next": "Next slide",
+    "pause": "Pause",
+    "play": "Play"
+  },
+  "HeaderAccent": {
+    "dismiss": "Dismiss message"
+  },
+  "Document": {
+    "download": "Download",
+    "downloadAria": "Download “{name}”{meta}"
   }
 }
 
