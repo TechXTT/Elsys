@@ -19,6 +19,16 @@ interface HeroProps {
   secondaryCta?: HeroCTA;
 }
 
+/**
+ * next/image rejects relative srcs ("./images/x"). Teacher-edited content may
+ * carry a stray "./" — coerce it to a public-root path so it never crashes the
+ * page. Absolute (http(s)) and root-relative ("/…") srcs pass through.
+ */
+function normalizeImageSrc(src: string): string {
+  if (/^https?:\/\//.test(src) || src.startsWith("/")) return src;
+  return "/" + src.replace(/^\.?\/*/, "");
+}
+
 /** Internal hrefs are locale-relative for next-intl; strip any locale prefix. */
 function normalizeHref(href: string): { href: string; external: boolean } {
   if (/^https?:\/\//.test(href) || href.startsWith("mailto:") || href.startsWith("tel:")) {
@@ -52,7 +62,8 @@ function HeroCtas({ cta, secondaryCta }: { cta?: HeroCTA; secondaryCta?: HeroCTA
  * wired via next/image.
  */
 export default function Hero({ heading, subheading, eyebrow, image, imageLarge, cta, secondaryCta }: HeroProps) {
-  const photo = imageLarge ?? image;
+  const rawPhoto = imageLarge ?? image;
+  const photo = rawPhoto ? normalizeImageSrc(rawPhoto) : undefined;
 
   const copy = (
     <div className={cn("flex flex-col gap-[var(--spacing-md)]", !photo && "items-center text-center")}>
