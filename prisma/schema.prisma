@@ -404,6 +404,23 @@ model Media {
   @@index([folder, createdAt])
 }
 
+/// Per-record successor note (M5.2 / G2-2). Generic: keyed by (entity, entityId)
+/// so it works across every content type without a per-model column. Internal —
+/// never published. Shown in the content form's amber "Бележка за наследник" box.
+model SuccessorNote {
+  id          String   @id @default(cuid())
+  /// Prisma model name the note is attached to, e.g. "Club".
+  entity      String
+  entityId    String
+  note        String
+  /// User id of the last editor (scalar — no relation, keeps User untouched).
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([entity, entityId])
+}
+
 /// Hero carousel slides — rendered as CarouselHero block (§4.3 #1)
 model Carousel {
   id           String        @id @default(cuid())

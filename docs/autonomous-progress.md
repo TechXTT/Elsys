@@ -25,3 +25,30 @@ Plan:
 Decisions:
 - Upload via Server Action (FormData) per §2 "new admin mutations use Server Actions" — no new REST route.
 - `alt` nullable in DB; UI surfaces required-alt warning badge (matches Figma ALT ✓ / ⚠ липсва). Enforcement-on-use is advisory at the library level.
+
+---
+
+## Task 2 — G2-2 Content-type framework (Figma 92:2 + 94:2) — ✅ DONE
+
+Branch: `feat/G2-2-content-framework` (off Task 1 tip a002727).
+Verification: typecheck ✓, lint ✓ (0 errors), build ✓, e2e club-admin + carousel-admin + media-library ✓ (6/6).
+
+What landed:
+- Additive schema: generic `SuccessorNote` model keyed by `(entity, entityId)` (migration `20260616212327_add_successor_note`) — successor notes work across every type with no per-model column.
+- `lib/content/shared.ts`: new `colortag` field type; config options `titleField/slugPrefix/colorField/statusField/imageFolder/enableSuccessorNote/enableBulk`; shared `COLOR_TAG_OPTIONS` + `STATUS_OPTIONS`.
+- `lib/content/successor-notes.ts`: get/persist helpers.
+- Actions: create/update now persist the successor note (`__successorNote` field); new `bulkSetStatus` + `bulkDeleteRecords` (AuditLog + revalidate).
+- Form rewritten to 94:2 — two-column with publish aside (status select, publishAt, Save&Publish / Save draft, delete, autosave indicator), `ColorTagPicker`, MediaField image fields, amber successor-note box, slug prefix adornment, localStorage autosave + "saved Ns ago" indicator.
+- List rewritten to 92:2 — `ContentListClient` with select-all + bulk action bar (publish/archive/delete + clear), ColorTag dot badge + status badge columns. Removed old `ContentListTable`.
+- `club.ts` migrated to the new config (colortag, slug prefix, colorField, imageFolder). Carousel inherits aside + autosave automatically.
+- `docs/patterns/new-content-type.md` written (the cookie-cutter for tasks 3–9).
+- i18n: `Admin.contentForm.*` + `Admin.contentList.*` (bg/en, ICU params).
+
+Decisions:
+- Successor note as a generic model (not per-model column) — reusable, matches the M5.2 "notes for successors" constraint broadly; bulk-delete cascades the notes.
+- ColorTag picker shows all 10 enum values but collapses to the 6 design-system tag hues (title/aria-label disambiguates) — stays on-token, no invented colors. Flagged as the same lossy mapping already noted in `components/ui/Badge.tsx`.
+- Server-draft autosave + crash recovery deferred to G3-2 (this task ships the localStorage draft + indicator only, per the brief's "autosave indicator").
+
+---
+
+## Tasks 3–9 — content types (cookie-cutter per docs/patterns/new-content-type.md) — PENDING

@@ -459,6 +459,51 @@
       "pick": "Избери",
       "cancel": "Отказ",
       "removeImage": "Премахни"
+    },
+    "contentForm": {
+      "publishHeading": "Публикуване",
+      "status": "Статус",
+      "saveAndPublish": "Запази и публикувай",
+      "saveDraft": "Запази чернова",
+      "delete": "Изтрий {label}",
+      "deleteConfirm": "Сигурни ли сте, че искате да изтриете този запис?",
+      "successorNoteLabel": "Вътрешна бележка (не се публикува)",
+      "successorNoteHeading": "Бележка за наследник",
+      "successorNotePlaceholder": "Контекст за следващия администратор…",
+      "draftSaved": "Чернова запазена · преди {seconds} сек"
+    },
+    "contentList": {
+      "subtitle": "Съдържание · {count} записа",
+      "breadcrumb": "Съдържание",
+      "new": "Нов {label}",
+      "search": "Търси…",
+      "searchButton": "Търси",
+      "emptyTitle": "Няма {label}",
+      "emptyBody": "Започни като добавиш първия запис.",
+      "add": "Добави",
+      "selectedCount": "{count} избрани",
+      "publish": "Публикувай",
+      "archive": "Архивирай",
+      "delete": "Изтрий",
+      "clear": "Изчисти",
+      "deleteConfirm": "Да изтрия ли {count} записа?",
+      "selectAll": "Избери всички",
+      "selectRow": "Избери реда",
+      "colTitle": "Заглавие",
+      "colColor": "Цвят",
+      "colStatus": "Статус",
+      "colUpdated": "Обновен",
+      "edit": "Ред.",
+      "status": {
+        "PUBLISHED": "Публикуван",
+        "DRAFT": "Чернова",
+        "PREVIEW": "Преглед",
+        "SCHEDULED": "Насрочен",
+        "ARCHIVED": "Архивиран"
+      },
+      "pageOf": "{total} записа — страница {page} от {totalPages}",
+      "prev": "Предишна",
+      "next": "Следваща"
     }
   },
   "Clubs": {

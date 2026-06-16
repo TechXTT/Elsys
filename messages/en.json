@@ -459,6 +459,51 @@
       "pick": "Select",
       "cancel": "Cancel",
       "removeImage": "Remove"
+    },
+    "contentForm": {
+      "publishHeading": "Publishing",
+      "status": "Status",
+      "saveAndPublish": "Save and publish",
+      "saveDraft": "Save draft",
+      "delete": "Delete {label}",
+      "deleteConfirm": "Are you sure you want to delete this record?",
+      "successorNoteLabel": "Internal note (not published)",
+      "successorNoteHeading": "Note for successor",
+      "successorNotePlaceholder": "Context for the next administrator…",
+      "draftSaved": "Draft saved · {seconds}s ago"
+    },
+    "contentList": {
+      "subtitle": "Content · {count} records",
+      "breadcrumb": "Content",
+      "new": "New {label}",
+      "search": "Search…",
+      "searchButton": "Search",
+      "emptyTitle": "No {label}",
+      "emptyBody": "Start by adding the first record.",
+      "add": "Add",
+      "selectedCount": "{count} selected",
+      "publish": "Publish",
+      "archive": "Archive",
+      "delete": "Delete",
+      "clear": "Clear",
+      "deleteConfirm": "Delete {count} records?",
+      "selectAll": "Select all",
+      "selectRow": "Select row",
+      "colTitle": "Title",
+      "colColor": "Color",
+      "colStatus": "Status",
+      "colUpdated": "Updated",
+      "edit": "Edit",
+      "status": {
+        "PUBLISHED": "Published",
+        "DRAFT": "Draft",
+        "PREVIEW": "Preview",
+        "SCHEDULED": "Scheduled",
+        "ARCHIVED": "Archived"
+      },
+      "pageOf": "{total} records — page {page} of {totalPages}",
+      "prev": "Previous",
+      "next": "Next"
     }
   },
   "Clubs": {

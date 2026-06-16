@@ -1,32 +1,19 @@
 import { z } from "zod";
 import { registerContentType } from "../registry";
+import { STATUS_OPTIONS } from "@/lib/content/shared";
 
-const statusOptions = [
-  { value: "PUBLISHED", label: "Публикувано" },
-  { value: "DRAFT", label: "Чернова" },
-  { value: "PREVIEW", label: "Преглед" },
-  { value: "SCHEDULED", label: "Насрочено" },
-  { value: "ARCHIVED", label: "Архивирано" },
-];
-
-const colorOptions = [
-  { value: "RED", label: "Червено" },
-  { value: "ORANGE", label: "Оранжево" },
-  { value: "YELLOW", label: "Жълто" },
-  { value: "GREEN", label: "Зелено" },
-  { value: "TEAL", label: "Тюркоазено" },
-  { value: "BLUE", label: "Синьо" },
-  { value: "INDIGO", label: "Индиго" },
-  { value: "PURPLE", label: "Лилаво" },
-  { value: "PINK", label: "Розово" },
-  { value: "GRAY", label: "Сиво" },
-];
+const statusOptions = STATUS_OPTIONS;
 
 registerContentType({
   type: "club",
   modelName: "Club",
   labelSingular: "Клуб",
   labelPlural: "Клубове",
+  titleField: "title",
+  slugPrefix: "/klubove/",
+  colorField: "color",
+  statusField: "status",
+  imageFolder: "galleries",
   fields: [
     {
       name: "locale",
@@ -38,17 +25,11 @@ registerContentType({
         { value: "en", label: "English" },
       ],
     },
-    { name: "slug", type: "text", label: "URL адрес (slug)", required: true },
     { name: "title", type: "text", label: "Заглавие", required: true },
-    { name: "description", type: "text", label: "Кратко описание" },
-    {
-      name: "color",
-      type: "select",
-      label: "Цвят",
-      required: true,
-      options: colorOptions,
-    },
-    { name: "coverImage", type: "image", label: "Корица" },
+    { name: "slug", type: "slug", label: "URL адрес", required: true },
+    { name: "description", type: "textarea", label: "Описание" },
+    { name: "color", type: "colortag", label: "Цвят (ColorTag)", required: true },
+    { name: "coverImage", type: "image", label: "Лого" },
     { name: "meetingSchedule", type: "text", label: "График на срещи" },
     { name: "contactEmail", type: "text", label: "Имейл за контакт" },
     {

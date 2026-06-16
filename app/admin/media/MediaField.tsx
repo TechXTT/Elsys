@@ -29,7 +29,6 @@ export function MediaField({ name, defaultValue, required, folder, altName, defa
 
   return (
     <div className="flex flex-col gap-2">
-      <input type="hidden" name={name} value={url} />
       {altName && <input type="hidden" name={altName} value={alt} />}
 
       {url ? (
@@ -59,6 +58,7 @@ export function MediaField({ name, defaultValue, required, folder, altName, defa
         </button>
         <input
           type="text"
+          name={name}
           value={url}
           required={required}
           onChange={(e) => setUrl(e.target.value)}
