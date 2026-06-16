@@ -41,6 +41,7 @@ model User {
   carousels       Carousel[]
   clubs           Club[]
   media           Media[]
+  documents       Document[]
 
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -402,6 +403,38 @@ model Media {
   updatedAt         DateTime  @updatedAt
 
   @@index([folder, createdAt])
+}
+
+/// Downloadable document (G2-2 type). Rendered at /dokumenti and via the
+/// DocumentList block. Files live in the Media Library (folder "documents").
+model Document {
+  id          String        @id @default(cuid())
+  locale      String        @default("bg")
+  slug        String
+  title       String
+  description String?
+  /// Public file URL (Media Library / Blob).
+  fileUrl     String
+  /// Filetype label shown on the row, e.g. "PDF".
+  fileType    String?
+  /// Human-readable size, e.g. "1.4 MB".
+  fileSize    String?
+  /// Free-text grouping label (e.g. "Правилници").
+  category    String?
+  color       ColorTag      @default(BLUE)
+  status      PublishStatus @default(DRAFT)
+  order       Int           @default(0)
+  publishAt   DateTime?
+  legacyId    Int?
+
+  authorId    String?
+  author      User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([slug, locale])
+  @@index([locale, status, order])
 }
 
 /// Per-record successor note (M5.2 / G2-2). Generic: keyed by (entity, entityId)

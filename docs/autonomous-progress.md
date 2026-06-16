@@ -51,4 +51,16 @@ Decisions:
 
 ---
 
-## Tasks 3–9 — content types (cookie-cutter per docs/patterns/new-content-type.md) — PENDING
+## Tasks 3–9 — content types (cookie-cutter per docs/patterns/new-content-type.md)
+
+Note: full `pnpm test:e2e` runs in ~25s (63 specs) — fast enough to run the **whole** suite per task from here on (supersedes the reduced-scope note above).
+
+### Task 3 — Document — ✅ DONE
+Branch `feat/G2-3-document` (off Task 2 tip de8b7b4). typecheck ✓ lint ✓ build ✓ e2e ✓ (63/63).
+- Additive `Document` model + migration `20260616214519_add_document` + 4 seed rows (incl. a hidden DRAFT).
+- `document` content type registered (slugPrefix `/dokumenti/`, colorField, fileUrl/fileType/fileSize/category fields).
+- `lib/documents.ts`: cached public read (memory→Redis→DB, explicit select, `publicWhere()`), `revalidateDocuments()`.
+- Public `/[locale]/dokumenti` route — real data, grouped by category, drafts hidden; `Documents` i18n ns.
+- `DocumentList` block bound to data via `BlockContext.documents` (inline items kept as fallback); `compile.tsx` prefetches documents in a `Promise.all` when the block is present (precursor to the G2-3 `needs:` mechanism).
+- Framework gap fixed: generic content actions now call `revalidatePublicForType()` (server-only map) → public cache bump + route revalidation on every mutation (working-agreement #3).
+- Test `tests/e2e/documents.spec.ts`.

@@ -589,5 +589,11 @@
     "hoursLabel": "Office hours",
     "hours": "Mon–Fri, 8:30–16:30",
     "mapPlaceholder": "map"
+  },
+  "Documents": {
+    "title": "Documents",
+    "intro": "Official documents, policies and forms to download.",
+    "empty": "No documents published yet.",
+    "uncategorized": "Other documents"
   }
 }

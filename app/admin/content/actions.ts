@@ -7,6 +7,7 @@ import { recordAudit } from "@/lib/audit";
 import { getContentType } from "./registry";
 import { formatZodErrors } from "@/lib/content/validation";
 import { persistSuccessorNote } from "@/lib/content/successor-notes";
+import { revalidatePublicForType } from "./revalidate";
 import type { FieldConfig, PublishStatus } from "@/lib/content/shared";
 
 const SUCCESSOR_NOTE_FIELD = "__successorNote";
@@ -74,6 +75,7 @@ export async function createContentRecord(
     entityId: record.id as string,
   });
 
+  await revalidatePublicForType(type);
   revalidatePath(`/admin/content/${type}`);
   return { ok: true, id: record.id as string };
 }
@@ -116,6 +118,7 @@ export async function updateContentRecord(
     details: { fields: Object.keys(parsed.data as object) },
   });
 
+  await revalidatePublicForType(type);
   revalidatePath(`/admin/content/${type}`);
   revalidatePath(`/admin/content/${type}/${id}`);
   return { ok: true, id };
@@ -141,6 +144,7 @@ export async function deleteContentRecord(
     entityId: id,
   });
 
+  await revalidatePublicForType(type);
   revalidatePath(`/admin/content/${type}`);
   return { ok: true };
 }
@@ -173,6 +177,7 @@ export async function bulkSetStatus(
     details: { ids, status, count: res.count },
   });
 
+  await revalidatePublicForType(type);
   revalidatePath(`/admin/content/${type}`);
   return { ok: true, count: res.count };
 }
@@ -198,6 +203,7 @@ export async function bulkDeleteRecords(type: string, ids: string[]): Promise<Bu
     details: { ids, count: res.count },
   });
 
+  await revalidatePublicForType(type);
   revalidatePath(`/admin/content/${type}`);
   return { ok: true, count: res.count };
 }

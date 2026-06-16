@@ -21,7 +21,8 @@ import { ButtonLink } from "@/components/ui/Button";
 import type { Locale } from "@/i18n/config";
 import type { PostItem } from "@/lib/types";
 
-export type BlockContext = { locale?: Locale; news?: PostItem[]; carouselSlides?: CarouselSlide[] };
+export type DocItemLite = { id?: string; title: string; fileUrl: string; fileType?: string; fileSize?: string; category?: string };
+export type BlockContext = { locale?: Locale; news?: PostItem[]; carouselSlides?: CarouselSlide[]; documents?: DocItemLite[] };
 
 export type BlockDefinition<P extends Record<string, unknown> = any> = {
   type: string;
@@ -432,30 +433,38 @@ const PartnerGridBlock: BlockDefinition<{ title?: string; grayscale?: boolean; i
 
 const DocumentListBlock: BlockDefinition<{ title?: string; items?: unknown }> = {
   type: "DocumentList",
-  render: (p) => {
+  render: (p, ctx) => {
     const r = p as Record<string, unknown>;
-    const items = arr(r.items);
+    // Data-bound (G2-2): prefer real Documents from context; fall back to any
+    // inline-authored items so existing block instances keep rendering.
+    const fromData = Array.isArray(ctx?.documents)
+      ? ctx!.documents.map((d) => ({ name: d.title, href: d.fileUrl, fileType: d.fileType, size: d.fileSize }))
+      : [];
+    const inline = arr(r.items).map((it) => ({
+      name: str(it.name),
+      href: str(it.href),
+      fileType: str(it.fileType) || undefined,
+      size: str(it.size) || undefined,
+    }));
+    const items = fromData.length > 0 ? fromData : inline;
     return (
       <Band className="flex flex-col gap-[var(--spacing-lg)]">
         {str(r.title) ? <SectionHeading as="h2" title={str(r.title)} /> : null}
         <div className="flex flex-col gap-[var(--spacing-sm)]">
-          {items.map((it, i) => {
-            const type = str(it.fileType) || "FILE";
-            return (
-              <DocumentRow
-                key={i}
-                name={str(it.name)}
-                href={str(it.href)}
-                fileType={type}
-                size={str(it.size) || undefined}
-                icon={
-                  <span className="text-[9px] flex h-10 w-10 items-center justify-center rounded-[var(--radius-sm)] bg-tag-tint-coral font-bold text-tag-ink-coral">
-                    <FileText size={18} aria-hidden />
-                  </span>
-                }
-              />
-            );
-          })}
+          {items.map((it, i) => (
+            <DocumentRow
+              key={i}
+              name={it.name}
+              href={it.href}
+              fileType={it.fileType || "FILE"}
+              size={it.size || undefined}
+              icon={
+                <span className="text-[9px] flex h-10 w-10 items-center justify-center rounded-[var(--radius-sm)] bg-tag-tint-coral font-bold text-tag-ink-coral">
+                  <FileText size={18} aria-hidden />
+                </span>
+              }
+            />
+          ))}
         </div>
       </Band>
     );

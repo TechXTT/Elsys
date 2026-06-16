@@ -2,6 +2,7 @@ import React from "react";
 import { prisma } from "@/lib/prisma";
 import { validateBlocks, renderBlockInstance, type BlockInstance } from "@/lib/blocks/registry";
 import { getNewsPosts } from "@/lib/news";
+import { getDocuments } from "@/lib/documents";
 import { isPublic } from "@/lib/content/shared";
 import type { Locale } from "@/i18n/config";
 
@@ -33,6 +34,10 @@ function requiresNews(blocks: BlockInstance[]): boolean {
   return blocks.some((b) => b.type === "NewsList");
 }
 
+function requiresDocuments(blocks: BlockInstance[]): boolean {
+  return blocks.some((b) => b.type === "DocumentList");
+}
+
 export async function compilePage(opts: CompileOptions): Promise<CompiledPage | null> {
   const { slug, locale, includeDrafts, withData = true } = opts;
   // Attempt cache
@@ -61,17 +66,17 @@ export async function compilePage(opts: CompileOptions): Promise<CompiledPage | 
   const validation = validateBlocks(rawBlocks);
   const normalized = validation.valid ? validation.normalized : [];
 
-  // Async data context
-  let newsData: any[] | undefined;
-  if (withData && requiresNews(normalized)) {
-    newsData = await getNewsPosts(locale, includeDrafts);
-  }
+  // Async data context — fetch only what the page's blocks declare a need for.
+  const [newsData, documentsData] = await Promise.all([
+    withData && requiresNews(normalized) ? getNewsPosts(locale, includeDrafts) : Promise.resolve(undefined),
+    withData && requiresDocuments(normalized) ? getDocuments(locale) : Promise.resolve(undefined),
+  ]);
 
   // Render block tree
   const element = (
     <React.Fragment>
       {normalized.map((inst, i) => (
-        <React.Fragment key={i}>{renderBlockInstance(inst, { locale, news: newsData })}</React.Fragment>
+        <React.Fragment key={i}>{renderBlockInstance(inst, { locale, news: newsData, documents: documentsData })}</React.Fragment>
       ))}
     </React.Fragment>
   );

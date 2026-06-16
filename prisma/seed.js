@@ -1311,6 +1311,41 @@ Registration for the first workshop is now open!`,
     });
   }
   console.log(`✓ Seeded ${mediaSeed.length} media library assets`);
+
+  // --- Documents (G2-2 type) ------------------------------------------------
+  const documentsSeed = [
+    {
+      slug: 'pravilnik-vatreshen-red', locale: 'bg', title: 'Правилник за вътрешния ред',
+      description: 'Вътрешни правила на училището.', category: 'Правилници',
+      fileUrl: '/files/pravilnik-vatreshen-red.pdf', fileType: 'PDF', fileSize: '1.2 MB',
+      color: 'BLUE', status: 'PUBLISHED', order: 1,
+    },
+    {
+      slug: 'etichen-kodeks', locale: 'bg', title: 'Етичен кодекс',
+      description: 'Етичен кодекс на училищната общност.', category: 'Правилници',
+      fileUrl: '/files/etichen-kodeks.pdf', fileType: 'PDF', fileSize: '640 KB',
+      color: 'TEAL', status: 'PUBLISHED', order: 2,
+    },
+    {
+      slug: 'zayavlenie-priem', locale: 'bg', title: 'Заявление за прием',
+      description: 'Формуляр за кандидатстване.', category: 'Формуляри',
+      fileUrl: '/files/zayavlenie-priem.docx', fileType: 'DOC', fileSize: '88 KB',
+      color: 'GREEN', status: 'PUBLISHED', order: 1,
+    },
+    {
+      slug: 'draft-document', locale: 'bg', title: 'Чернова документ (скрит)',
+      category: 'Формуляри', fileUrl: '/files/draft.pdf', fileType: 'PDF',
+      color: 'GRAY', status: 'DRAFT', order: 9,
+    },
+  ];
+  for (const d of documentsSeed) {
+    await prisma.document.upsert({
+      where: { slug_locale: { slug: d.slug, locale: d.locale } },
+      update: d,
+      create: { ...d, authorId: user.id },
+    });
+  }
+  console.log(`✓ Seeded ${documentsSeed.length} documents`);
 }
 
 main()
