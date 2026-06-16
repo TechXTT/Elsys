@@ -1,6 +1,7 @@
 import Image from "next/image";
 
 import { cn } from "@/lib/cn";
+import { isRemoteSrc } from "@/lib/image";
 
 interface TestimonialQuoteProps {
   quote: string;
@@ -37,7 +38,7 @@ export function TestimonialQuote({ quote, name, meta, photo, className }: Testim
       <figcaption className="mt-auto flex items-center gap-[var(--spacing-sm)]">
         <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[var(--radius-full)] bg-brand-tint">
           {photo ? (
-            <Image fill src={photo} alt="" sizes="44px" className="object-cover" />
+            <Image fill src={photo} alt="" sizes="44px" className="object-cover" unoptimized={isRemoteSrc(photo)} />
           ) : (
             <span aria-hidden className="text-body-sm font-semibold text-ink-link">
               {initialsOf(name)}

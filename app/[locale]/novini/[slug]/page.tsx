@@ -14,6 +14,7 @@ import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { Badge, colorTagToBadge } from "@/components/ui/Badge";
 import { locales, type Locale } from "@/i18n/config";
 import { getNewsPost, getNewsPosts, getRelatedNews } from "@/lib/news";
+import { isRemoteSrc } from "@/lib/image";
 import { absoluteUrl, alternatesFor } from "@/lib/site";
 import type { PostItem } from "@/lib/types";
 
@@ -162,7 +163,7 @@ export default async function NewsArticle({ params }: { params: { locale: Locale
 
       {post.image && (
         <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[var(--radius-lg)] bg-subtle">
-          <Image fill src={post.image} alt="" sizes="(min-width: 1024px) 1024px, 100vw" className="object-cover" priority />
+          <Image fill src={post.image} alt="" sizes="(min-width: 1024px) 1024px, 100vw" className="object-cover" priority unoptimized={isRemoteSrc(post.image)} />
         </div>
       )}
 

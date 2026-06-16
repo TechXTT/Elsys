@@ -5,6 +5,7 @@ import type { ColorTag } from "@prisma/client";
 import { Badge, colorTagToBadge } from "@/components/ui/Badge";
 import { defaultLocale, type Locale } from "@/i18n/config";
 import { cn } from "@/lib/cn";
+import { isRemoteSrc } from "@/lib/image";
 import { formatDateLabel } from "@/lib/format-date";
 import { PostItem } from "@/lib/types";
 
@@ -65,6 +66,7 @@ export function NewsCard({
             alt=""
             sizes={featured ? "(min-width: 768px) 720px, 100vw" : "(min-width: 768px) 360px, 100vw"}
             className="object-cover"
+            unoptimized={isRemoteSrc(coverImage)}
           />
         </div>
       )}
