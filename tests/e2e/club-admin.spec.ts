@@ -1,13 +1,7 @@
 import { test, expect } from "@playwright/test";
+import { adminLogin as login } from "./_helpers";
 
 // Happy-path for the Club admin slice (Phase 2.3 — admin only; public ClubGrid/route is M2.3).
-async function login(page: import("@playwright/test").Page) {
-  await page.goto("/admin/login");
-  await page.fill('input[name="email"]', process.env.TEST_ADMIN_EMAIL ?? "admin@elsys.bg");
-  await page.fill('input[name="password"]', process.env.TEST_ADMIN_PASSWORD ?? "admin123");
-  await page.click('button[type="submit"]');
-  await page.waitForURL(/\/admin$/);
-}
 
 test.describe("Club admin slice (Phase 2.3)", () => {
   test.beforeEach(async ({ page }) => {

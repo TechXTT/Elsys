@@ -73,7 +73,7 @@ pnpm prisma:generate | prisma:migrate | prisma:seed
 pnpm cms:import-live | pages:scrape
 ```
 
-Env: `PRISMA_DATABASE_URL`, `REDIS_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `BLOB_READ_WRITE_TOKEN`, `DEEPL_API_KEY`.
+Env: `PRISMA_DATABASE_URL`, `REDIS_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `BLOB_READ_WRITE_TOKEN`, `DEEPL_API_KEY`, `TOTP_ENCRYPTION_KEY` (base64 32 bytes; required to enable admin 2FA).
 
 ## 7. Refuse to do
 

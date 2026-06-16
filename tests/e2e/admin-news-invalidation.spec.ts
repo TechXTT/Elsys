@@ -7,6 +7,7 @@
  * Seed creds: admin@elsys.bg / admin123.
  */
 import { test, expect, type APIRequestContext } from "@playwright/test";
+import { currentTotp } from "./_helpers";
 
 const ADMIN_EMAIL = "admin@elsys.bg";
 const ADMIN_PASSWORD = "admin123";
@@ -16,11 +17,13 @@ async function authenticateAdmin(request: APIRequestContext): Promise<void> {
   expect(csrf.ok()).toBeTruthy();
   const { csrfToken } = await csrf.json();
 
+  // 2FA is mandatory for ADMIN now — include a current TOTP for the seeded admin.
   const login = await request.post("/api/auth/callback/credentials", {
     form: {
       csrfToken,
       email: ADMIN_EMAIL,
       password: ADMIN_PASSWORD,
+      token: currentTotp(),
       redirect: "false",
       callbackUrl: "/admin",
       json: "true",

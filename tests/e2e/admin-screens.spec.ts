@@ -1,13 +1,7 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
+import { adminLogin as login } from "./_helpers";
 
 // Phase F — admin CMS screens (restyled). Happy-path renders.
-async function login(page: Page) {
-  await page.goto("/admin/login");
-  await page.fill('input[name="email"]', process.env.TEST_ADMIN_EMAIL ?? "admin@elsys.bg");
-  await page.fill('input[name="password"]', process.env.TEST_ADMIN_PASSWORD ?? "admin123");
-  await page.click('button[type="submit"]');
-  await page.waitForURL(/\/admin$/);
-}
 
 test.describe("Admin screens (Phase F)", () => {
   test.beforeEach(async ({ page }) => {

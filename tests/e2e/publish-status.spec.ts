@@ -1,12 +1,5 @@
 import { test, expect } from "@playwright/test";
-
-async function login(page: import("@playwright/test").Page) {
-  await page.goto("/admin/login");
-  await page.fill('input[name="email"]', process.env.TEST_ADMIN_EMAIL ?? "admin@elsys.bg");
-  await page.fill('input[name="password"]', process.env.TEST_ADMIN_PASSWORD ?? "admin123");
-  await page.click('button[type="submit"]');
-  await page.waitForURL(/\/admin$/);
-}
+import { adminLogin as login } from "./_helpers";
 
 // M0.4 (R3): Page/NewsPost visibility flows through the canonical isPublic() helper
 // (status PUBLISHED + date gate). Fixtures seeded in prisma/seed.js.

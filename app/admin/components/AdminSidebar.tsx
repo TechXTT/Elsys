@@ -17,10 +17,11 @@ import {
   Menu,
   X,
   Layers,
+  ShieldCheck,
 } from "lucide-react";
 import { AdminLocaleSwitcher } from "./AdminLocaleSwitcher";
 
-type NavLinkKey = "dashboard" | "news" | "content" | "pages" | "users" | "audit" | "settings";
+type NavLinkKey = "dashboard" | "news" | "content" | "pages" | "users" | "audit" | "security" | "settings";
 
 type NavLink = {
   href: string;
@@ -36,6 +37,7 @@ const navLinks: NavLink[] = [
   { href: "/admin/navigation", labelKey: "pages", icon: FileText, adminOnly: true },
   { href: "/admin/users", labelKey: "users", icon: Users, adminOnly: true },
   { href: "/admin/audit", labelKey: "audit", icon: ClipboardList, adminOnly: true },
+  { href: "/admin/security", labelKey: "security", icon: ShieldCheck },
   { href: "/admin/settings", labelKey: "settings", icon: Settings },
 ];
 
