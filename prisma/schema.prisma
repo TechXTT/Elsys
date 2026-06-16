@@ -40,6 +40,7 @@ model User {
   newsPostVersionsCreated NewsPostVersion[]
   carousels       Carousel[]
   clubs           Club[]
+  media           Media[]
 
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -365,6 +366,42 @@ model Club {
 
   @@unique([slug, locale])
   @@index([locale, status, order])
+}
+
+/// Media Library asset (G2-1). Uploaded to Vercel Blob; one row per file.
+/// `alt` is nullable in the DB but REQUIRED for accessible use — the library
+/// surfaces an "ALT ⚠ липсва" warning badge until it is filled (WCAG 1.1.1).
+/// `isMinorPhoto` + `consentRecordedAt` track GDPR consent for photos of pupils
+/// (minors): a minor's photo without recorded consent is flagged in the UI.
+model Media {
+  id                String    @id @default(cuid())
+  /// Public Blob URL (served via next/image unoptimized — no host config).
+  url               String
+  /// Blob pathname (used to delete the object on row delete).
+  pathname          String
+  /// Human-friendly display name (original filename, sanitised).
+  filename          String
+  /// Required-for-use alt text (Bulgarian). Nullable until filled.
+  alt               String?
+  /// Logical folder; fixed code-defined set in lib/media/folders.ts.
+  folder            String    @default("general")
+  mimeType          String
+  /// Size in bytes.
+  size              Int
+  width             Int?
+  height            Int?
+  /// True when this is a photo of a pupil (minor) → consent required.
+  isMinorPhoto      Boolean   @default(false)
+  /// When consent for a minor's photo was recorded (GDPR, M5.4).
+  consentRecordedAt DateTime?
+
+  authorId          String?
+  author            User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([folder, createdAt])
 }
 
 /// Hero carousel slides — rendered as CarouselHero block (§4.3 #1)

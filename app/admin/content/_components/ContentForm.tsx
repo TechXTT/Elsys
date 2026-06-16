@@ -2,6 +2,7 @@
 import { useFormState, useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import type { ClientContentTypeConfig, ContentRecord } from "@/lib/content/shared";
+import { MediaField } from "@/app/admin/media/MediaField";
 
 type FormState = { ok: true; id: string } | { ok: false; errors: Record<string, string> } | null;
 type ActionFn = (prevState: FormState, formData: FormData) => Promise<FormState>;
@@ -130,7 +131,7 @@ export function ContentForm({ config, record, action }: ContentFormProps) {
                 />
               )}
 
-              {(field.type === "text" || field.type === "slug" || field.type === "image") && (
+              {(field.type === "text" || field.type === "slug") && (
                 <input
                   id={field.name}
                   name={field.name}
@@ -140,6 +141,10 @@ export function ContentForm({ config, record, action }: ContentFormProps) {
                   required={field.required}
                   className={inputClasses(!!error)}
                 />
+              )}
+
+              {field.type === "image" && (
+                <MediaField name={field.name} defaultValue={value} required={field.required} />
               )}
 
               {field.type === "richtext" && (

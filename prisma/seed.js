@@ -1271,6 +1271,46 @@ Registration for the first workshop is now open!`,
     create: { ...scheduledNews, authorId: user.id },
   });
   console.log('✓ Seeded 1 scheduled (future-dated) news post');
+
+  // --- Media Library (G2-1) -------------------------------------------------
+  // Demonstrates the three states the library surfaces: alt OK, alt missing,
+  // and a minor's photo (consent recorded vs. not). Local SVG URLs so they
+  // render without a real blob upload in dev.
+  const mediaSeed = [
+    {
+      id: 'media-seed-olympiad', folder: 'news', filename: 'olimpiada.jpg',
+      url: '/images/news/workshops.svg', pathname: 'seed/olimpiada.jpg',
+      mimeType: 'image/jpeg', size: 421888, width: 1920, height: 1080,
+      alt: 'Ученици на олимпиада по информатика', isMinorPhoto: true,
+      consentRecordedAt: new Date('2026-06-05'),
+    },
+    {
+      id: 'media-seed-team', folder: 'team', filename: 'ekip-nov.jpg',
+      url: '/images/news/workshops.svg', pathname: 'seed/ekip-nov.jpg',
+      mimeType: 'image/jpeg', size: 318000, width: 1600, height: 900,
+      alt: null, isMinorPhoto: false, consentRecordedAt: null,
+    },
+    {
+      id: 'media-seed-robofest', folder: 'galleries', filename: 'robofest-3.jpg',
+      url: '/images/news/workshops.svg', pathname: 'seed/robofest-3.jpg',
+      mimeType: 'image/jpeg', size: 502000, width: 2048, height: 1365,
+      alt: 'Отбор по роботика на Robofest', isMinorPhoto: true, consentRecordedAt: null,
+    },
+    {
+      id: 'media-seed-partners', folder: 'partners', filename: 'partnyori.png',
+      url: '/images/news/workshops.svg', pathname: 'seed/partnyori.png',
+      mimeType: 'image/png', size: 88000, width: 800, height: 400,
+      alt: 'Лога на партньори', isMinorPhoto: false, consentRecordedAt: null,
+    },
+  ];
+  for (const m of mediaSeed) {
+    await prisma.media.upsert({
+      where: { id: m.id },
+      update: m,
+      create: { ...m, authorId: user.id },
+    });
+  }
+  console.log(`✓ Seeded ${mediaSeed.length} media library assets`);
 }
 
 main()

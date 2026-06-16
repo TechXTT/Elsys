@@ -179,7 +179,8 @@
       "security": "Security",
       "settings": "Settings",
       "viewSite": "View Site",
-      "signOut": "Sign out"
+      "signOut": "Sign out",
+      "media": "Media"
     },
     "stats": {
       "totalNews": "Total News Posts",
@@ -419,6 +420,45 @@
       "next": "Next →",
       "required": "Required",
       "selectPlaceholder": "— Select —"
+    },
+    "media": {
+      "title": "Media Library",
+      "subtitle": "Alt text is required. Photos of pupils require recorded consent.",
+      "upload": "Upload files",
+      "uploading": "Uploading…",
+      "saving": "Saving…",
+      "dropzone": "Drag files here or click “Upload files”",
+      "foldersTitle": "Folders",
+      "details": "Details",
+      "folders": {
+        "all": "All",
+        "general": "General",
+        "news": "News",
+        "galleries": "Galleries",
+        "documents": "Documents",
+        "team": "Team",
+        "partners": "Partners"
+      },
+      "altLabel": "Alt text",
+      "required": "required",
+      "altOk": "ALT ✓",
+      "altMissing": "ALT missing",
+      "consent": "Consent",
+      "minorPhoto": "Photo of a pupil",
+      "consentRecorded": "Consent recorded",
+      "consentMissing": "Consent not recorded",
+      "save": "Save",
+      "delete": "Delete",
+      "replace": "Replace",
+      "uploadedOn": "uploaded",
+      "empty": "No files uploaded in this folder.",
+      "selectPrompt": "Select a file to see its details.",
+      "deleteConfirm": "Are you sure you want to delete this file?",
+      "pickerTitle": "Pick from the media library",
+      "choose": "Pick from library",
+      "pick": "Select",
+      "cancel": "Cancel",
+      "removeImage": "Remove"
     }
   },
   "Clubs": {
@@ -506,4 +546,3 @@
     "mapPlaceholder": "map"
   }
 }
-
