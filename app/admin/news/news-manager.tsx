@@ -11,6 +11,7 @@ import {
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { PostItem } from "@/lib/types";
+import { translateNewsToEn } from "@/app/admin/news/actions";
 import {
   NewsBuilderProvider,
   useNewsBuilder,
@@ -139,7 +140,7 @@ function NewsManagerInner({
   const [status, setStatus] = useState<Status>({ type: "idle" });
   const [posts, setPosts] = useState<PostItem[]>(incomingPosts ?? []);
   const [filterQuery, setFilterQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState<"all" | "published" | "draft" | "archived">("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "published" | "draft" | "archived" | "review">("all");
   const [sortBy, setSortBy] = useState<"recent" | "oldest" | "title">("recent");
   const [showPreviewPanel, setShowPreviewPanel] = useState(true);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -278,6 +279,7 @@ function NewsManagerInner({
     });
     const byStatus = byQuery.filter((post) => {
       if (filterStatus === "all") return true;
+      if (filterStatus === "review") return !!post.machineTranslated;
       // Prefer the canonical status; fall back to the legacy published boolean.
       const st = (post.status ?? (post.published === false ? "DRAFT" : "PUBLISHED")).toUpperCase();
       if (filterStatus === "archived") return st === "ARCHIVED";
@@ -1183,6 +1185,32 @@ function NewsManagerInner({
                     >
                       Auto-translate to {locale === "bg" ? "EN" : "BG"}
                     </button>
+
+                    {/* Save the BG source as an EN review-draft in the DB (DeepL,
+                        machineTranslated — never auto-published). J. */}
+                    {locale === "bg" && editingId && (
+                      <button
+                        type="button"
+                        disabled={status.type === "loading"}
+                        title={tn("translateDraftHint")}
+                        onClick={async () => {
+                          setStatus({ type: "loading" });
+                          try {
+                            const r = await translateNewsToEn(editingId);
+                            if (!r.ok) {
+                              setStatus({ type: "error", message: r.message ?? tn("translateError") });
+                              return;
+                            }
+                            setStatus({ type: "success", message: tn("translateDraftDone") });
+                          } catch {
+                            setStatus({ type: "error", message: tn("translateError") });
+                          }
+                        }}
+                        className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                      >
+                        {tn("translateDraft")}
+                      </button>
+                    )}
                   </div>
 
                   {status.type === "error" && (
@@ -1690,7 +1718,7 @@ function NewsManagerInner({
                   className="text-body-sm w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] px-[var(--spacing-md)] py-2 text-[var(--color-text-body)] focus:border-[var(--color-action-secondary-border)] focus:outline-none"
                 />
                 <div role="tablist" aria-label={tn("filterLabel")} className="flex flex-wrap gap-[var(--spacing-2xs)]">
-                  {(["all", "published", "draft", "archived"] as const).map((key) => {
+                  {(["all", "published", "draft", "archived", "review"] as const).map((key) => {
                     const active = filterStatus === key;
                     return (
                       <button
@@ -1754,6 +1782,11 @@ function NewsManagerInner({
                                     : "bg-[var(--color-status-warning-bg)] text-[var(--color-status-warning-text)]"
                                 }`}>
                                   {tn(`filter_${st === "ARCHIVED" ? "archived" : "draft"}`)}
+                                </span>
+                              )}
+                              {post.machineTranslated && (
+                                <span className="text-overline flex-shrink-0 rounded-[var(--radius-sm)] bg-[var(--color-status-warning-bg)] px-1.5 py-0.5 text-[var(--color-status-warning-text)]">
+                                  {tn("machineBadge")}
                                 </span>
                               )}
                             </div>

@@ -59,9 +59,16 @@ export default async function RootLayout({
   const initialTheme = themeCookie === "dark" || themeCookie === "light" ? themeCookie : undefined;
   const initialHtmlClass = initialTheme === "dark" ? "dark" : undefined;
   const initialDataTheme = initialTheme ?? undefined;
+  // Baseline document language. The root layout can't see the route locale (it's
+  // a child segment), so we use next-intl's NEXT_LOCALE cookie as a best-effort
+  // default (bg otherwise). The AUTHORITATIVE per-content signal is the `lang`
+  // set on each rendered page/article subtree — bg-fallback under /en announces
+  // lang="bg", real (DeepL) EN announces lang="en" (J item 5).
+  const localeCookie = cookies().get("NEXT_LOCALE")?.value;
+  const htmlLang = (params?.locale ?? localeCookie) === "en" ? "en" : "bg";
 
   return (
-    <html className={[initialHtmlClass, inter.variable, manrope.variable].filter(Boolean).join(" ")} data-theme={initialDataTheme} suppressHydrationWarning>
+    <html lang={htmlLang} className={[initialHtmlClass, inter.variable, manrope.variable].filter(Boolean).join(" ")} data-theme={initialDataTheme} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitializer }} />
       </head>

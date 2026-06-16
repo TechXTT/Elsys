@@ -69,6 +69,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       data.published = !!body.published;
       data.status = statusFromPublished(!!body.published);
     }
+    // A human save/publish clears the machine-translation review flag (J).
+    data.machineTranslated = false;
 
     const updated = await (prisma as any).page.update({ where: { id: params.id }, data, select: { id: true, slug: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, published: true } });
     // Create version snapshot

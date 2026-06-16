@@ -158,6 +158,10 @@
   },
   "Admin": {
     "title": "Админ конзола",
+    "translateToEn": "Преведи на английски",
+    "translateToEnHint": "Създава чернова на английски чрез машинен превод",
+    "translateNotice": "Създадена е чернова на английски (машинен превод) — прегледайте и публикувайте.",
+    "machineBadge": "машинен превод — за преглед",
     "greeting": {
       "morning": "Добро утро",
       "afternoon": "Добър ден",
@@ -290,6 +294,12 @@
       "filter_published": "Публикувани",
       "filter_draft": "Чернови",
       "filter_archived": "Архив",
+      "filter_review": "За преглед",
+      "machineBadge": "машинен превод — за преглед",
+      "translateDraft": "Преведи на английски (чернова)",
+      "translateDraftHint": "Създава чернова на английски чрез машинен превод (за преглед)",
+      "translateDraftDone": "Създадена е чернова на английски (за преглед).",
+      "translateError": "Грешка при превода.",
       "sortNewest": "Най-нови",
       "sortOldest": "Най-стари",
       "sortAZ": "А→Я",

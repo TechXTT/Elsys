@@ -310,16 +310,19 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     try {
       const otherExists = await (prisma as any).newsPost.findUnique({
         where: { id_locale: { id: params.id, locale: otherLocale } },
+        select: { machineTranslated: true },
       });
       if (otherExists) {
-        // Update other locale's status and date to match
+        // Never propagate publish state onto an unreviewed machine translation —
+        // it must stay a DRAFT until a human reviews it (J). Sync only the date.
+        const data: Record<string, unknown> = { date: safeDate };
+        if (!otherExists.machineTranslated) {
+          data.published = published;
+          data.status = statusFromPublished(published);
+        }
         await (prisma as any).newsPost.update({
           where: { id_locale: { id: params.id, locale: otherLocale } },
-          data: {
-            published,
-            status: statusFromPublished(published),
-            date: safeDate,
-          },
+          data,
         });
       }
     } catch (error) {

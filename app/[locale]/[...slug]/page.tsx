@@ -38,8 +38,10 @@ function PageContent({
   untranslatedNote?: string;
 }) {
   const blocks = Array.isArray(page.blocks) ? page.blocks : [];
+  // Content language for screen readers: a bg-fallback rendered under /en must
+  // announce lang="bg"; real (DeepL) EN announces lang="en" (J item 5).
   return (
-    <>
+    <div lang={untranslatedNote ? defaultLocale : locale}>
       {untranslatedNote && (
         <div className="container-page pt-[var(--spacing-lg)]">
           <p role="status" className="text-body-sm rounded-[var(--radius-md)] bg-brand-tint px-[var(--spacing-md)] py-[var(--spacing-sm)] text-ink">
@@ -63,7 +65,7 @@ function PageContent({
       ) : (
         <div className="container-page py-[var(--spacing-2xl)] text-body text-ink-muted">{comingSoon}</div>
       )}
-    </>
+    </div>
   );
 }
 

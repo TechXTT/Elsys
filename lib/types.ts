@@ -13,6 +13,8 @@ export interface PostItem {
   colorTag?: ColorTag;
   /** Canonical publish state (NewsPost.status: DRAFT/PUBLISHED/ARCHIVED/…). */
   status?: string;
+  /** True when this row is an unreviewed DeepL machine translation (J). */
+  machineTranslated?: boolean;
   body?: string; // legacy HTML body support
   images?: Array<{
     name: string;
