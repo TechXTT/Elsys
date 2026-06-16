@@ -118,3 +118,13 @@ Branch `feat/G2-10-block-r4` (off Task 9 tip 696ad41). typecheck ✓ lint ✓ bu
 - Removed the five per-type `requiresX` helpers in compile.tsx.
 - No "not-implemented placeholder" blocks existed to remove (every registry type renders; Tabs/Embed degrade gracefully, not placeholders) — verified.
 - NOTE: a full-suite run showed 2 `two-factor` failures from **seed-state drift** (single-use recovery codes consumed + enroll toggled by repeated local runs) — unrelated to R4; both pass after `pnpm prisma:seed` (5/5). Re-seed before a clean full-suite run.
+
+---
+
+## Task 11 — G2-4 News parity — ✅ DONE
+Branch `feat/G2-11-news-parity` (off Task 10 tip ecb9950). typecheck ✓ lint ✓ build ✓ e2e news ✓ (5/5).
+- **Decision (taxonomy, PLAN M2.4 + D-12 default):** category becomes a relation to a parent **Page** (Sweboo parity) — *additive, non-destructive*: free-text `category` + `colorTag` are kept as fallback rather than dropped. NewsPost gains `categoryPageId` + `categoryPage` relation (`onDelete: SetNull`); Page gains `categorizedNews` back-relation; index on `categoryPageId`. Migration `20260616231200_add_news_category_page`.
+- `lib/news.ts`: all selects fetch the linked page title; effective `category` = `categoryPage.title ?? category`. New `getNewsCategoryPages(locale)` helper (id+title) for the Task-12 editor picker.
+- **Verified existing:** `getRelatedNews` (related posts) + `colorTag` chip both present (E1/E2) — unchanged.
+- Seed: a category Page "Събития" + a post linked to it; `tests/e2e/news-category.spec.ts` extended to assert the page-derived chip + filter.
+- The category-page **picker UI** lands in Task 12 (Simple Mode editor) per the brief; the REST news editor still sets free-text category (deprecated path, untouched).

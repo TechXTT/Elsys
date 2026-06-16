@@ -24,4 +24,15 @@ test.describe("News category chip + filter (Phase E2)", () => {
     const active = page.locator('[data-ui="news-filter"][aria-current="true"]');
     await expect(active).toHaveText(/Събитие/);
   });
+
+  // M2.4: a post's category can come from a linked parent Page (taxonomy).
+  test("category derived from a parent Page renders as a chip and filters", async ({ page }) => {
+    // Seeded post 'm24-categorized-news' links categoryPage "Събития".
+    await page.goto("/bg/novini?category=Събития");
+    const cards = page.locator('[data-ui="news-card"]');
+    await expect(cards.first()).toBeVisible();
+    await expect(page.getByText("Новина с категория-страница (M2.4)")).toBeVisible();
+    const active = page.locator('[data-ui="news-filter"][aria-current="true"]');
+    await expect(active).toHaveText(/Събития/);
+  });
 });

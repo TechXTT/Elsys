@@ -189,6 +189,9 @@ model Page {
   currentVersion   PageVersion? @relation("CurrentPageVersion", fields: [currentVersionId], references: [id])
   versions         PageVersion[]
 
+  // M2.4: news posts filed under this page as their category.
+  categorizedNews  NewsPost[]   @relation("NewsCategory")
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -230,9 +233,15 @@ model NewsPost {
   machineTranslated Boolean @default(false)
 
   /// Optional free-text category label shown on the card chip (e.g. "Събитие"). E2.
+  /// Kept as a fallback when categoryPage is unset (M2.4 taxonomy is relational).
   category      String?
   /// Optional colour for the category chip; maps to the Badge palette via colorTagToBadge(). E2.
   colorTag      ColorTag?
+
+  /// M2.4 taxonomy: the news category is a parent Page (Sweboo parity). When set,
+  /// its title is the effective category label. Falls back to free-text `category`.
+  categoryPageId String?
+  categoryPage   Page?   @relation("NewsCategory", fields: [categoryPageId], references: [id], onDelete: SetNull)
 
   authorId      String?
   author        User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -244,6 +253,7 @@ model NewsPost {
   @@index([date])
   /// Composite index to speed locale + status + date queries (R3)
   @@index([locale, status, date])
+  @@index([categoryPageId])
 }
 
 /// Version history for news posts (for rollback functionality)

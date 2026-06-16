@@ -1272,6 +1272,28 @@ Registration for the first workshop is now open!`,
   });
   console.log('✓ Seeded 1 scheduled (future-dated) news post');
 
+  // --- News category as parent Page (M2.4) ----------------------------------
+  const newsCategoryPage = await prisma.page.upsert({
+    where: { slug_locale: { slug: 'novini-sabitiya', locale: 'bg' } },
+    update: { title: 'Събития' },
+    create: { slug: 'novini-sabitiya', locale: 'bg', title: 'Събития', kind: 'FOLDER', status: 'PUBLISHED', published: true, visible: false },
+  });
+  const categorizedNews = {
+    id: 'm24-categorized-news', locale: 'bg',
+    title: 'Новина с категория-страница (M2.4)',
+    excerpt: 'Категорията идва от свързаната родителска страница „Събития“.',
+    bodyMarkdown: 'Тази новина е филирана под категория-страница.',
+    date: new Date('2026-03-01'), featuredImage: '/images/news/workshops.svg',
+    published: true, status: 'PUBLISHED', colorTag: 'GREEN',
+    categoryPageId: newsCategoryPage.id,
+  };
+  await prisma.newsPost.upsert({
+    where: { id_locale: { id: categorizedNews.id, locale: categorizedNews.locale } },
+    update: categorizedNews,
+    create: { ...categorizedNews, authorId: user.id },
+  });
+  console.log('✓ Seeded 1 news post categorized by parent Page (M2.4)');
+
   // --- Media Library (G2-1) -------------------------------------------------
   // Demonstrates the three states the library surfaces: alt OK, alt missing,
   // and a minor's photo (consent recorded vs. not). Local SVG URLs so they
