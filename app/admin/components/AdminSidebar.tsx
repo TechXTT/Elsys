@@ -94,7 +94,7 @@ export function AdminSidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed bottom-0 left-0 top-0 z-40 flex w-64 flex-col bg-slate-950 transition-transform lg:translate-x-0 ${
+        className={`fixed bottom-0 left-0 top-0 z-40 flex w-64 flex-col bg-[var(--color-bg-footer)] transition-transform lg:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         } lg:top-0`}
       >
@@ -122,8 +122,8 @@ export function AdminSidebar() {
                     onClick={() => setMobileOpen(false)}
                     className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                       isActive
-                        ? "bg-brand-600 text-white shadow-lg shadow-brand-600/25"
-                        : "text-slate-400 hover:bg-slate-800/80 hover:text-white"
+                        ? "bg-[var(--color-action-primary)] text-[var(--color-text-on-brand)]"
+                        : "text-slate-300 hover:bg-white/10 hover:text-white"
                     }`}
                   >
                     <Icon className={`h-5 w-5 ${isActive ? "text-white" : "text-slate-500 group-hover:text-brand-400"}`} />

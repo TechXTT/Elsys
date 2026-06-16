@@ -36,8 +36,11 @@ test.describe("Club admin slice (Phase 2.3)", () => {
     await page.selectOption('select[name="status"]', "PUBLISHED");
     await page.click('button[type="submit"]');
 
-    // Redirect back to the list, and the new club must actually be persisted.
+    // Redirect back to the list, then search for the unique title so the
+    // just-created club is found regardless of dev-DB accumulation (the list
+    // paginates at 20). Hermetic.
     await page.waitForURL(/\/admin\/content\/club$/);
+    await page.goto(`/admin/content/club?q=${encodeURIComponent(title)}`);
     await expect(page.getByText(title)).toBeVisible();
   });
 });

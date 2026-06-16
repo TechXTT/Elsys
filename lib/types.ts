@@ -11,6 +11,8 @@ export interface PostItem {
   category?: string;
   /** Optional category chip colour (NewsPost.colorTag), mapped via colorTagToBadge. */
   colorTag?: ColorTag;
+  /** Canonical publish state (NewsPost.status: DRAFT/PUBLISHED/ARCHIVED/…). */
+  status?: string;
   body?: string; // legacy HTML body support
   images?: Array<{
     name: string;

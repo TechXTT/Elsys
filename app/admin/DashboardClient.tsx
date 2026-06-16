@@ -64,31 +64,31 @@ function StatCard({
   trend?: { value: number; label: string };
   color?: "brand" | "emerald" | "amber" | "slate";
 }) {
-  const colors = {
-    brand: "from-brand-600 to-brand-400 shadow-brand-600/20",
-    emerald: "from-emerald-600 to-emerald-400 shadow-emerald-600/20",
-    amber: "from-amber-500 to-amber-400 shadow-amber-500/20",
-    slate: "from-slate-600 to-slate-400 shadow-slate-600/20",
+  const iconColors: Record<string, string> = {
+    brand: "bg-[var(--color-action-primary)] text-[var(--color-text-on-brand)]",
+    emerald: "bg-[var(--color-status-success-bg)] text-[var(--color-status-success-text)]",
+    amber: "bg-[var(--color-status-warning-bg)] text-[var(--color-status-warning-text)]",
+    slate: "bg-[var(--color-bg-subtle)] text-[var(--color-text-muted)]",
   };
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200/60 transition-all hover:shadow-md dark:bg-slate-900 dark:ring-slate-800">
+    <div className="group relative overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] p-[var(--spacing-lg)] transition-all hover:shadow-md">
       <div className="flex items-start justify-between">
-        <div className={`flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br ${colors[color]} shadow-lg`}>
-          <Icon className="h-5 w-5 text-white" />
+        <div className={`flex h-11 w-11 items-center justify-center rounded-[var(--radius-md)] ${iconColors[color]}`}>
+          <Icon className="h-5 w-5" />
         </div>
         {trend && (
-          <div className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
+          <div className="text-caption flex items-center gap-1 rounded-[var(--radius-full)] bg-[var(--color-status-success-bg)] px-2 py-1 font-medium text-[var(--color-status-success-text)]">
             <TrendingUp className="h-3 w-3" />
             +{trend.value}
           </div>
         )}
       </div>
       <div className="mt-4">
-        <p className="text-3xl font-bold text-slate-900 dark:text-white">{value}</p>
-        <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">{label}</p>
+        <p className="text-h2 text-[var(--color-text-heading)]">{value}</p>
+        <p className="text-body-sm mt-1 font-medium text-[var(--color-text-muted)]">{label}</p>
         {subtext && (
-          <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">{subtext}</p>
+          <p className="text-caption mt-0.5 text-[var(--color-text-muted)]">{subtext}</p>
         )}
       </div>
     </div>
@@ -110,16 +110,16 @@ function QuickActionCard({
   return (
     <Link
       href={href as any}
-      className="group flex items-center gap-4 rounded-xl bg-white p-4 ring-1 ring-slate-200/60 transition-all hover:bg-slate-50 hover:ring-brand-300 dark:bg-slate-900 dark:ring-slate-800 dark:hover:bg-slate-800/80 dark:hover:ring-brand-600"
+      className="group flex items-center gap-4 rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] p-4 transition-all hover:bg-[var(--color-bg-subtle)]"
     >
-      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600 transition-colors group-hover:bg-brand-100 dark:bg-brand-950/50 dark:text-brand-400 dark:group-hover:bg-brand-900/50">
+      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-bg-brand-tint)] text-[var(--color-text-link)]">
         <Icon className="h-5 w-5" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-slate-900 dark:text-white">{title}</p>
-        <p className="text-sm text-slate-500 dark:text-slate-400">{description}</p>
+        <p className="font-medium text-[var(--color-text-heading)]">{title}</p>
+        <p className="text-body-sm text-[var(--color-text-muted)]">{description}</p>
       </div>
-      <ArrowUpRight className="h-4 w-4 text-slate-400 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+      <ArrowUpRight className="h-4 w-4 text-[var(--color-text-muted)] opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
     </Link>
   );
 }
@@ -249,17 +249,18 @@ export function DashboardClient() {
               day: "numeric",
             })}
           </p>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">
+          <h1 className="text-h2 mt-1 text-[var(--color-text-heading)]">
             {greeting()}, {userName}
           </h1>
-          <p className="mt-1 text-slate-500 dark:text-slate-400">
+          <p className="mt-1 text-[var(--color-text-muted)]">
             {t("subtitle")}
           </p>
         </div>
         <button
           onClick={fetchData}
           disabled={loading}
-          className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-brand-600/25 transition-all hover:bg-brand-500 disabled:opacity-50"
+          data-ui="admin-button"
+          className="text-body-sm inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-action-primary)] px-[var(--spacing-md)] py-2.5 font-medium text-[var(--color-text-on-brand)] transition-colors hover:bg-[var(--color-action-primary-hover)] disabled:opacity-50"
         >
           <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           {t("refresh")}
@@ -309,7 +310,7 @@ export function DashboardClient() {
       <div>
         <div className="mb-4 flex items-center gap-2">
           <Zap className="h-5 w-5 text-brand-600" />
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+          <h2 className="text-h4 font-semibold text-[var(--color-text-heading)]">
             {t("quickActions.title")}
           </h2>
         </div>
@@ -347,15 +348,15 @@ export function DashboardClient() {
       <div className="grid gap-6 lg:grid-cols-5">
         {/* Recent News - wider */}
         <div className="lg:col-span-3">
-          <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 dark:bg-slate-900 dark:ring-slate-800">
-            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+          <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border-default)] bg-[var(--color-bg-surface)]">
+            <div className="flex items-center justify-between border-b border-[var(--color-border-default)] px-5 py-4">
               <div className="flex items-center gap-2">
                 <Newspaper className="h-5 w-5 text-brand-600" />
-                <h3 className="font-semibold text-slate-900 dark:text-white">{t("recentNews.title")}</h3>
+                <h3 className="text-h4 font-semibold text-[var(--color-text-heading)]">{t("recentNews.title")}</h3>
               </div>
               <Link
                 href="/admin/news"
-                className="flex items-center gap-1 text-sm font-medium text-brand-600 transition-colors hover:text-brand-500 dark:text-brand-400"
+                className="text-body-sm flex items-center gap-1 font-medium text-[var(--color-text-link)] transition-colors hover:underline"
               >
                 {t("recentNews.viewAll")}
                 <ChevronRight className="h-4 w-4" />
@@ -390,16 +391,16 @@ export function DashboardClient() {
         {/* Right column */}
         <div className="space-y-6 lg:col-span-2">
           {/* Recent Activity */}
-          <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 dark:bg-slate-900 dark:ring-slate-800">
-            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+          <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border-default)] bg-[var(--color-bg-surface)]">
+            <div className="flex items-center justify-between border-b border-[var(--color-border-default)] px-5 py-4">
               <div className="flex items-center gap-2">
                 <Activity className="h-5 w-5 text-brand-600" />
-                <h3 className="font-semibold text-slate-900 dark:text-white">{t("recentActivity.title")}</h3>
+                <h3 className="text-h4 font-semibold text-[var(--color-text-heading)]">{t("recentActivity.title")}</h3>
               </div>
               {isAdmin && (
                 <Link
                   href="/admin/audit"
-                  className="flex items-center gap-1 text-sm font-medium text-brand-600 transition-colors hover:text-brand-500 dark:text-brand-400"
+                  className="text-body-sm flex items-center gap-1 font-medium text-[var(--color-text-link)] transition-colors hover:underline"
                 >
                   {t("recentActivity.viewAll")}
                   <ChevronRight className="h-4 w-4" />
@@ -430,28 +431,40 @@ export function DashboardClient() {
             )}
           </div>
 
+          {/* Notes for successors — generational-turnover constraint (keep). */}
+          <div className="rounded-[var(--radius-lg)] border border-[var(--color-border-default)] bg-[var(--color-bg-brand-tint)] p-[var(--spacing-lg)]">
+            <h3 className="text-h4 text-[var(--color-text-heading)]">{t("successorNotes.title")}</h3>
+            <p className="text-body-sm mt-[var(--spacing-xs)] text-[var(--color-text-body)]">{t("successorNotes.body")}</p>
+            <ul className="text-body-sm mt-[var(--spacing-sm)] flex list-disc flex-col gap-[var(--spacing-2xs)] pl-[var(--spacing-md)] text-[var(--color-text-body)]">
+              <li>{t("successorNotes.tip1")}</li>
+              <li>{t("successorNotes.tip2")}</li>
+              <li>{t("successorNotes.tip3")}</li>
+            </ul>
+            <p className="text-caption mt-[var(--spacing-sm)] text-[var(--color-text-muted)]">{t("successorNotes.persistNote")}</p>
+          </div>
+
           {/* System Status */}
-          <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200/60 dark:bg-slate-900 dark:ring-slate-800">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] p-[var(--spacing-lg)]">
             <div className="mb-4 flex items-center gap-2">
-              <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              <h3 className="font-semibold text-slate-900 dark:text-white">{t("systemStatus.title")}</h3>
+              <div className="h-2.5 w-2.5 rounded-full bg-[var(--color-tag-green)] animate-pulse" />
+              <h3 className="text-h4 font-semibold text-[var(--color-text-heading)]">{t("systemStatus.title")}</h3>
             </div>
             <div className="space-y-3">
-              <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-800/50">
+              <div className="flex items-center justify-between rounded-[var(--radius-md)] bg-[var(--color-bg-subtle)] px-4 py-3">
                 <div>
-                  <p className="text-sm font-medium text-slate-900 dark:text-white">{t("systemStatus.frontend")}</p>
-                  <p className="text-xs text-slate-500">{t("systemStatus.frontendDesc")}</p>
+                  <p className="text-body-sm font-medium text-[var(--color-text-heading)]">{t("systemStatus.frontend")}</p>
+                  <p className="text-caption text-[var(--color-text-muted)]">{t("systemStatus.frontendDesc")}</p>
                 </div>
-                <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400">
+                <span className="text-caption rounded-[var(--radius-full)] bg-[var(--color-status-success-bg)] px-2.5 py-1 font-medium text-[var(--color-status-success-text)]">
                   Online
                 </span>
               </div>
-              <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-800/50">
+              <div className="flex items-center justify-between rounded-[var(--radius-md)] bg-[var(--color-bg-subtle)] px-4 py-3">
                 <div>
-                  <p className="text-sm font-medium text-slate-900 dark:text-white">{t("systemStatus.database")}</p>
-                  <p className="text-xs text-slate-500">{t("systemStatus.databaseDesc")}</p>
+                  <p className="text-body-sm font-medium text-[var(--color-text-heading)]">{t("systemStatus.database")}</p>
+                  <p className="text-caption text-[var(--color-text-muted)]">{t("systemStatus.databaseDesc")}</p>
                 </div>
-                <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400">
+                <span className="text-caption rounded-[var(--radius-full)] bg-[var(--color-status-success-bg)] px-2.5 py-1 font-medium text-[var(--color-status-success-text)]">
                   Connected
                 </span>
               </div>

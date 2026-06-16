@@ -30,8 +30,10 @@ test.describe("Carousel admin CRUD (Phase 2.1)", () => {
     await page.selectOption('select[name="status"]', "PUBLISHED");
     await page.click('button[type="submit"]');
 
-    // Redirect back to the list, and the new slide must actually be persisted.
+    // Redirect back to the list, then search for the unique title so it's found
+    // regardless of dev-DB accumulation (the list paginates at 20). Hermetic.
     await page.waitForURL(/\/admin\/content\/carousel$/);
+    await page.goto(`/admin/content/carousel?q=${encodeURIComponent(title)}`);
     await expect(page.getByText(title)).toBeVisible();
   });
 });

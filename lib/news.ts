@@ -58,6 +58,7 @@ function toPostItem(row: NewsRow): PostItem {
     image,
     images,
     published: row.published,
+    status: row.status ?? undefined,
     category: row.category ?? undefined,
     colorTag: row.colorTag ?? undefined,
   };

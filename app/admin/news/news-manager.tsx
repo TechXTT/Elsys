@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { PostItem } from "@/lib/types";
 import {
   NewsBuilderProvider,
@@ -133,11 +134,12 @@ function NewsManagerInner({
     useBlocks,
   } = form;
 
+  const tn = useTranslations("Admin.news");
   const [locale, setLocale] = useState(currentLocale);
   const [status, setStatus] = useState<Status>({ type: "idle" });
   const [posts, setPosts] = useState<PostItem[]>(incomingPosts ?? []);
   const [filterQuery, setFilterQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState<"all" | "published" | "draft">("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "published" | "draft" | "archived">("all");
   const [sortBy, setSortBy] = useState<"recent" | "oldest" | "title">("recent");
   const [showPreviewPanel, setShowPreviewPanel] = useState(true);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -276,8 +278,11 @@ function NewsManagerInner({
     });
     const byStatus = byQuery.filter((post) => {
       if (filterStatus === "all") return true;
-      const isDraft = post.published === false;
-      return filterStatus === "draft" ? isDraft : !isDraft;
+      // Prefer the canonical status; fall back to the legacy published boolean.
+      const st = (post.status ?? (post.published === false ? "DRAFT" : "PUBLISHED")).toUpperCase();
+      if (filterStatus === "archived") return st === "ARCHIVED";
+      if (filterStatus === "draft") return st === "DRAFT";
+      return st === "PUBLISHED";
     });
     const sorted = [...byStatus].sort((a, b) => {
       if (sortBy === "title") return (a.title || "").localeCompare(b.title || "");
@@ -1666,79 +1671,94 @@ function NewsManagerInner({
             {/* News List Section */}
             <div className="p-4">
               <div className="mb-4">
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-                  News list
+                <h3 className="text-h4 font-semibold text-[var(--color-text-heading)]">
+                  {tn("listTitle")}
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {filteredPosts.length} shown · {posts.length} total
+                <p className="text-caption text-[var(--color-text-muted)]">
+                  {tn("countShown", { shown: filteredPosts.length, total: posts.length })}
                 </p>
               </div>
 
               {/* Filters */}
-              <div className="mb-4 space-y-2">
+              <div className="mb-4 space-y-[var(--spacing-sm)]">
                 <input
                   type="search"
+                  data-ui="news-search"
                   value={filterQuery}
                   onChange={(e) => setFilterQuery(e.target.value)}
-                  placeholder="Search by title or slug..."
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                  placeholder={tn("searchPlaceholder")}
+                  className="text-body-sm w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] px-[var(--spacing-md)] py-2 text-[var(--color-text-body)] focus:border-[var(--color-action-secondary-border)] focus:outline-none"
                 />
-                <div className="flex gap-2">
-                  <select
-                    value={filterStatus}
-                    onChange={(e) =>
-                      setFilterStatus(e.target.value as typeof filterStatus)
-                    }
-                    className="flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs focus:border-brand-500 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-                  >
-                    <option value="all">All</option>
-                    <option value="published">Published</option>
-                    <option value="draft">Drafts</option>
-                  </select>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                    className="flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs focus:border-brand-500 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-                  >
-                    <option value="recent">Newest</option>
-                    <option value="oldest">Oldest</option>
-                    <option value="title">A→Z</option>
-                  </select>
+                <div role="tablist" aria-label={tn("filterLabel")} className="flex flex-wrap gap-[var(--spacing-2xs)]">
+                  {(["all", "published", "draft", "archived"] as const).map((key) => {
+                    const active = filterStatus === key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        role="tab"
+                        aria-selected={active}
+                        data-ui="news-tab"
+                        onClick={() => setFilterStatus(key)}
+                        className={`text-body-sm rounded-[var(--radius-full)] border px-[var(--spacing-sm)] py-[var(--spacing-2xs)] transition-colors ${
+                          active
+                            ? "border-transparent bg-[var(--color-action-primary)] text-[var(--color-text-on-brand)]"
+                            : "border-[var(--color-border-default)] bg-[var(--color-bg-surface)] text-[var(--color-text-body)] hover:bg-[var(--color-bg-subtle)]"
+                        }`}
+                      >
+                        {tn(`filter_${key}`)}
+                      </button>
+                    );
+                  })}
                 </div>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                  className="text-body-sm w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] px-[var(--spacing-sm)] py-1.5 text-[var(--color-text-body)] focus:border-[var(--color-action-secondary-border)] focus:outline-none"
+                >
+                  <option value="recent">{tn("sortNewest")}</option>
+                  <option value="oldest">{tn("sortOldest")}</option>
+                  <option value="title">{tn("sortAZ")}</option>
+                </select>
               </div>
 
               {/* Posts List */}
               {filteredPosts.length === 0 ? (
-                <p className="py-4 text-center text-sm text-slate-500 dark:text-slate-400">
-                  {posts.length === 0 ? "No posts yet." : "No matches."}
+                <p className="text-body-sm py-4 text-center text-[var(--color-text-muted)]">
+                  {posts.length === 0 ? tn("emptyNone") : tn("emptyNoMatch")}
                 </p>
               ) : (
                 <ul className="space-y-2">
                   {filteredPosts.map((post) => {
                     const isActive = editingId === post.id;
+                    const st = (post.status ?? (post.published === false ? "DRAFT" : "PUBLISHED")).toUpperCase();
                     return (
                       <li
                         key={post.id}
-                        className={`rounded-lg p-3 transition-colors ${
+                        className={`rounded-[var(--radius-md)] p-3 transition-colors ${
                           isActive
-                            ? "border-2 border-brand-500 bg-brand-50 dark:border-brand-400 dark:bg-brand-500/10"
-                            : "border border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600"
+                            ? "border-2 border-[var(--color-action-secondary-border)] bg-[var(--color-bg-brand-tint)]"
+                            : "border border-[var(--color-border-default)] hover:border-[var(--color-border-strong)]"
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <strong className="truncate text-sm text-slate-900 dark:text-slate-100">
+                              <strong className="text-body-sm truncate text-[var(--color-text-heading)]">
                                 {post.title}
                               </strong>
-                              {post.published === false && (
-                                <span className="flex-shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
-                                  Draft
+                              {st !== "PUBLISHED" && (
+                                <span className={`text-overline flex-shrink-0 rounded-[var(--radius-sm)] px-1.5 py-0.5 ${
+                                  st === "ARCHIVED"
+                                    ? "bg-[var(--color-bg-subtle)] text-[var(--color-text-muted)]"
+                                    : "bg-[var(--color-status-warning-bg)] text-[var(--color-status-warning-text)]"
+                                }`}>
+                                  {tn(`filter_${st === "ARCHIVED" ? "archived" : "draft"}`)}
                                 </span>
                               )}
                             </div>
                             {post.date && (
-                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                              <p className="text-caption text-[var(--color-text-muted)]">
                                 {formatDateLabel(post.date)}
                               </p>
                             )}
@@ -1747,19 +1767,19 @@ function NewsManagerInner({
                         <div className="mt-2 flex flex-wrap items-center gap-2">
                           <Link
                             href={`/${locale}/novini/${post.id}`}
-                            className="text-xs font-medium text-brand-600 hover:underline dark:text-brand-400"
+                            className="text-caption font-medium text-[var(--color-text-link)] hover:underline"
                             target="_blank"
                             rel="noopener noreferrer"
                           >
-                            View
+                            {tn("view")}
                           </Link>
                           <button
                             type="button"
                             onClick={() => handleEditPost(post.id)}
                             disabled={isPrefilling || status.type === "loading"}
-                            className="rounded border border-slate-300 px-2 py-0.5 text-xs text-slate-600 hover:bg-slate-100 disabled:opacity-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                            className="text-caption rounded-[var(--radius-sm)] border border-[var(--color-border-default)] px-2 py-0.5 text-[var(--color-text-body)] hover:bg-[var(--color-bg-subtle)] disabled:opacity-50"
                           >
-                            Edit
+                            {tn("edit")}
                           </button>
                           {isActive && (
                             <button
