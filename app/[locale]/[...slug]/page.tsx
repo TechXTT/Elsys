@@ -1,12 +1,13 @@
 import React from "react";
 // Disable force-dynamic to enable ISR caching
 export const revalidate = 300; // 5-minute ISR (revalidate on-demand from admin API)
+import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
 import { getTranslations } from "next-intl/server";
 
-import type { Locale } from "@/i18n/config";
+import { defaultLocale, type Locale } from "@/i18n/config";
 import { prisma } from "@/lib/prisma";
 import { renderBlocks } from "@/lib/cms";
 import { getNewsPosts } from "@/lib/news";
@@ -24,6 +25,7 @@ function PageContent({
   comingSoon,
   homeLabel,
   breadcrumbLabel,
+  untranslatedNote,
 }: {
   page: any;
   locale: Locale;
@@ -31,10 +33,18 @@ function PageContent({
   comingSoon: string;
   homeLabel: string;
   breadcrumbLabel: string;
+  untranslatedNote?: string;
 }) {
   const blocks = Array.isArray(page.blocks) ? page.blocks : [];
   return (
     <>
+      {untranslatedNote && (
+        <div className="container-page pt-[var(--spacing-lg)]">
+          <p role="status" className="text-body-sm rounded-[var(--radius-md)] bg-brand-tint px-[var(--spacing-md)] py-[var(--spacing-sm)] text-ink">
+            {untranslatedNote}
+          </p>
+        </div>
+      )}
       <div className="container-page flex flex-col gap-[var(--spacing-md)] pt-[var(--spacing-2xl)]">
         <Breadcrumbs label={breadcrumbLabel} items={[{ label: homeLabel, href: `/${locale}` }, { label: page.title }]} />
         <div>
@@ -119,24 +129,29 @@ export default async function DynamicPage({ params }: { params: { locale: Locale
   const tCommon = await getTranslations({ locale, namespace: "Common" });
   const slugParts = Array.isArray(params.slug) ? params.slug : [];
 
-  if (!slugParts.length) {
-    return <div className="container-page py-20">{tCommon("pageNotFound")}</div>;
+  if (!slugParts.length) notFound();
+
+  // Resolve for the requested locale (exact → hierarchical → route alias).
+  const resolveFor = async (loc: Locale) => {
+    let r = await resolvePageHierarchical(loc, slugParts);
+    if (!r) {
+      const aliasTarget = await resolveAlias(loc, slugParts);
+      if (aliasTarget) r = await resolvePageHierarchical(loc, aliasTarget);
+    }
+    return r;
+  };
+
+  let resolved = await resolveFor(locale);
+
+  // Locale fallback: render the bg version when the requested locale has no
+  // content (mirrors the news fallback). Flagged untranslated. TODO(DeepL pass).
+  let untranslated = false;
+  if (!resolved && locale !== defaultLocale) {
+    resolved = await resolveFor(defaultLocale);
+    if (resolved) untranslated = true;
   }
 
-  // Resolve the page (exact or hierarchical), then fall back to a route alias.
-  let resolved = await resolvePageHierarchical(locale, slugParts);
-  if (!resolved) {
-    // Alias resolution (replaces the old middleware -> /api/route-alias hop):
-    // map the path through a cached `routes`-namespace alias table, then render
-    // the same content the target route would.
-    const aliasTarget = await resolveAlias(locale, slugParts);
-    if (aliasTarget) {
-      resolved = await resolvePageHierarchical(locale, aliasTarget);
-    }
-  }
-  if (!resolved) {
-    return <div className="container-page py-20">{tCommon("pageNotFound")}</div>;
-  }
+  if (!resolved) notFound();
 
   const { page } = resolved;
 
@@ -152,6 +167,7 @@ export default async function DynamicPage({ params }: { params: { locale: Locale
       comingSoon={tCommon("comingSoon")}
       homeLabel={tCommon("home")}
       breadcrumbLabel={tCommon("breadcrumb")}
+      untranslatedNote={untranslated ? tCommon("untranslated") : undefined}
     />
   );
 }

@@ -906,6 +906,54 @@ Registration for the first workshop is now open!`,
         { type: 'CTA', props: { title: 'Готови ли сте да станете част от ТУЕС?', description: 'Запознайте се с условията и важните дати за прием 2026.', primaryButton: { label: 'Кандидатствай', href: '/priem' }, secondaryButton: { label: 'Контакти', href: '/uchilishteto/kontakti' } } },
       ],
     },
+    {
+      // Clubs listing (E3) — CMS-block page (no Club model). TODO: Club model.
+      slug: 'klubove',
+      locale: 'bg',
+      title: 'Клубове и дейности',
+      excerpt: 'Извънкласните занимания в ТУЕС — място за приятелства, проекти и страст към технологиите.',
+      published: true,
+      status: 'PUBLISHED',
+      kind: 'PAGE',
+      bodyMarkdown: '',
+      blocks: [
+        { type: 'ClubGrid', props: { items: [
+          { name: 'Роботика', description: 'Състезателна робототехника и автоматизация.', color: 'TEAL', href: '/uchenicheski-zhivot/klubove' },
+          { name: 'Олимпийци', description: 'Подготовка за национални и международни олимпиади.', color: 'BLUE' },
+          { name: 'Дебати', description: 'Реторика, критично мислене и публично говорене.', color: 'PURPLE' },
+          { name: 'ТУЕС Медиа', description: 'Видео, подкасти и училищна журналистика.', color: 'RED' },
+          { name: 'Гейм дев', description: 'Разработка на игри и интерактивни преживявания.', color: 'ORANGE' },
+          { name: 'Предприемачество', description: 'Стартъп идеи, питчинг и работа с ментори.', color: 'GREEN' },
+        ] } },
+      ],
+    },
+    {
+      // Documents listing (E3) — grouped DocumentList blocks. TODO: Document model + Blob.
+      slug: 'dokumenti',
+      locale: 'bg',
+      title: 'Документи',
+      excerpt: 'Заявления, правилници и бланки за изтегляне.',
+      published: true,
+      status: 'PUBLISHED',
+      kind: 'PAGE',
+      bodyMarkdown: '',
+      blocks: [
+        { type: 'DocumentList', props: { title: 'Прием 2026', items: [
+          { name: 'Заявление за кандидатстване.pdf', href: '/docs/zayavlenie.pdf', fileType: 'PDF', size: '120 KB' },
+          { name: 'Балообразуване и профили.pdf', href: '/docs/baloobrazuvane.pdf', fileType: 'PDF', size: '1.4 MB' },
+          { name: 'График на дейностите.pdf', href: '/docs/grafik-priem.pdf', fileType: 'PDF', size: '320 KB' },
+        ] } },
+        { type: 'DocumentList', props: { title: 'Правилници', items: [
+          { name: 'Правилник за дейността на училището.pdf', href: '/docs/pravilnik.pdf', fileType: 'PDF', size: '1.4 MB' },
+          { name: 'Етичен кодекс.pdf', href: '/docs/etichen-kodeks.pdf', fileType: 'PDF', size: '210 KB' },
+          { name: 'Правила за ползване на лаборатории.pdf', href: '/docs/laboratorii.pdf', fileType: 'PDF', size: '180 KB' },
+        ] } },
+        { type: 'DocumentList', props: { title: 'Бланки', items: [
+          { name: 'Бланка за отсъствие.docx', href: '/docs/otsastvie.docx', fileType: 'DOCX', size: '40 KB' },
+          { name: 'Заявление за уверение.docx', href: '/docs/uverenie.docx', fileType: 'DOCX', size: '38 KB' },
+        ] } },
+      ],
+    },
   ];
 
   for (const page of contentPages) {

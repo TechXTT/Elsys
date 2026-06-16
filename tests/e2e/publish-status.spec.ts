@@ -12,9 +12,10 @@ async function login(page: import("@playwright/test").Page) {
 // (status PUBLISHED + date gate). Fixtures seeded in prisma/seed.js.
 test.describe("publish status (M0.4 / R3)", () => {
   test("a DRAFT page 404s publicly but lists in admin", async ({ page }) => {
-    // Public: the seeded DRAFT page must not render.
-    await page.goto("/bg/chernova-stranica");
-    await expect(page.getByText("Страницата не е намерена.")).toBeVisible();
+    // Public: the seeded DRAFT page must 404 (E3 wired notFound) and not render.
+    const pageRes = await page.goto("/bg/chernova-stranica");
+    expect(pageRes?.status()).toBe(404);
+    await expect(page.getByRole("heading", { name: "Страницата не е намерена" })).toBeVisible();
     await expect(
       page.getByText("Това е чернова и не трябва да е видима публично.")
     ).toHaveCount(0);

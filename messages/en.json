@@ -13,7 +13,8 @@
     "viewMore": "See more",
     "skipToContent": "Skip to content",
     "home": "Home",
-    "breadcrumb": "Breadcrumb"
+    "breadcrumb": "Breadcrumb",
+    "untranslated": "This page isn't translated yet and is shown in Bulgarian."
   },
   "Nav": {
     "news": "News",
@@ -311,6 +312,66 @@
   "Document": {
     "download": "Download",
     "downloadAria": "Download “{name}”{meta}"
+  },
+  "NotFound": {
+    "title": "Page not found",
+    "message": "The link may be outdated or the page may have moved. Go back home or search.",
+    "home": "Back home",
+    "search": "Search"
+  },
+  "Search": {
+    "title": "Search",
+    "placeholder": "Search the site...",
+    "prompt": "Enter a term to search.",
+    "empty": "No results for “{query}”.",
+    "count": "Found {count, plural, one {# result} other {# results}} for “{query}”",
+    "typeNews": "News",
+    "typePage": "Page"
+  },
+  "Gallery": {
+    "title": "Gallery",
+    "intro": "Moments from life at TUES — events, olympiads, everyday.",
+    "filterLabel": "Filter by album",
+    "filterAll": "All",
+    "album": {
+      "sabitiya": "Events",
+      "olimpiadi": "Olympiads",
+      "ezhednevie": "Everyday",
+      "abiturienti": "Graduates"
+    }
+  },
+  "Contact": {
+    "title": "Contact",
+    "intro": "Get in touch or find us on site. We reply within two business days.",
+    "formTitle": "Send an enquiry",
+    "name": "Full name",
+    "namePlaceholder": "Enter text...",
+    "email": "Email",
+    "emailPlaceholder": "Enter text...",
+    "emailHelp": "We'll reply to this address.",
+    "topic": "Topic",
+    "topicPlaceholder": "— Select —",
+    "topicGeneral": "General enquiry",
+    "topicAdmissions": "Admissions",
+    "topicPartnership": "Partnership",
+    "message": "Message",
+    "messagePlaceholder": "Your message...",
+    "submit": "Send",
+    "sending": "Sending...",
+    "success": "Thank you! Your message was sent successfully.",
+    "errorValidation": "Please fix the errors in the form.",
+    "error_turnstile": "Verification failed. Please try again.",
+    "error_rateLimited": "Too many requests. Please try later.",
+    "error_send": "Something went wrong while sending. Please try again.",
+    "addressLabel": "Address",
+    "address": "8 Kliment Ohridski Blvd, Block 1, Sofia 1000",
+    "phoneLabel": "Phone",
+    "phone": "+359 2 965 3293",
+    "emailLabel": "Email",
+    "emailValue": "info@elsys-bg.org",
+    "hoursLabel": "Office hours",
+    "hours": "Mon–Fri, 8:30–16:30",
+    "mapPlaceholder": "map"
   }
 }
 

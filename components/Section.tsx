@@ -14,7 +14,7 @@ export const Section: React.FC<SectionProps> = ({ title, description, children }
   </section>
 );
 
-type HeadingLevel = "h2" | "h3";
+type HeadingLevel = "h1" | "h2" | "h3";
 
 interface SectionHeadingProps {
   /** Regular-weight lead text. */
@@ -42,7 +42,7 @@ export function SectionHeading({
   className,
 }: SectionHeadingProps) {
   const Tag = as;
-  const sizeClass = as === "h3" ? "text-h3" : "text-h2";
+  const sizeClass = as === "h1" ? "text-h1" : as === "h3" ? "text-h3" : "text-h2";
   return (
     <div className={cn("flex flex-col gap-[var(--spacing-xs)]", align === "center" && "items-center text-center", className)}>
       <Tag className={cn(sizeClass, "font-normal text-ink-heading")}>
