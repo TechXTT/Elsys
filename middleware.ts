@@ -40,7 +40,24 @@ export async function middleware(req: NextRequest) {
   // Route-alias resolution lives in the app/[locale]/[...slug] resolver now
   // (lib/routes.ts, `routes` cache namespace). Middleware stays out of Prisma
   // and never self-fetches — it only auth-gates /admin and runs next-intl.
-  return intlMiddleware(req);
+  const res = intlMiddleware(req);
+
+  // Redirects (e.g. "/" → "/bg", or a prefix-less path → "/bg/…") pass through
+  // untouched; the redirected request re-enters middleware and gets the header.
+  if (res.headers.has("location")) return res;
+
+  // Expose the resolved URL locale to the ROOT layout as a request header so it
+  // can set a correct <html lang> per URL on a cold request (WCAG 3.1.1). The
+  // root layout can't read the route locale itself (it's a child segment).
+  // localePrefix is "always", so the first path segment is the locale.
+  const seg = pathname.split("/")[1];
+  const locale = (locales as readonly string[]).includes(seg) ? seg : defaultLocale;
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-next-locale", locale);
+  const out = NextResponse.next({ request: { headers: requestHeaders } });
+  // Carry over next-intl's response cookies (e.g. NEXT_LOCALE).
+  for (const cookie of res.cookies.getAll()) out.cookies.set(cookie);
+  return out;
 }
 
 export const config = {
