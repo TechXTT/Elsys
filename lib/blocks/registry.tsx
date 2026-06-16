@@ -23,7 +23,8 @@ import type { PostItem } from "@/lib/types";
 
 export type DocItemLite = { id?: string; title: string; fileUrl: string; fileType?: string; fileSize?: string; category?: string };
 export type ClubLite = { id?: string; slug?: string; title: string; description?: string; color?: ColorTag; coverImage?: string };
-export type BlockContext = { locale?: Locale; news?: PostItem[]; carouselSlides?: CarouselSlide[]; documents?: DocItemLite[]; clubs?: ClubLite[] };
+export type TeamMemberLite = { id?: string; name: string; role?: string; photo?: string; email?: string };
+export type BlockContext = { locale?: Locale; news?: PostItem[]; carouselSlides?: CarouselSlide[]; documents?: DocItemLite[]; clubs?: ClubLite[]; team?: TeamMemberLite[] };
 
 export type BlockDefinition<P extends Record<string, unknown> = any> = {
   type: string;
@@ -391,9 +392,19 @@ const CarouselHeroBlock: BlockDefinition<Record<string, unknown>> = {
 
 const TeamGridBlock: BlockDefinition<{ title?: string; items?: unknown }> = {
   type: "TeamGrid",
-  render: (p) => {
+  render: (p, ctx) => {
     const r = p as Record<string, unknown>;
-    const items = arr(r.items);
+    // Data-bound (G2-2): prefer real TeamMembers from context; inline fallback.
+    const fromData = Array.isArray(ctx?.team)
+      ? ctx!.team.map((m) => ({ name: m.name, role: m.role, photo: m.photo, email: m.email }))
+      : [];
+    const inline = arr(r.items).map((it) => ({
+      name: str(it.name),
+      role: str(it.role) || undefined,
+      photo: str(it.photo) || undefined,
+      email: str(it.email) || undefined,
+    }));
+    const items = fromData.length > 0 ? fromData : inline;
     return (
       <Band className="flex flex-col gap-[var(--spacing-lg)]">
         {str(r.title) ? <SectionHeading as="h2" title={str(r.title)} /> : null}
@@ -401,10 +412,10 @@ const TeamGridBlock: BlockDefinition<{ title?: string; items?: unknown }> = {
           {items.map((it, i) => (
             <TeamCard
               key={i}
-              name={str(it.name)}
-              role={str(it.role) || undefined}
-              photo={str(it.photo) || undefined}
-              contact={str(it.email) ? { href: `mailto:${str(it.email)}`, label: str(it.email) } : undefined}
+              name={it.name}
+              role={it.role}
+              photo={it.photo}
+              contact={it.email ? { href: `mailto:${it.email}`, label: it.email } : undefined}
             />
           ))}
         </div>

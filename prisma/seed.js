@@ -1364,6 +1364,22 @@ Registration for the first workshop is now open!`,
     });
   }
   console.log(`✓ Seeded ${gallerySeed.length} gallery items`);
+
+  // --- Team members (G2-2 type) ---------------------------------------------
+  const teamSeed = [
+    { slug: 'director', locale: 'bg', name: 'инж. Стефан Бумбалов', role: 'Директор', category: 'Ръководство', email: 'director@elsys-bg.org', color: 'BLUE', status: 'PUBLISHED', order: 1 },
+    { slug: 'deputy-director', locale: 'bg', name: 'Мария Петрова', role: 'Заместник-директор', category: 'Ръководство', email: 'deputy@elsys-bg.org', color: 'TEAL', status: 'PUBLISHED', order: 2 },
+    { slug: 'teacher-informatics', locale: 'bg', name: 'Иван Георгиев', role: 'Преподавател по информатика', category: 'Преподаватели', email: 'igeorgiev@elsys-bg.org', color: 'GREEN', status: 'PUBLISHED', order: 3 },
+    { slug: 'teacher-draft', locale: 'bg', name: 'Скрит преподавател', role: 'Преподавател', category: 'Преподаватели', color: 'GRAY', status: 'DRAFT', order: 9 },
+  ];
+  for (const m of teamSeed) {
+    await prisma.teamMember.upsert({
+      where: { slug_locale: { slug: m.slug, locale: m.locale } },
+      update: m,
+      create: { ...m, authorId: user.id },
+    });
+  }
+  console.log(`✓ Seeded ${teamSeed.length} team members`);
 }
 
 main()

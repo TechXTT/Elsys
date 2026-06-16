@@ -79,3 +79,10 @@ Branch `feat/G2-5-club-public` (off Task 4 tip f8b5b47). typecheck ✓ lint ✓ 
 - `lib/clubs.ts` cached read; public `/[locale]/klubove` route (ClubCard grid, drafts hidden).
 - `ClubGrid` block bound to `BlockContext.clubs` (inline fallback kept); `compile.tsx` prefetches clubs.
 - revalidate map extended (`club`). `tests/e2e/clubs-public.spec.ts`.
+
+### Task 6 — TeamMember (+category) — ✅ DONE
+Branch `feat/G2-6-team` (off Task 5 tip 13fe95e). typecheck ✓ lint ✓ build ✓ e2e team ✓ (2/2).
+- Additive `TeamMember` model + migration `20260616221511_add_team_member` + 4 seed rows (1 draft).
+- `team` type (titleField "name", role/category/email/photo). `lib/team.ts` cached read.
+- Public `/[locale]/ekip` grouped by category, drafts hidden. `Team` i18n ns.
+- `TeamGrid` block bound to `BlockContext.team`; compile.tsx prefetch; revalidate map (`team`). `tests/e2e/team.spec.ts`.

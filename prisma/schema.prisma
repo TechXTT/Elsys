@@ -43,6 +43,7 @@ model User {
   media           Media[]
   documents       Document[]
   galleryItems    GalleryItem[]
+  teamMembers     TeamMember[]
 
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -404,6 +405,34 @@ model Media {
   updatedAt         DateTime  @updatedAt
 
   @@index([folder, createdAt])
+}
+
+/// Team member (G2-2 type). Rendered as a TeamGrid at /ekip, grouped by category.
+model TeamMember {
+  id          String        @id @default(cuid())
+  locale      String        @default("bg")
+  slug        String
+  name        String
+  /// Position / role, e.g. "Директор".
+  role        String?
+  /// Grouping label, e.g. "Ръководство", "Преподаватели".
+  category    String?
+  email       String?
+  photo       String?
+  color       ColorTag      @default(BLUE)
+  status      PublishStatus @default(DRAFT)
+  order       Int           @default(0)
+  publishAt   DateTime?
+  legacyId    Int?
+
+  authorId    String?
+  author      User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([slug, locale])
+  @@index([locale, status, order])
 }
 
 /// Gallery photo (G2-2 type). Rendered at /galeria with a lightbox.

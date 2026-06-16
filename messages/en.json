@@ -599,5 +599,11 @@
     "intro": "Official documents, policies and forms to download.",
     "empty": "No documents published yet.",
     "uncategorized": "Other documents"
+  },
+  "Team": {
+    "title": "Team",
+    "intro": "Leadership and teachers of TUES.",
+    "empty": "No team members published yet.",
+    "uncategorized": "Other"
   }
 }
