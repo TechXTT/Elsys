@@ -72,3 +72,10 @@ Branch `feat/G2-4-gallery` (off Task 3 tip 2e7daea). typecheck ✓ lint ✓ buil
 - `lib/gallery.ts` cached read; `/[locale]/galeria` rewritten to real data + album filter chips (i18n labels kept).
 - `GalleryLightbox` client: grid → accessible dialog with keyboard (Esc/←/→) nav; drafts hidden.
 - revalidate map extended (`gallery`). i18n Gallery.empty + lightbox labels.
+
+### Task 5 — Club (public surface) — ✅ DONE
+Branch `feat/G2-5-club-public` (off Task 4 tip f8b5b47). typecheck ✓ lint ✓ build ✓ e2e ✓.
+- Club model + framework CRUD already existed (promoted in Task 2). Added the missing public surface:
+- `lib/clubs.ts` cached read; public `/[locale]/klubove` route (ClubCard grid, drafts hidden).
+- `ClubGrid` block bound to `BlockContext.clubs` (inline fallback kept); `compile.tsx` prefetches clubs.
+- revalidate map extended (`club`). `tests/e2e/clubs-public.spec.ts`.

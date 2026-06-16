@@ -22,7 +22,8 @@ import type { Locale } from "@/i18n/config";
 import type { PostItem } from "@/lib/types";
 
 export type DocItemLite = { id?: string; title: string; fileUrl: string; fileType?: string; fileSize?: string; category?: string };
-export type BlockContext = { locale?: Locale; news?: PostItem[]; carouselSlides?: CarouselSlide[]; documents?: DocItemLite[] };
+export type ClubLite = { id?: string; slug?: string; title: string; description?: string; color?: ColorTag; coverImage?: string };
+export type BlockContext = { locale?: Locale; news?: PostItem[]; carouselSlides?: CarouselSlide[]; documents?: DocItemLite[]; clubs?: ClubLite[] };
 
 export type BlockDefinition<P extends Record<string, unknown> = any> = {
   type: string;
@@ -475,7 +476,24 @@ const ClubGridBlock: BlockDefinition<{ title?: string; items?: unknown }> = {
   type: "ClubGrid",
   render: (p, ctx) => {
     const r = p as Record<string, unknown>;
-    const items = arr(r.items);
+    // Data-bound (G2-2): prefer real Clubs from context; fall back to inline items.
+    const fromData = Array.isArray(ctx?.clubs)
+      ? ctx!.clubs.map((c) => ({
+          name: c.title,
+          description: c.description,
+          color: (c.color ?? "BLUE") as ColorTag,
+          logo: c.coverImage,
+          href: c.slug ? `/klubove` : undefined,
+        }))
+      : [];
+    const inline = arr(r.items).map((it) => ({
+      name: str(it.name),
+      description: str(it.description) || undefined,
+      color: (str(it.color) || "BLUE") as ColorTag,
+      logo: undefined as string | undefined,
+      href: str(it.href) || undefined,
+    }));
+    const items = fromData.length > 0 ? fromData : inline;
     return (
       <Band className="flex flex-col gap-[var(--spacing-lg)]">
         {str(r.title) ? <SectionHeading as="h2" title={str(r.title)} /> : null}
@@ -483,10 +501,11 @@ const ClubGridBlock: BlockDefinition<{ title?: string; items?: unknown }> = {
           {items.map((it, i) => (
             <ClubCard
               key={i}
-              name={str(it.name)}
-              description={str(it.description) || undefined}
-              color={(str(it.color) || "BLUE") as ColorTag}
-              href={str(it.href) || undefined}
+              name={it.name}
+              description={it.description}
+              color={it.color}
+              logo={it.logo}
+              href={it.href}
               locale={ctx?.locale}
             />
           ))}
