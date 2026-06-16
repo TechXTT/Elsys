@@ -74,7 +74,7 @@ export function Pagination({
             <li key={item}>
               <span
                 aria-current="page"
-                className={cn(cellBase, "bg-[var(--color-action-primary)] text-[var(--color-text-on-brand)]")}
+                className={cn(cellBase, "bg-[var(--color-action-primary)] text-[var(--color-text-on-action)]")}
               >
                 {item}
               </span>

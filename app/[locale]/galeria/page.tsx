@@ -65,7 +65,7 @@ export default async function GalleryPage({
               data-ui="gallery-filter"
               className={cn(
                 "text-body-sm inline-flex items-center rounded-[var(--radius-full)] border px-[var(--spacing-md)] py-[var(--spacing-2xs)] no-underline transition-colors",
-                isActive ? "border-transparent bg-[var(--color-action-primary)] text-ink-on-brand" : "border-line bg-surface text-ink hover:bg-subtle",
+                isActive ? "border-transparent bg-[var(--color-action-primary)] text-ink-on-action" : "border-line bg-surface text-ink hover:bg-subtle",
               )}
             >
               {chip.label}

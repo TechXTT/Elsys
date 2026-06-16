@@ -1702,7 +1702,7 @@ function NewsManagerInner({
                         onClick={() => setFilterStatus(key)}
                         className={`text-body-sm rounded-[var(--radius-full)] border px-[var(--spacing-sm)] py-[var(--spacing-2xs)] transition-colors ${
                           active
-                            ? "border-transparent bg-[var(--color-action-primary)] text-[var(--color-text-on-brand)]"
+                            ? "border-transparent bg-[var(--color-action-primary)] text-[var(--color-text-on-action)]"
                             : "border-[var(--color-border-default)] bg-[var(--color-bg-surface)] text-[var(--color-text-body)] hover:bg-[var(--color-bg-subtle)]"
                         }`}
                       >

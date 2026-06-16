@@ -33,6 +33,7 @@ export default {
           heading: 'var(--color-text-heading)',
           muted: 'var(--color-text-muted)',
           'on-brand': 'var(--color-text-on-brand)',
+          'on-action': 'var(--color-text-on-action)',
           link: 'var(--color-text-link)',
           accent: 'var(--color-text-accent)',
         },

@@ -124,7 +124,7 @@ export function AdminSidebar() {
                     onClick={() => setMobileOpen(false)}
                     className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                       isActive
-                        ? "bg-[var(--color-action-primary)] text-[var(--color-text-on-brand)]"
+                        ? "bg-[var(--color-action-primary)] text-[var(--color-text-on-action)]"
                         : "text-slate-300 hover:bg-white/10 hover:text-white"
                     }`}
                   >

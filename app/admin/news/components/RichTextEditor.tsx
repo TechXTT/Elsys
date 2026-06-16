@@ -18,6 +18,7 @@ import {
   Minus,
 } from "lucide-react";
 import ReactMarkdown, { type Components } from "react-markdown";
+import { useTranslations } from "next-intl";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
 interface RichTextEditorProps {
@@ -74,7 +75,7 @@ function createMarkdownComponents(
     if (inline) {
       return (
         <code
-          className={`rounded bg-slate-100 px-1 py-0.5 font-mono text-sm dark:bg-slate-800 ${className ?? ""}`}
+          className={`rounded bg-subtle px-1 py-0.5 font-mono text-sm ${className ?? ""}`}
           {...props}
         >
           {children}
@@ -82,7 +83,7 @@ function createMarkdownComponents(
       );
     }
     return (
-      <pre className="overflow-auto rounded-md bg-slate-900 p-4 text-sm text-slate-100">
+      <pre className="overflow-auto rounded-md border border-line bg-subtle p-4 text-sm text-ink">
         <code className={className} {...props}>
           {children}
         </code>
@@ -92,16 +93,16 @@ function createMarkdownComponents(
 
   return {
     h1: (props: ComponentPropsWithoutRef<"h1">) => (
-      <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100" {...props} />
+      <h1 className="text-3xl font-semibold text-ink-heading" {...props} />
     ),
     h2: (props: ComponentPropsWithoutRef<"h2">) => (
-      <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100" {...props} />
+      <h2 className="text-2xl font-semibold text-ink-heading" {...props} />
     ),
     h3: (props: ComponentPropsWithoutRef<"h3">) => (
-      <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100" {...props} />
+      <h3 className="text-xl font-semibold text-ink-heading" {...props} />
     ),
     a: (props: ComponentPropsWithoutRef<"a">) => (
-      <a className="text-blue-600 underline hover:text-blue-700" {...props} />
+      <a className="text-ink-link underline hover:opacity-80" {...props} />
     ),
     ul: (props: ComponentPropsWithoutRef<"ul">) => (
       <ul className="list-disc space-y-2 pl-6" {...props} />
@@ -111,7 +112,7 @@ function createMarkdownComponents(
     ),
     blockquote: (props: ComponentPropsWithoutRef<"blockquote">) => (
       <blockquote
-        className="border-l-4 border-blue-600/40 pl-4 italic text-slate-600 dark:border-blue-500/40 dark:text-slate-300"
+        className="border-l-4 border-[var(--color-action-secondary-border)] pl-4 italic text-ink-muted"
         {...props}
       />
     ),
@@ -125,7 +126,7 @@ function createMarkdownComponents(
     p: (props: ComponentPropsWithoutRef<"p">) => (
       <p className="leading-relaxed" {...props} />
     ),
-    hr: () => <hr className="my-6 border-slate-200 dark:border-slate-700" />,
+    hr: () => <hr className="my-6 border-line" />,
     img: ({ src, alt, ...props }: ComponentPropsWithoutRef<"img">) => {
       const resolved = resolveImageSource(typeof src === "string" ? src : undefined);
       if (!resolved) return null;
@@ -154,8 +155,8 @@ function ToolbarButton({ onClick, title, icon: Icon, active }: ToolbarButtonProp
       onClick={onClick}
       className={`rounded p-1.5 transition-colors ${
         active
-          ? "bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300"
-          : "text-slate-600 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700"
+          ? "bg-brand-tint text-ink-link"
+          : "text-ink-muted hover:bg-subtle"
       }`}
       title={title}
     >
@@ -165,20 +166,22 @@ function ToolbarButton({ onClick, title, icon: Icon, active }: ToolbarButtonProp
 }
 
 function ToolbarDivider() {
-  return <div className="mx-1 h-5 w-px bg-slate-300 dark:bg-slate-600" />;
+  return <div className="mx-1 h-5 w-px bg-[var(--color-border-strong)]" />;
 }
 
 export function RichTextEditor({
   value,
   onChange,
-  placeholder = "Write your content here...",
+  placeholder,
   label,
   required,
   rows = 12,
   images = [],
 }: RichTextEditorProps) {
+  const t = useTranslations("Admin.editor");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const resolvedPlaceholder = placeholder ?? t("placeholder");
 
   const insertMarkdown = (before: string, after: string = "") => {
     const textarea = textareaRef.current;
@@ -230,24 +233,24 @@ export function RichTextEditor({
     <div className="space-y-1.5">
       {label && (
         <div className="flex items-center justify-between">
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+          <label className="text-sm font-medium text-ink">
             {label}
-            {required && <span className="ml-1 text-red-500">*</span>}
+            {required && <span className="ml-1 text-[var(--color-status-danger-text)]">*</span>}
           </label>
           <button
             type="button"
             onClick={() => setShowPreview(!showPreview)}
-            className="flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-500 dark:text-brand-400 dark:hover:text-brand-300"
+            className="flex items-center gap-1.5 text-xs font-medium text-ink-link hover:opacity-80"
           >
             {showPreview ? (
               <>
                 <EyeOff className="h-3.5 w-3.5" />
-                Edit
+                {t("edit")}
               </>
             ) : (
               <>
                 <Eye className="h-3.5 w-3.5" />
-                Preview
+                {t("preview")}
               </>
             )}
           </button>
@@ -255,15 +258,15 @@ export function RichTextEditor({
       )}
 
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-0.5 rounded-t-lg border border-b-0 border-slate-300 bg-slate-50 p-1.5 dark:border-slate-600 dark:bg-slate-800">
+      <div className="flex flex-wrap items-center gap-0.5 rounded-t-lg border border-b-0 border-line bg-subtle p-1.5">
         <ToolbarButton
           onClick={() => insertMarkdown("**", "**")}
-          title="Bold (Ctrl+B)"
+          title={t("tooltip.bold")}
           icon={Bold}
         />
         <ToolbarButton
           onClick={() => insertMarkdown("*", "*")}
-          title="Italic (Ctrl+I)"
+          title={t("tooltip.italic")}
           icon={Italic}
         />
 
@@ -271,17 +274,17 @@ export function RichTextEditor({
 
         <ToolbarButton
           onClick={() => insertAtLineStart("# ")}
-          title="Heading 1"
+          title={t("tooltip.h1")}
           icon={Heading1}
         />
         <ToolbarButton
           onClick={() => insertAtLineStart("## ")}
-          title="Heading 2"
+          title={t("tooltip.h2")}
           icon={Heading2}
         />
         <ToolbarButton
           onClick={() => insertAtLineStart("### ")}
-          title="Heading 3"
+          title={t("tooltip.h3")}
           icon={Heading3}
         />
 
@@ -289,17 +292,17 @@ export function RichTextEditor({
 
         <ToolbarButton
           onClick={() => insertAtLineStart("- ")}
-          title="Bullet List"
+          title={t("tooltip.bulletList")}
           icon={List}
         />
         <ToolbarButton
           onClick={() => insertAtLineStart("1. ")}
-          title="Numbered List"
+          title={t("tooltip.numberedList")}
           icon={ListOrdered}
         />
         <ToolbarButton
           onClick={() => insertAtLineStart("> ")}
-          title="Quote"
+          title={t("tooltip.quote")}
           icon={Quote}
         />
 
@@ -307,17 +310,17 @@ export function RichTextEditor({
 
         <ToolbarButton
           onClick={() => insertMarkdown("`", "`")}
-          title="Inline Code"
+          title={t("tooltip.inlineCode")}
           icon={Code}
         />
         <ToolbarButton
           onClick={() => insertMarkdown("[", "](url)")}
-          title="Link"
+          title={t("tooltip.link")}
           icon={Link}
         />
         <ToolbarButton
           onClick={() => insertMarkdown("![alt](", ")")}
-          title="Image"
+          title={t("tooltip.image")}
           icon={Image}
         />
 
@@ -325,21 +328,21 @@ export function RichTextEditor({
 
         <ToolbarButton
           onClick={() => insertMarkdown("\n\n---\n\n")}
-          title="Horizontal Rule"
+          title={t("tooltip.hr")}
           icon={Minus}
         />
       </div>
 
       {/* Editor/Preview */}
       {showPreview ? (
-        <div className="min-h-[300px] overflow-auto rounded-b-lg border border-slate-300 bg-white p-4 dark:border-slate-600 dark:bg-slate-900">
+        <div className="min-h-[300px] overflow-auto rounded-b-lg border border-line bg-surface p-4">
           {value.trim() ? (
             <article className="prose prose-slate max-w-none space-y-4 dark:prose-invert">
               <ReactMarkdown components={markdownComponents}>{value}</ReactMarkdown>
             </article>
           ) : (
-            <p className="text-sm text-slate-400 dark:text-slate-500">
-              Nothing to preview. Start writing to see your content here.
+            <p className="text-sm text-ink-muted">
+              {t("nothingToPreview")}
             </p>
           )}
         </div>
@@ -348,9 +351,9 @@ export function RichTextEditor({
           ref={textareaRef}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           rows={rows}
-          className="w-full rounded-b-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+          className="w-full rounded-b-lg border border-line bg-surface px-3 py-2 font-mono text-sm text-ink placeholder:text-ink-muted focus:border-[var(--color-action-secondary-border)] focus:outline-none focus:ring-2 focus:ring-[var(--color-action-focus-ring)]/40"
           onKeyDown={(e) => {
             // Handle Ctrl+B for bold
             if ((e.ctrlKey || e.metaKey) && e.key === "b") {
@@ -366,8 +369,8 @@ export function RichTextEditor({
         />
       )}
 
-      <p className="text-xs text-slate-500 dark:text-slate-400">
-        Supports Markdown formatting. Use the toolbar or keyboard shortcuts (Ctrl+B, Ctrl+I).
+      <p className="text-xs text-ink-muted">
+        {t("markdownHint")}
       </p>
     </div>
   );

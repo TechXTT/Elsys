@@ -324,7 +324,35 @@
     "builder": {
       "modeLabel": "Editor mode",
       "simple": "Simple",
-      "advanced": "Advanced"
+      "advanced": "Advanced",
+      "dropAtEnd": "Drop here to add at the end",
+      "addItem": "Add",
+      "item": "Item {n}",
+      "noItems": "No items yet. Click \"Add\" to create one.",
+      "properties": "Properties",
+      "selectBlock": "Select a block to edit its properties",
+      "noProperties": "No editable properties for this block type."
+    },
+    "editor": {
+      "edit": "Edit",
+      "preview": "Preview",
+      "placeholder": "Write your content here...",
+      "nothingToPreview": "Nothing to preview. Start writing to see your content here.",
+      "markdownHint": "Supports Markdown formatting. Use the toolbar or keyboard shortcuts (Ctrl+B, Ctrl+I).",
+      "tooltip": {
+        "bold": "Bold (Ctrl+B)",
+        "italic": "Italic (Ctrl+I)",
+        "h1": "Heading 1",
+        "h2": "Heading 2",
+        "h3": "Heading 3",
+        "bulletList": "Bullet List",
+        "numberedList": "Numbered List",
+        "quote": "Quote",
+        "inlineCode": "Inline Code",
+        "link": "Link",
+        "image": "Image",
+        "hr": "Horizontal Rule"
+      }
     },
     "badge": {
       "admin": "Admin",

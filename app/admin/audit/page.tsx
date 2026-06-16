@@ -92,7 +92,7 @@ export default async function AuditLogsPage({ searchParams }: { searchParams?: S
           <input name="userId" defaultValue={userId} className={inputCls} placeholder="cuid…" />
         </label>
         <div className="flex items-end gap-2">
-          <button data-ui="admin-button" className="text-body-sm min-h-9 rounded-[var(--radius-md)] bg-[var(--color-action-primary)] px-[var(--spacing-md)] font-medium text-[var(--color-text-on-brand)]">{t("filter")}</button>
+          <button data-ui="admin-button" className="text-body-sm min-h-9 rounded-[var(--radius-md)] bg-[var(--color-action-primary)] px-[var(--spacing-md)] font-medium text-[var(--color-text-on-action)]">{t("filter")}</button>
           <Link href="/admin/audit" className="text-body-sm min-h-9 rounded-[var(--radius-md)] border border-[var(--color-border-default)] px-[var(--spacing-md)] py-2 text-[var(--color-text-body)] hover:bg-[var(--color-bg-subtle)]">{t("reset")}</Link>
         </div>
       </form>

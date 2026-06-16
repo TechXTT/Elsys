@@ -28,7 +28,7 @@ const sizes: Record<ButtonSize, string> = {
 // brand/500 (4.32:1, fails AA for small text). Secondary border keeps brand/500.
 const variants: Record<ButtonVariant, string> = {
   primary: cn(
-    "bg-[var(--color-action-primary)] text-[var(--color-text-on-brand)]",
+    "bg-[var(--color-action-primary)] text-[var(--color-text-on-action)]",
     "hover:bg-[var(--color-action-primary-hover)]",
     "disabled:bg-[var(--color-action-disabled-bg)] disabled:text-[var(--color-action-disabled-text)]",
     "disabled:hover:bg-[var(--color-action-disabled-bg)]",

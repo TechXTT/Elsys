@@ -121,7 +121,7 @@ export function ThemeToggle({ tone = "surface" }: { tone?: Tone }) {
           isDark ? "translate-x-[22px]" : "translate-x-[3px]",
           tone === "brand"
             ? "bg-[var(--color-text-on-brand)] text-[var(--color-bg-header)]"
-            : "bg-[var(--color-action-primary)] text-[var(--color-text-on-brand)]",
+            : "bg-[var(--color-action-primary)] text-[var(--color-text-on-action)]",
         )}
       >
         {isDark ? <Moon size={12} /> : <Sun size={12} />}

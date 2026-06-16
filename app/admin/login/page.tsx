@@ -168,7 +168,7 @@ export default function AdminLogin() {
 
       <div className="w-full max-w-md">
         <div className="mb-[var(--spacing-xl)] text-center">
-          <div className="mx-auto mb-[var(--spacing-md)] flex h-16 w-16 items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-action-primary)] text-2xl font-bold text-[var(--color-text-on-brand)]">
+          <div className="mx-auto mb-[var(--spacing-md)] flex h-16 w-16 items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-action-primary)] text-2xl font-bold text-[var(--color-text-on-action)]">
             Е
           </div>
           <h1 className="text-h2 text-[var(--color-text-heading)]">{t("title")}</h1>
