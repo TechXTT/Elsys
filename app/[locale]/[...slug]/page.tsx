@@ -11,19 +11,19 @@ import { getTranslations } from "next-intl/server";
 import { defaultLocale, type Locale } from "@/i18n/config";
 import { prisma } from "@/lib/prisma";
 import { renderBlocks } from "@/lib/cms";
-import { getNewsPosts } from "@/lib/news";
+import { collectBlockNeeds, type BlockContext } from "@/lib/blocks/registry";
+import { loadBlockData } from "@/lib/cms/block-data";
 import { resolveAlias } from "@/lib/routes";
 import { isPublic } from "@/lib/content/shared";
 import { alternatesFor } from "@/lib/site";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
-import type { PostItem } from "@/lib/types";
 
 // Render a resolved Page: one <h1> (the page title) in a container, then its
 // blocks full-width (each block owns its layout), or a tokenised markdown body.
 function PageContent({
   page,
   locale,
-  news,
+  blockData,
   comingSoon,
   homeLabel,
   breadcrumbLabel,
@@ -31,7 +31,7 @@ function PageContent({
 }: {
   page: any;
   locale: Locale;
-  news?: PostItem[];
+  blockData?: Partial<BlockContext>;
   comingSoon: string;
   homeLabel: string;
   breadcrumbLabel: string;
@@ -57,7 +57,7 @@ function PageContent({
         </div>
       </div>
       {blocks.length > 0 ? (
-        renderBlocks(blocks as any, { locale, news })
+        renderBlocks(blocks as any, { locale, ...blockData })
       ) : page.bodyMarkdown ? (
         <div className="container-page py-[var(--spacing-2xl)] text-body flex flex-col gap-[var(--spacing-md)] text-ink [&_a]:text-ink-link [&_a]:underline [&_h2]:text-h3 [&_h2]:text-ink-heading [&_h3]:text-h4 [&_h3]:text-ink-heading [&_ol]:list-decimal [&_ol]:pl-[var(--spacing-lg)] [&_ul]:list-disc [&_ul]:pl-[var(--spacing-lg)]">
           <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{page.bodyMarkdown}</ReactMarkdown>
@@ -189,15 +189,14 @@ export default async function DynamicPage({ params }: { params: { locale: Locale
 
   const { page } = resolved;
 
-  // Only fetch news if a block actually needs it.
-  const hasNewsBlock = Array.isArray(page.blocks) && page.blocks.some((b: any) => b?.type === "NewsList");
-  const news = hasNewsBlock ? await getNewsPosts(locale) : undefined;
+  // R4: prefetch every public data source the page's blocks declare via `needs`.
+  const blockData = await loadBlockData(collectBlockNeeds(page.blocks), locale);
 
   return (
     <PageContent
       page={page}
       locale={locale}
-      news={news}
+      blockData={blockData}
       comingSoon={tCommon("comingSoon")}
       homeLabel={tCommon("home")}
       breadcrumbLabel={tCommon("breadcrumb")}

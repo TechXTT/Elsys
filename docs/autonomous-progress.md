@@ -107,3 +107,14 @@ Branch `feat/G2-9-award-leader` (off Task 8 tip ab9e2dc). typecheck ✓ lint ✓
 - Public `/[locale]/nagradi` (awards grouped by year) + `/[locale]/vipuski` (alumni grouped by class year), drafts hidden. `Awards` + `Leaders` i18n.
 - Functional token cards; dedicated AwardItem/LeaderCard design-pending (flagged). revalidate map (`award`, `leader`).
 - **Content-type set complete** (Document, Gallery, Club, TeamMember, Partner, Project, Award, Leader). `tests/e2e/awards-leaders.spec.ts`.
+
+---
+
+## Task 10 — G2-3 Block system R4 — ✅ DONE
+Branch `feat/G2-10-block-r4` (off Task 9 tip 696ad41). typecheck ✓ lint ✓ build ✓ e2e ✓ (two-factor reseed note below).
+- `BlockDefinition` gains `schema?: z.ZodTypeAny` + `needs?: DataNeed[]`. Hand-rolled validators (Hero/Section/NewsList) replaced by Zod schemas; required fields (Hero.heading, Section.title, Embed.url) enforced via Zod. Every registry entry now has a schema (permissive `passthrough()` default auto-filled for presentational blocks).
+- `validateBlocks` + `renderBlocks` are schema-driven (safeParse → normalized props; invalid blocks skipped, page survives).
+- `collectBlockNeeds(blocks)` + `lib/cms/block-data.ts#loadBlockData(needs, locale)` — declared data deps (news/documents/clubs/team/partners/carousel) prefetched in **one Promise.all** via the cached lib readers. Both renderers use it: `compile.tsx` (home + CMS pages) and `[...slug]/page.tsx` (replaced its news-only fetch → now all data-bound blocks work on subpages too, incl. CarouselHero which previously got no slides off the home page).
+- Removed the five per-type `requiresX` helpers in compile.tsx.
+- No "not-implemented placeholder" blocks existed to remove (every registry type renders; Tabs/Embed degrade gracefully, not placeholders) — verified.
+- NOTE: a full-suite run showed 2 `two-factor` failures from **seed-state drift** (single-use recovery codes consumed + enroll toggled by repeated local runs) — unrelated to R4; both pass after `pnpm prisma:seed` (5/5). Re-seed before a clean full-suite run.

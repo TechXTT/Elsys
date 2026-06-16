@@ -1,8 +1,5 @@
 import React from "react";
 
-import type { CarouselSlide } from "@/components/CarouselHero";
-import type { Locale } from "@/i18n/config";
-import type { PostItem } from "@/lib/types";
 import { type BlockContext, getBlockDefinition } from "@/lib/blocks/registry";
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -11,13 +8,11 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 
 /**
  * Public block renderer. Registry-driven and resilient: each block renders
- * independently through its registry definition (validated per-block), so one
- * malformed block can't blank the whole page. Unknown types are skipped.
+ * independently through its registry definition (validated per-block via its Zod
+ * `schema`), so one malformed block can't blank the whole page. Unknown types
+ * are skipped. R4: pass the full BlockContext (data prefetched via loadBlockData).
  */
-export function renderBlocks(
-  blocks: unknown,
-  ctx?: { locale?: Locale; news?: PostItem[]; carouselSlides?: CarouselSlide[] },
-): React.ReactNode {
+export function renderBlocks(blocks: unknown, ctx?: BlockContext): React.ReactNode {
   if (!Array.isArray(blocks)) return null;
   return blocks.map((b, idx) => {
     if (!isRecord(b) || typeof b.type !== "string") return null;
@@ -25,11 +20,15 @@ export function renderBlocks(
     if (!def) return null;
     const rawProps = isRecord(b.props) ? b.props : {};
     let props: Record<string, unknown> = rawProps;
-    if (def.validate) {
+    if (def.schema) {
+      const res = def.schema.safeParse(rawProps);
+      if (!res.success) return null; // skip invalid block, keep the rest
+      props = res.data as Record<string, unknown>;
+    } else if (def.validate) {
       const res = def.validate(rawProps);
-      if (!res.ok) return null; // skip invalid block, keep the rest
+      if (!res.ok) return null;
       props = res.props;
     }
-    return <React.Fragment key={idx}>{def.render(props as never, ctx as BlockContext)}</React.Fragment>;
+    return <React.Fragment key={idx}>{def.render(props as never, ctx)}</React.Fragment>;
   });
 }

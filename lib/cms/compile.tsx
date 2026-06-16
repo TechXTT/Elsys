@@ -1,11 +1,7 @@
 import React from "react";
 import { prisma } from "@/lib/prisma";
-import { validateBlocks, renderBlockInstance, type BlockInstance } from "@/lib/blocks/registry";
-import { getNewsPosts } from "@/lib/news";
-import { getDocuments } from "@/lib/documents";
-import { getClubs } from "@/lib/clubs";
-import { getTeamMembers } from "@/lib/team";
-import { getPartners } from "@/lib/partners";
+import { validateBlocks, renderBlockInstance, collectBlockNeeds, type BlockInstance } from "@/lib/blocks/registry";
+import { loadBlockData } from "@/lib/cms/block-data";
 import { isPublic } from "@/lib/content/shared";
 import type { Locale } from "@/i18n/config";
 
@@ -31,26 +27,6 @@ const TTL_MS = 60_000; // 1 minute initial TTL (tweak later)
 
 function cacheKey(o: CompileOptions & { version?: number; published: boolean }) {
   return `page:${o.locale}:${o.slug}:v${o.version ?? 0}:p${o.published}`;
-}
-
-function requiresNews(blocks: BlockInstance[]): boolean {
-  return blocks.some((b) => b.type === "NewsList");
-}
-
-function requiresDocuments(blocks: BlockInstance[]): boolean {
-  return blocks.some((b) => b.type === "DocumentList");
-}
-
-function requiresClubs(blocks: BlockInstance[]): boolean {
-  return blocks.some((b) => b.type === "ClubGrid");
-}
-
-function requiresTeam(blocks: BlockInstance[]): boolean {
-  return blocks.some((b) => b.type === "TeamGrid");
-}
-
-function requiresPartners(blocks: BlockInstance[]): boolean {
-  return blocks.some((b) => b.type === "PartnerGrid");
 }
 
 export async function compilePage(opts: CompileOptions): Promise<CompiledPage | null> {
@@ -81,20 +57,17 @@ export async function compilePage(opts: CompileOptions): Promise<CompiledPage | 
   const validation = validateBlocks(rawBlocks);
   const normalized = validation.valid ? validation.normalized : [];
 
-  // Async data context — fetch only what the page's blocks declare a need for.
-  const [newsData, documentsData, clubsData, teamData, partnersData] = await Promise.all([
-    withData && requiresNews(normalized) ? getNewsPosts(locale, includeDrafts) : Promise.resolve(undefined),
-    withData && requiresDocuments(normalized) ? getDocuments(locale) : Promise.resolve(undefined),
-    withData && requiresClubs(normalized) ? getClubs(locale) : Promise.resolve(undefined),
-    withData && requiresTeam(normalized) ? getTeamMembers(locale) : Promise.resolve(undefined),
-    withData && requiresPartners(normalized) ? getPartners(locale) : Promise.resolve(undefined),
-  ]);
+  // R4: fetch only what the page's blocks declare via `needs`, in one Promise.all.
+  const data = withData
+    ? await loadBlockData(collectBlockNeeds(normalized), locale, includeDrafts)
+    : {};
+  const ctx = { locale, ...data };
 
   // Render block tree
   const element = (
     <React.Fragment>
       {normalized.map((inst, i) => (
-        <React.Fragment key={i}>{renderBlockInstance(inst, { locale, news: newsData, documents: documentsData, clubs: clubsData, team: teamData, partners: partnersData })}</React.Fragment>
+        <React.Fragment key={i}>{renderBlockInstance(inst, ctx)}</React.Fragment>
       ))}
     </React.Fragment>
   );
