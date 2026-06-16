@@ -1346,6 +1346,24 @@ Registration for the first workshop is now open!`,
     });
   }
   console.log(`✓ Seeded ${documentsSeed.length} documents`);
+
+  // --- Gallery (G2-2 type) --------------------------------------------------
+  const gallerySeed = [
+    { slug: 'open-doors-2026', locale: 'bg', title: 'Ден на отворените врати 2026', imageUrl: '/images/news/open-doors.svg', alt: 'Ден на отворените врати', album: 'sabitiya', color: 'BLUE', status: 'PUBLISHED', order: 1 },
+    { slug: 'olympiad-medals', locale: 'bg', title: 'Национална олимпиада', imageUrl: '/images/news/olympiad-medals.svg', alt: 'Медали от олимпиада', album: 'olimpiadi', color: 'ORANGE', status: 'PUBLISHED', order: 2 },
+    { slug: 'robotics-lab', locale: 'bg', title: 'Робофест 2026', imageUrl: '/images/news/robotics-lab.svg', alt: 'Робофест', album: 'sabitiya', color: 'TEAL', status: 'PUBLISHED', order: 3 },
+    { slug: 'workshops', locale: 'bg', title: 'Лятна академия', imageUrl: '/images/news/workshops.svg', alt: 'Лятна академия', album: 'ezhednevie', color: 'GREEN', status: 'PUBLISHED', order: 4 },
+    { slug: 'alumni-meetup', locale: 'bg', title: 'Абитуриентски бал', imageUrl: '/images/news/alumni-meetup.svg', alt: 'Абитуриентски бал', album: 'abiturienti', color: 'PURPLE', status: 'PUBLISHED', order: 5 },
+    { slug: 'hidden-gallery-draft', locale: 'bg', title: 'Чернова снимка (скрита)', imageUrl: '/images/news/hackathon-2026.svg', alt: 'скрита', album: 'sabitiya', color: 'GRAY', status: 'DRAFT', order: 9 },
+  ];
+  for (const g of gallerySeed) {
+    await prisma.galleryItem.upsert({
+      where: { slug_locale: { slug: g.slug, locale: g.locale } },
+      update: g,
+      create: { ...g, authorId: user.id },
+    });
+  }
+  console.log(`✓ Seeded ${gallerySeed.length} gallery items`);
 }
 
 main()

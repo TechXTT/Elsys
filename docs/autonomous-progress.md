@@ -64,3 +64,11 @@ Branch `feat/G2-3-document` (off Task 2 tip de8b7b4). typecheck ✓ lint ✓ bui
 - `DocumentList` block bound to data via `BlockContext.documents` (inline items kept as fallback); `compile.tsx` prefetches documents in a `Promise.all` when the block is present (precursor to the G2-3 `needs:` mechanism).
 - Framework gap fixed: generic content actions now call `revalidatePublicForType()` (server-only map) → public cache bump + route revalidation on every mutation (working-agreement #3).
 - Test `tests/e2e/documents.spec.ts`.
+
+### Task 4 — Gallery (GalleryItem) — ✅ DONE
+Branch `feat/G2-4-gallery` (off Task 3 tip 2e7daea). typecheck ✓ lint ✓ build ✓ e2e gallery ✓ (3/3).
+- Additive `GalleryItem` model + migration `20260616215859_add_gallery_item` + 6 seed rows (1 hidden draft).
+- `gallery` type registered (album select, image MediaField, colorField).
+- `lib/gallery.ts` cached read; `/[locale]/galeria` rewritten to real data + album filter chips (i18n labels kept).
+- `GalleryLightbox` client: grid → accessible dialog with keyboard (Esc/←/→) nav; drafts hidden.
+- revalidate map extended (`gallery`). i18n Gallery.empty + lightbox labels.

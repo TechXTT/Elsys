@@ -555,7 +555,11 @@
       "olimpiadi": "Olympiads",
       "ezhednevie": "Everyday",
       "abiturienti": "Graduates"
-    }
+    },
+    "empty": "No photos in this album yet.",
+    "lightboxClose": "Close",
+    "lightboxPrev": "Previous photo",
+    "lightboxNext": "Next photo"
   },
   "Contact": {
     "title": "Contact",

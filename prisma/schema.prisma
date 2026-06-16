@@ -42,6 +42,7 @@ model User {
   clubs           Club[]
   media           Media[]
   documents       Document[]
+  galleryItems    GalleryItem[]
 
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -403,6 +404,33 @@ model Media {
   updatedAt         DateTime  @updatedAt
 
   @@index([folder, createdAt])
+}
+
+/// Gallery photo (G2-2 type). Rendered at /galeria with a lightbox.
+model GalleryItem {
+  id          String        @id @default(cuid())
+  locale      String        @default("bg")
+  slug        String
+  /// Caption / accessible alt text.
+  title       String
+  imageUrl    String
+  alt         String?
+  /// Album grouping key (e.g. "sabitiya"); drives the /galeria filter chips.
+  album       String?
+  color       ColorTag      @default(BLUE)
+  status      PublishStatus @default(DRAFT)
+  order       Int           @default(0)
+  publishAt   DateTime?
+  legacyId    Int?
+
+  authorId    String?
+  author      User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([slug, locale])
+  @@index([locale, status, order])
 }
 
 /// Downloadable document (G2-2 type). Rendered at /dokumenti and via the

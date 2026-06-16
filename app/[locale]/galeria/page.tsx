@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
-import { GalleryTile } from "@/components/gallery-tile";
 import { SectionHeading } from "@/components/Section";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { cn } from "@/lib/cn";
 import type { Locale } from "@/i18n/config";
 import { alternatesFor } from "@/lib/site";
+import { getGalleryItems } from "@/lib/gallery";
+import { GalleryLightbox } from "./GalleryLightbox";
 
 export const revalidate = 300;
 
@@ -15,19 +16,8 @@ export async function generateMetadata({ params }: { params: { locale: Locale } 
   return { title: t("title"), description: t("intro"), alternates: alternatesFor(params.locale, "/galeria") };
 }
 
-// TODO(E3): source from a GalleryItem model + Vercel Blob. Static for now.
 const ALBUMS = ["sabitiya", "olimpiadi", "ezhednevie", "abiturienti"] as const;
 type Album = (typeof ALBUMS)[number];
-const GALLERY: { image: string; caption: string; album: Album }[] = [
-  { image: "/images/news/open-doors.svg", caption: "Ден на отворените врати 2026", album: "sabitiya" },
-  { image: "/images/news/olympiad-medals.svg", caption: "Национална олимпиада", album: "olimpiadi" },
-  { image: "/images/news/robotics-lab.svg", caption: "Робофест 2026", album: "sabitiya" },
-  { image: "/images/news/graduation-2026.svg", caption: "Първи учебен ден", album: "ezhednevie" },
-  { image: "/images/news/workshops.svg", caption: "Лятна академия", album: "ezhednevie" },
-  { image: "/images/news/alumni-meetup.svg", caption: "Абитуриентски бал", album: "abiturienti" },
-  { image: "/images/news/hackathon-2026.svg", caption: "Хакатон 48ч", album: "sabitiya" },
-  { image: "/images/news/partnership.svg", caption: "Посещение в CERN", album: "olimpiadi" },
-];
 
 export default async function GalleryPage({
   params,
@@ -42,8 +32,9 @@ export default async function GalleryPage({
     getTranslations({ locale, namespace: "Common" }),
   ]);
 
+  const all = await getGalleryItems(locale);
   const active = ALBUMS.includes(searchParams?.album as Album) ? (searchParams!.album as Album) : undefined;
-  const items = active ? GALLERY.filter((g) => g.album === active) : GALLERY;
+  const items = active ? all.filter((g) => g.album === active) : all;
   const urlFor = (album?: string) => `/${locale}/galeria${album ? `?album=${album}` : ""}`;
 
   return (
@@ -74,11 +65,14 @@ export default async function GalleryPage({
         })}
       </nav>
 
-      <div className="grid gap-[var(--spacing-lg)] sm:grid-cols-2 lg:grid-cols-4">
-        {items.map((g, i) => (
-          <GalleryTile key={i} image={g.image} alt={g.caption} caption={g.caption} />
-        ))}
-      </div>
+      {items.length === 0 ? (
+        <p className="text-body text-ink-muted">{tGallery("empty")}</p>
+      ) : (
+        <GalleryLightbox
+          items={items.map((g) => ({ id: g.id, imageUrl: g.imageUrl, alt: g.alt, title: g.title }))}
+          labels={{ close: tGallery("lightboxClose"), prev: tGallery("lightboxPrev"), next: tGallery("lightboxNext") }}
+        />
+      )}
     </div>
   );
 }

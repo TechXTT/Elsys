@@ -3,3 +3,4 @@
 import "./carousel";
 import "./club";
 import "./document";
+import "./gallery";

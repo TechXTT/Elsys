@@ -555,7 +555,11 @@
       "olimpiadi": "Олимпиади",
       "ezhednevie": "Ежедневие",
       "abiturienti": "Абитуриенти"
-    }
+    },
+    "empty": "Все още няма снимки в този албум.",
+    "lightboxClose": "Затвори",
+    "lightboxPrev": "Предишна снимка",
+    "lightboxNext": "Следваща снимка"
   },
   "Contact": {
     "title": "Контакти",
