@@ -92,3 +92,10 @@ Branch `feat/G2-7-partner` (off Task 6 tip 29bcbb6). typecheck ✓ lint ✓ buil
 - Additive `Partner` model + migration `20260616222437_add_partner` + 4 seed rows (1 draft). `partner` type, `lib/partners.ts`.
 - Public `/[locale]/partnyori` strip (PartnerLogo, grayscale), drafts hidden. `Partners` i18n.
 - `PartnerGrid` block bound to `BlockContext.partners`; compile.tsx prefetch; revalidate map (`partner`). `tests/e2e/partners.spec.ts`.
+
+### Task 8 — Project — ✅ DONE
+Branch `feat/G2-8-project` (off Task 7 tip f83527d). typecheck ✓ lint ✓ build ✓ e2e projects ✓ (2/2).
+- Additive `Project` model + migration `20260616223448_add_project` + 3 seed rows (1 draft). `project` type, `lib/projects.ts`.
+- Public `/[locale]/proekti` list with a **functional** card on design tokens — dedicated ProjectCard is design-pending (gap backlog), flagged. Drafts hidden. `Projects` i18n.
+- No block (no ProjectList in registry; not required by brief — design-pending). revalidate map (`project`). `tests/e2e/projects.spec.ts`.
+- FLAG: existing nav key `projects` points at `/evroproekti`; the new data list is at `/proekti`. Aligning nav is out of scope (one-change rule) — operator decision whether to repoint nav or alias.

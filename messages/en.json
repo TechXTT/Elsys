@@ -148,7 +148,10 @@
     "empty": "No content available."
   },
   "Projects": {
-    "description": "Projects funded by European programs."
+    "description": "Projects funded by European programs.",
+    "title": "Projects",
+    "empty": "No projects published yet.",
+    "visit": "Visit project"
   },
   "Theme": {
     "label": "Theme",

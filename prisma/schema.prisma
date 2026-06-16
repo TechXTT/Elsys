@@ -45,6 +45,7 @@ model User {
   galleryItems    GalleryItem[]
   teamMembers     TeamMember[]
   partners        Partner[]
+  projects        Project[]
 
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -406,6 +407,34 @@ model Media {
   updatedAt         DateTime  @updatedAt
 
   @@index([folder, createdAt])
+}
+
+/// Project (G2-2 type). Rendered as a public list at /proekti (e.g. EU-funded).
+model Project {
+  id          String        @id @default(cuid())
+  locale      String        @default("bg")
+  slug        String
+  title       String
+  description String?
+  image       String?
+  /// External project / programme URL.
+  url         String?
+  /// Grouping label, e.g. "Еразъм+".
+  category    String?
+  color       ColorTag      @default(BLUE)
+  status      PublishStatus @default(DRAFT)
+  order       Int           @default(0)
+  publishAt   DateTime?
+  legacyId    Int?
+
+  authorId    String?
+  author      User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([slug, locale])
+  @@index([locale, status, order])
 }
 
 /// Partner / sponsor (G2-2 type). Rendered as a PartnerGrid strip at /partnyori.

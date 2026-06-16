@@ -1396,6 +1396,21 @@ Registration for the first workshop is now open!`,
     });
   }
   console.log(`✓ Seeded ${partnersSeed.length} partners`);
+
+  // --- Projects (G2-2 type) -------------------------------------------------
+  const projectsSeed = [
+    { slug: 'erasmus-digital', locale: 'bg', title: 'Дигитални умения (Еразъм+)', description: 'Международен обмен и обучения по дигитални компетентности.', image: '/images/news/partnership.svg', url: 'https://erasmus-plus.ec.europa.eu', category: 'Еразъм+', color: 'BLUE', status: 'PUBLISHED', order: 1 },
+    { slug: 'green-school', locale: 'bg', title: 'Зелено училище', description: 'Енергийна ефективност и устойчивост в училищната сграда.', image: '/images/news/workshops.svg', category: 'Околна среда', color: 'GREEN', status: 'PUBLISHED', order: 2 },
+    { slug: 'hidden-project', locale: 'bg', title: 'Скрит проект', description: 'Чернова.', category: 'Друго', color: 'GRAY', status: 'DRAFT', order: 9 },
+  ];
+  for (const p of projectsSeed) {
+    await prisma.project.upsert({
+      where: { slug_locale: { slug: p.slug, locale: p.locale } },
+      update: p,
+      create: { ...p, authorId: user.id },
+    });
+  }
+  console.log(`✓ Seeded ${projectsSeed.length} projects`);
 }
 
 main()

@@ -6,3 +6,4 @@ import "./document";
 import "./gallery";
 import "./team";
 import "./partner";
+import "./project";
