@@ -99,3 +99,11 @@ Branch `feat/G2-8-project` (off Task 7 tip f83527d). typecheck ✓ lint ✓ buil
 - Public `/[locale]/proekti` list with a **functional** card on design tokens — dedicated ProjectCard is design-pending (gap backlog), flagged. Drafts hidden. `Projects` i18n.
 - No block (no ProjectList in registry; not required by brief — design-pending). revalidate map (`project`). `tests/e2e/projects.spec.ts`.
 - FLAG: existing nav key `projects` points at `/evroproekti`; the new data list is at `/proekti`. Aligning nav is out of scope (one-change rule) — operator decision whether to repoint nav or alias.
+
+### Task 9 — Award + Leader (yearly-append, D-10) — ✅ DONE
+Branch `feat/G2-9-award-leader` (off Task 8 tip ab9e2dc). typecheck ✓ lint ✓ build ✓ **full e2e 76/76** ✓.
+- Additive `Award` + `Leader` models (each with `year` Int) + migration `20260616224314_add_award_leader` + seed (6 rows, 2 drafts).
+- `award` + `leader` types (year required). `lib/awards.ts` + `lib/leaders.ts` cached reads ordered by year desc.
+- Public `/[locale]/nagradi` (awards grouped by year) + `/[locale]/vipuski` (alumni grouped by class year), drafts hidden. `Awards` + `Leaders` i18n.
+- Functional token cards; dedicated AwardItem/LeaderCard design-pending (flagged). revalidate map (`award`, `leader`).
+- **Content-type set complete** (Document, Gallery, Club, TeamMember, Partner, Project, Award, Leader). `tests/e2e/awards-leaders.spec.ts`.

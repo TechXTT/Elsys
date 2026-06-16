@@ -1411,6 +1411,28 @@ Registration for the first workshop is now open!`,
     });
   }
   console.log(`✓ Seeded ${projectsSeed.length} projects`);
+
+  // --- Awards (G2-2 type, D-10 yearly-append) -------------------------------
+  const awardsSeed = [
+    { slug: 'ioi-gold-2025', locale: 'bg', title: 'Златен медал, IOI 2025', description: 'Международна олимпиада по информатика.', image: '/images/news/olympiad-medals.svg', year: 2025, category: 'Олимпиади', color: 'ORANGE', status: 'PUBLISHED', order: 1 },
+    { slug: 'robofest-1st-2024', locale: 'bg', title: 'Първо място, Robofest 2024', description: 'Национално състезание по роботика.', image: '/images/news/robotics-lab.svg', year: 2024, category: 'Роботика', color: 'TEAL', status: 'PUBLISHED', order: 1 },
+    { slug: 'hidden-award', locale: 'bg', title: 'Скрита награда', year: 2023, category: 'Друго', color: 'GRAY', status: 'DRAFT', order: 9 },
+  ];
+  for (const a of awardsSeed) {
+    await prisma.award.upsert({ where: { slug_locale: { slug: a.slug, locale: a.locale } }, update: a, create: { ...a, authorId: user.id } });
+  }
+  console.log(`✓ Seeded ${awardsSeed.length} awards`);
+
+  // --- Leaders / alumni (G2-2 type, D-10 yearly-append) ---------------------
+  const leadersSeed = [
+    { slug: 'alumna-2020', locale: 'bg', name: 'Елена Иванова', role: 'Софтуерен инженер, Google', year: 2020, color: 'BLUE', status: 'PUBLISHED', order: 1 },
+    { slug: 'alumnus-2019', locale: 'bg', name: 'Георги Петров', role: 'Съосновател на стартъп', year: 2019, color: 'GREEN', status: 'PUBLISHED', order: 1 },
+    { slug: 'hidden-leader', locale: 'bg', name: 'Скрит випускник', role: 'Чернова', year: 2018, color: 'GRAY', status: 'DRAFT', order: 9 },
+  ];
+  for (const l of leadersSeed) {
+    await prisma.leader.upsert({ where: { slug_locale: { slug: l.slug, locale: l.locale } }, update: l, create: { ...l, authorId: user.id } });
+  }
+  console.log(`✓ Seeded ${leadersSeed.length} leaders`);
 }
 
 main()

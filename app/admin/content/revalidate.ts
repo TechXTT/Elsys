@@ -5,6 +5,8 @@ import { revalidateClubs } from "@/lib/clubs";
 import { revalidateTeam } from "@/lib/team";
 import { revalidatePartners } from "@/lib/partners";
 import { revalidateProjects } from "@/lib/projects";
+import { revalidateAwards } from "@/lib/awards";
+import { revalidateLeaders } from "@/lib/leaders";
 
 // Per-type public-cache invalidation + route revalidation (working-agreement #3).
 // The generic content actions call revalidatePublicForType() after every mutation
@@ -17,6 +19,8 @@ const REVALIDATORS: Record<string, () => Promise<void>> = {
   team: revalidateTeam,
   partner: revalidatePartners,
   project: revalidateProjects,
+  award: revalidateAwards,
+  leader: revalidateLeaders,
 };
 
 export async function revalidatePublicForType(type: string): Promise<void> {

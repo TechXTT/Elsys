@@ -46,6 +46,8 @@ model User {
   teamMembers     TeamMember[]
   partners        Partner[]
   projects        Project[]
+  awards          Award[]
+  leaders         Leader[]
 
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -407,6 +409,63 @@ model Media {
   updatedAt         DateTime  @updatedAt
 
   @@index([folder, createdAt])
+}
+
+/// Award (G2-2 type, D-10). Image-bearing yearly-append list — /nagradi grouped
+/// by `year` (newest first).
+model Award {
+  id          String        @id @default(cuid())
+  locale      String        @default("bg")
+  slug        String
+  title       String
+  description String?
+  image       String?
+  /// Award year — drives the yearly grouping on the public list.
+  year        Int
+  category    String?
+  color       ColorTag      @default(BLUE)
+  status      PublishStatus @default(DRAFT)
+  order       Int           @default(0)
+  publishAt   DateTime?
+  legacyId    Int?
+
+  authorId    String?
+  author      User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([slug, locale])
+  @@index([locale, status, year])
+}
+
+/// Leader / notable alumnus (G2-2 type, D-10). Image-bearing yearly-append list
+/// — /vipuski grouped by `year` (graduation year, newest first).
+model Leader {
+  id          String        @id @default(cuid())
+  locale      String        @default("bg")
+  slug        String
+  name        String
+  /// Current role / achievement, e.g. "Съосновател на стартъп".
+  role        String?
+  description String?
+  image       String?
+  /// Graduation year — drives the yearly grouping.
+  year        Int
+  color       ColorTag      @default(BLUE)
+  status      PublishStatus @default(DRAFT)
+  order       Int           @default(0)
+  publishAt   DateTime?
+  legacyId    Int?
+
+  authorId    String?
+  author      User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([slug, locale])
+  @@index([locale, status, year])
 }
 
 /// Project (G2-2 type). Rendered as a public list at /proekti (e.g. EU-funded).

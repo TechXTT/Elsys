@@ -613,5 +613,16 @@
     "title": "Partners",
     "intro": "Organisations and institutions TUES partners with.",
     "empty": "No partners published yet."
+  },
+  "Awards": {
+    "title": "Awards",
+    "intro": "Honours and achievements of TUES students.",
+    "empty": "No awards published yet."
+  },
+  "Leaders": {
+    "title": "Alumni",
+    "intro": "Notable TUES alumni over the years.",
+    "empty": "No alumni published yet.",
+    "classOf": "Class of {year}"
   }
 }

@@ -7,3 +7,5 @@ import "./gallery";
 import "./team";
 import "./partner";
 import "./project";
+import "./award";
+import "./leader";
