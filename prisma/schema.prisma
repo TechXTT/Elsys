@@ -44,6 +44,7 @@ model User {
   documents       Document[]
   galleryItems    GalleryItem[]
   teamMembers     TeamMember[]
+  partners        Partner[]
 
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -405,6 +406,33 @@ model Media {
   updatedAt         DateTime  @updatedAt
 
   @@index([folder, createdAt])
+}
+
+/// Partner / sponsor (G2-2 type). Rendered as a PartnerGrid strip at /partnyori.
+model Partner {
+  id          String        @id @default(cuid())
+  locale      String        @default("bg")
+  slug        String
+  name        String
+  logo        String
+  /// External website URL.
+  url         String?
+  /// Grouping label, e.g. "Университети", "Бизнес".
+  category    String?
+  color       ColorTag      @default(BLUE)
+  status      PublishStatus @default(DRAFT)
+  order       Int           @default(0)
+  publishAt   DateTime?
+  legacyId    Int?
+
+  authorId    String?
+  author      User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([slug, locale])
+  @@index([locale, status, order])
 }
 
 /// Team member (G2-2 type). Rendered as a TeamGrid at /ekip, grouped by category.

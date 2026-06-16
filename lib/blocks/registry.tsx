@@ -24,7 +24,8 @@ import type { PostItem } from "@/lib/types";
 export type DocItemLite = { id?: string; title: string; fileUrl: string; fileType?: string; fileSize?: string; category?: string };
 export type ClubLite = { id?: string; slug?: string; title: string; description?: string; color?: ColorTag; coverImage?: string };
 export type TeamMemberLite = { id?: string; name: string; role?: string; photo?: string; email?: string };
-export type BlockContext = { locale?: Locale; news?: PostItem[]; carouselSlides?: CarouselSlide[]; documents?: DocItemLite[]; clubs?: ClubLite[]; team?: TeamMemberLite[] };
+export type PartnerLite = { id?: string; name: string; logo: string; url?: string };
+export type BlockContext = { locale?: Locale; news?: PostItem[]; carouselSlides?: CarouselSlide[]; documents?: DocItemLite[]; clubs?: ClubLite[]; team?: TeamMemberLite[]; partners?: PartnerLite[] };
 
 export type BlockDefinition<P extends Record<string, unknown> = any> = {
   type: string;
@@ -426,16 +427,21 @@ const TeamGridBlock: BlockDefinition<{ title?: string; items?: unknown }> = {
 
 const PartnerGridBlock: BlockDefinition<{ title?: string; grayscale?: boolean; items?: unknown }> = {
   type: "PartnerGrid",
-  render: (p) => {
+  render: (p, ctx) => {
     const r = p as Record<string, unknown>;
-    const items = arr(r.items);
     const grayscale = r.grayscale !== false;
+    // Data-bound (G2-2): prefer real Partners from context; inline fallback.
+    const fromData = Array.isArray(ctx?.partners)
+      ? ctx!.partners.map((pt) => ({ name: pt.name, logo: pt.logo, href: pt.url }))
+      : [];
+    const inline = arr(r.items).map((it) => ({ name: str(it.name), logo: str(it.logo), href: str(it.href) || undefined }));
+    const items = fromData.length > 0 ? fromData : inline;
     return (
       <Band className="flex flex-col gap-[var(--spacing-lg)]">
         {str(r.title) ? <SectionHeading as="h2" title={str(r.title)} /> : null}
         <div className={`grid items-center gap-[var(--spacing-lg)] ${gridCols(4)}`}>
           {items.map((it, i) => (
-            <PartnerLogo key={i} name={str(it.name)} logo={str(it.logo)} href={str(it.href) || undefined} grayscale={grayscale} />
+            <PartnerLogo key={i} name={it.name} logo={it.logo} href={it.href} grayscale={grayscale} />
           ))}
         </div>
       </Band>

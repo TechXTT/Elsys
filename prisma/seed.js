@@ -1380,6 +1380,22 @@ Registration for the first workshop is now open!`,
     });
   }
   console.log(`✓ Seeded ${teamSeed.length} team members`);
+
+  // --- Partners (G2-2 type) -------------------------------------------------
+  const partnersSeed = [
+    { slug: 'tu-sofia', locale: 'bg', name: 'Технически университет – София', logo: '/images/news/partnership.svg', url: 'https://tu-sofia.bg', category: 'Университети', color: 'BLUE', status: 'PUBLISHED', order: 1 },
+    { slug: 'sap-labs', locale: 'bg', name: 'SAP Labs Bulgaria', logo: '/images/news/partnership.svg', url: 'https://sap.com', category: 'Бизнес', color: 'TEAL', status: 'PUBLISHED', order: 2 },
+    { slug: 'musala-soft', locale: 'bg', name: 'Musala Soft', logo: '/images/news/partnership.svg', url: 'https://musala.com', category: 'Бизнес', color: 'GREEN', status: 'PUBLISHED', order: 3 },
+    { slug: 'hidden-partner', locale: 'bg', name: 'Скрит партньор', logo: '/images/news/partnership.svg', category: 'Бизнес', color: 'GRAY', status: 'DRAFT', order: 9 },
+  ];
+  for (const p of partnersSeed) {
+    await prisma.partner.upsert({
+      where: { slug_locale: { slug: p.slug, locale: p.locale } },
+      update: p,
+      create: { ...p, authorId: user.id },
+    });
+  }
+  console.log(`✓ Seeded ${partnersSeed.length} partners`);
 }
 
 main()

@@ -605,5 +605,10 @@
     "intro": "Leadership and teachers of TUES.",
     "empty": "No team members published yet.",
     "uncategorized": "Other"
+  },
+  "Partners": {
+    "title": "Partners",
+    "intro": "Organisations and institutions TUES partners with.",
+    "empty": "No partners published yet."
   }
 }

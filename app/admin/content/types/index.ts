@@ -5,3 +5,4 @@ import "./club";
 import "./document";
 import "./gallery";
 import "./team";
+import "./partner";
