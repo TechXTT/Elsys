@@ -316,7 +316,7 @@ const CTABlock: BlockDefinition<{ title: string; description?: string; primaryBu
       <Band>
         <div className="flex flex-col items-center gap-[var(--spacing-md)] rounded-[var(--radius-lg)] bg-brand-tint px-[var(--spacing-lg)] py-[var(--spacing-2xl)] text-center">
           <SectionHeading as="h2" align="center" title={str(r.title)} />
-          {str(r.description) ? <p className="text-body-lg max-w-2xl text-ink-muted">{str(r.description)}</p> : null}
+          {str(r.description) ? <p className="text-body-lg max-w-2xl text-ink">{str(r.description)}</p> : null}
           <div className="flex flex-wrap justify-center gap-[var(--spacing-sm)]">
             {primary && str(primary.label) && str(primary.href) ? (
               <ButtonLink variant="primary" size="lg" {...hrefProps(str(primary.href))}>{str(primary.label)}</ButtonLink>

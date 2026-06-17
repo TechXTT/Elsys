@@ -114,10 +114,10 @@ export function AdminSidebar() {
             <TuesLogo className="h-9 w-9" />
             <div>
               <span className="font-bold text-white">TUES</span>
-              <span className="ml-1 text-sm text-slate-400">Admin</span>
+              <span className="ml-1 text-sm text-slate-300">Admin</span>
             </div>
           </Link>
-          <AdminLocaleSwitcher />
+          <AdminLocaleSwitcher onDark />
         </div>
 
         {/* Navigation */}
@@ -156,7 +156,7 @@ export function AdminSidebar() {
             <li>
               <Link
                 href="/"
-                className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 transition-all hover:bg-slate-800/80 hover:text-white"
+                className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300 transition-all hover:bg-slate-800/80 hover:text-white"
               >
                 <ExternalLink className="h-5 w-5 text-slate-500 group-hover:text-brand-400" />
                 {t("nav.viewSite")}
@@ -175,7 +175,7 @@ export function AdminSidebar() {
               <p className="truncate text-sm font-medium text-white">
                 {userName}
               </p>
-              <p className="truncate text-xs text-slate-500">
+              <p className="truncate text-xs text-slate-300">
                 {userEmail}
               </p>
             </div>

@@ -55,7 +55,7 @@ export function Pagination({
       <ul className="flex items-center gap-[var(--spacing-xs)]">
         <li>
           {atStart ? (
-            <span aria-disabled className={cn(cellBase, disabledCell)} aria-label={previousLabel}>
+            <span role="link" aria-disabled className={cn(cellBase, disabledCell)} aria-label={previousLabel}>
               <ChevronLeft aria-hidden size={18} />
             </span>
           ) : (
@@ -90,7 +90,7 @@ export function Pagination({
 
         <li>
           {atEnd ? (
-            <span aria-disabled className={cn(cellBase, disabledCell)} aria-label={nextLabel}>
+            <span role="link" aria-disabled className={cn(cellBase, disabledCell)} aria-label={nextLabel}>
               <ChevronRight aria-hidden size={18} />
             </span>
           ) : (

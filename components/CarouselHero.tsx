@@ -117,6 +117,7 @@ export function CarouselHero({ slides }: Props) {
                   <a
                     href={slide.linkUrl}
                     data-ui="carousel-cta"
+                    tabIndex={active ? undefined : -1}
                     className="text-body inline-flex items-center rounded-[var(--radius-md)] bg-surface px-[var(--spacing-lg)] py-[var(--spacing-sm)] font-semibold text-ink-link no-underline transition-colors hover:bg-brand-tint"
                   >
                     {slide.linkLabel}

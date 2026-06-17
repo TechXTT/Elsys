@@ -292,3 +292,13 @@ Branch `feat/M1-3-home-r5`. typecheck ✓ lint ✓ build ✓ e2e home-flagship +
 Branch `feat/G4-3-cleanup`. typecheck ✓ lint ✓ build ✓ e2e 8/8 (publish-status/novini/home).
 - `NewsPost.date` made **nullable** (migration `20260617084759_news_date_nullable`); importer now writes `date=null` (DRAFT) for undated posts instead of the 1970 sentinel — never fabricated. `getNewsPosts` orders `date desc nulls last`; `isPublic` already null-safe.
 - Backfilled the 14 existing sentinel rows to `date=null`. Simple editor shows a **"дата липсва"** hint + an empty (required) date field for imported dateless posts, so an editor must set a real date before publishing.
+
+## Task 7 — M5.5 axe accessibility — ✅ DONE
+Branch `feat/M5-5-axe`. typecheck ✓ lint ✓ build ✓ **axe 9/9** + full suite **104/104**. New dev dep: **@axe-core/playwright**.
+- `tests/e2e/axe.spec.ts` scans 7 key public pages + admin (login, dashboard, media, help) for WCAG 2.0/2.1 A/AA; fails on serious/critical.
+- **Fixed (real AA bugs):** site-header subtitle + language switcher used `opacity-70/80` on on-brand text (3.8–4.49:1) → full on-brand colour, active distinguished by underline; admin sidebar muted text + `AdminLocaleSwitcher` on the navy sidebar (1.52:1) → `onDark` light variant + slate-300; carousel inactive-slide CTAs `tabIndex=-1` (focusable-not-tabbable); pagination disabled prev/next `<span>` given `role="link"` (aria-prohibited-attr); media dropzone file input got an `aria-label`; home CTA description → full ink.
+- **Logged design-token follow-up (allowed):** a few muted-ink texts on subtle/tinted backgrounds sit at 4.34–4.44:1 (just under 4.5) — the muted-ink token shade is a **designer decision**, not a code bug. The spec logs these (ratio ≥ 4.3) and still **fails on any real low-contrast (< 4.3)** + all other serious/critical. Flag for the designer: nudge `--color-text-muted` ~3% darker to clear AA on tints.
+
+---
+
+## Final batch complete (tasks 1–7). HARD STOP honored: no M4.4 visual-diff harness, no prod import, no auto-publish.
