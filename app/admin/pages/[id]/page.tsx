@@ -36,6 +36,11 @@ type PageDto = {
   blocks?: Array<{ type: string; props?: Record<string, unknown> | null }>;
   published: boolean;
   machineTranslated?: boolean;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  ogImage?: string | null;
+  noindex?: boolean | null;
+  canonical?: string | null;
 };
 
 type PageVersion = {
@@ -75,6 +80,12 @@ export default function EditPage() {
   const [body, setBody] = useState("");
   const [blocks, setBlocks] = useState<Array<{ type: string; props: Record<string, unknown> }>>([]);
   const [published, setPublished] = useState(true);
+  // SEO (R2) — surfaced in a collapsible panel styled to the content-form pattern.
+  const [metaTitle, setMetaTitle] = useState("");
+  const [metaDescription, setMetaDescription] = useState("");
+  const [ogImage, setOgImage] = useState("");
+  const [noindex, setNoindex] = useState(false);
+  const [canonical, setCanonical] = useState("");
 
   // Versions
   const [versions, setVersions] = useState<PageVersion[]>([]);
@@ -93,9 +104,14 @@ export default function EditPage() {
       excerpt !== (originalData.excerpt ?? "") ||
       body !== (originalData.bodyMarkdown ?? "") ||
       published !== originalData.published ||
+      metaTitle !== (originalData.metaTitle ?? "") ||
+      metaDescription !== (originalData.metaDescription ?? "") ||
+      ogImage !== (originalData.ogImage ?? "") ||
+      noindex !== !!originalData.noindex ||
+      canonical !== (originalData.canonical ?? "") ||
       JSON.stringify(blocks) !== JSON.stringify(originalData.blocks ?? [])
     );
-  }, [originalData, title, excerpt, body, published, blocks]);
+  }, [originalData, title, excerpt, body, published, blocks, metaTitle, metaDescription, ogImage, noindex, canonical]);
 
   // Load page data
   async function load(targetId: string = currentId) {
@@ -116,6 +132,11 @@ export default function EditPage() {
       setBody(p.bodyMarkdown ?? "");
       setBlocks(p.blocks?.map(b => ({ type: b.type, props: b.props ?? {} })) ?? []);
       setPublished(p.published);
+      setMetaTitle(p.metaTitle ?? "");
+      setMetaDescription(p.metaDescription ?? "");
+      setOgImage(p.ogImage ?? "");
+      setNoindex(!!p.noindex);
+      setCanonical(p.canonical ?? "");
       setIsMachineDraft(!!p.machineTranslated);
       setCreatingForLocale(false);
     } catch (e: unknown) {
@@ -233,13 +254,13 @@ export default function EditPage() {
         res = await fetch(`/api/admin/pages`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ slug, locale, title, excerpt, bodyMarkdown: body, blocks, published }),
+          body: JSON.stringify({ slug, locale, title, excerpt, bodyMarkdown: body, blocks, published, metaTitle, metaDescription, ogImage, noindex, canonical }),
         });
       } else {
         res = await fetch(`/api/admin/pages/${currentId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ slug, locale, title, excerpt, bodyMarkdown: body, blocks, published }),
+          body: JSON.stringify({ slug, locale, title, excerpt, bodyMarkdown: body, blocks, published, metaTitle, metaDescription, ogImage, noindex, canonical }),
         });
       }
 
@@ -652,6 +673,33 @@ export default function EditPage() {
                       Full URL: <code className="rounded bg-slate-200 px-1.5 py-0.5 text-xs dark:bg-slate-700">/{locale}/{slug}</code>
                     </p>
                   </div>
+                </div>
+              </div>
+
+              {/* SEO (R2) — content-form field pattern (Figma 94:2) */}
+              <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
+                <h3 className="mb-4 text-sm font-semibold text-slate-900 dark:text-white">{t("seo.title")}</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("seo.metaTitle")}</label>
+                    <input type="text" value={metaTitle} onChange={(e) => setMetaTitle(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("seo.metaDescription")}</label>
+                    <textarea value={metaDescription} onChange={(e) => setMetaDescription(e.target.value)} rows={2} className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("seo.ogImage")}</label>
+                    <input type="text" value={ogImage} onChange={(e) => setOgImage(e.target.value)} placeholder="https://…" className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">{t("seo.canonical")}</label>
+                    <input type="text" value={canonical} onChange={(e) => setCanonical(e.target.value)} placeholder="https://…" className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white" />
+                  </div>
+                  <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <input type="checkbox" checked={noindex} onChange={(e) => setNoindex(e.target.checked)} className="rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
+                    {t("seo.noindex")}
+                  </label>
                 </div>
               </div>
 

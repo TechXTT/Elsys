@@ -27,6 +27,7 @@ interface Props {
 export function ImageCropper({ open, imageUrl, folder = "general", onClose, onCropped }: Props) {
   const t = useTranslations("Admin.media");
   const [aspect, setAspect] = useState<string>("16:9");
+  const [zoom, setZoom] = useState<number>(0); // 0–60% tighter center crop
   const [busy, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const imgRef = useRef<HTMLImageElement>(null);
@@ -43,10 +44,11 @@ export function ImageCropper({ open, imageUrl, folder = "general", onClose, onCr
         const natW = img.naturalWidth;
         const natH = img.naturalHeight;
         const r = ratio ?? natW / natH;
-        // Center cover-crop region at the target ratio.
-        let cw = natW;
+        // Center cover-crop region at the target ratio, tightened by zoom.
+        const scale = 1 - Math.min(0.6, Math.max(0, zoom / 100));
+        let cw = Math.round(natW * scale);
         let ch = Math.round(cw / r);
-        if (ch > natH) { ch = natH; cw = Math.round(ch * r); }
+        if (ch > natH * scale) { ch = Math.round(natH * scale); cw = Math.round(ch * r); }
         const sx = Math.round((natW - cw) / 2);
         const sy = Math.round((natH - ch) / 2);
 
@@ -91,10 +93,26 @@ export function ImageCropper({ open, imageUrl, folder = "general", onClose, onCr
           ))}
         </div>
 
-        <div className="overflow-hidden rounded-[var(--radius-md)] border border-line bg-subtle" style={ratio ? { aspectRatio: String(ratio) } : undefined}>
+        {/* Preview with a rule-of-thirds crop frame (Figma 111:2). The crop is a
+            centered cover region at the chosen aspect + zoom. */}
+        <div className="relative overflow-hidden rounded-[var(--radius-md)] border border-line bg-subtle" style={ratio ? { aspectRatio: String(ratio) } : undefined}>
           {/* crossOrigin allows canvas export; tainted remote hosts fall back to an error (flagged). */}
-          <img ref={imgRef} src={imageUrl} crossOrigin="anonymous" alt="" className="h-full w-full object-cover" />
+          <img ref={imgRef} src={imageUrl} crossOrigin="anonymous" alt="" className="h-full w-full object-cover" style={{ transform: `scale(${1 + Math.min(0.6, zoom / 100) * 1.5})` }} />
+          <div aria-hidden className="pointer-events-none absolute inset-6 border border-white/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.15)]">
+            <div className="absolute left-1/3 top-0 h-full w-px bg-white/40" />
+            <div className="absolute left-2/3 top-0 h-full w-px bg-white/40" />
+            <div className="absolute top-1/3 left-0 w-full h-px bg-white/40" />
+            <div className="absolute top-2/3 left-0 w-full h-px bg-white/40" />
+            {["-left-1 -top-1", "-right-1 -top-1", "-left-1 -bottom-1", "-right-1 -bottom-1"].map((pos) => (
+              <span key={pos} className={`absolute ${pos} h-2 w-2 rounded-full bg-[var(--color-action-primary)]`} />
+            ))}
+          </div>
         </div>
+
+        <label className="flex items-center gap-3 text-caption text-ink-muted">
+          {t("cropScale")}
+          <input type="range" min={0} max={60} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} className="flex-1 accent-[var(--color-action-primary)]" />
+        </label>
 
         {error && <p role="alert" className="text-caption text-[var(--color-status-danger-text)]">{error}</p>}
 

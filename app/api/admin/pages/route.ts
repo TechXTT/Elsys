@@ -55,6 +55,7 @@ export async function POST(req: Request) {
     const userId = (session!.user as any).id as string;
     const body = (await req.json().catch(() => null)) as {
       slug: string; locale: string; title: string; excerpt?: string | null; bodyMarkdown?: string | null; blocks?: unknown; published?: boolean;
+      metaTitle?: string | null; metaDescription?: string | null; ogImage?: string | null; noindex?: boolean; canonical?: string | null;
     } | null;
     if (!body) return NextResponse.json({ error: "Missing body" }, { status: 400 });
     const slug = (body.slug || "").trim().replace(/^\/+|\/+$/g, "");
@@ -86,6 +87,11 @@ export async function POST(req: Request) {
         blocks: body.blocks as any,
         published: body.published ?? true,
         status: statusFromPublished(body.published ?? true),
+        metaTitle: body.metaTitle ?? null,
+        metaDescription: body.metaDescription ?? null,
+        ogImage: body.ogImage ?? null,
+        noindex: !!body.noindex,
+        canonical: body.canonical ?? null,
         authorId: userId,
       },
       select: { id: true },

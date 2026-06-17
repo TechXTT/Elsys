@@ -8,7 +8,7 @@ registerContentType({
   labelSingular: "Проект",
   labelPlural: "Проекти",
   titleField: "title",
-  slugPrefix: "/proekti/",
+  slugPrefix: "/evroproekti/",
   colorField: "color",
   statusField: "status",
   imageFolder: "general",
