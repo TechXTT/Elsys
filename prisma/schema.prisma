@@ -620,6 +620,20 @@ model Document {
   @@index([locale, status, order])
 }
 
+/// Editor server-side draft (G3-2). Autosaved every ~30s per (user, key) so an
+/// in-progress edit survives a crash or device switch; cleared on publish/save.
+model Draft {
+  id        String   @id @default(cuid())
+  userId    String
+  /// Editor scope key, e.g. "news:simple:new" or "news:simple:<slug>".
+  key       String
+  data      Json
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@unique([userId, key])
+}
+
 /// Per-record successor note (M5.2 / G2-2). Generic: keyed by (entity, entityId)
 /// so it works across every content type without a per-model column. Internal —
 /// never published. Shown in the content form's amber "Бележка за наследник" box.

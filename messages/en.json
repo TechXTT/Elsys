@@ -461,7 +461,12 @@
       "choose": "Pick from library",
       "pick": "Select",
       "cancel": "Cancel",
-      "removeImage": "Remove"
+      "removeImage": "Remove",
+      "crop": "Crop",
+      "cropTitle": "Crop image",
+      "cropConfirm": "Crop & upload",
+      "cropOriginal": "Original",
+      "cropError": "Crop failed (the image may be from another domain)."
     },
     "contentForm": {
       "publishHeading": "Publishing",
@@ -531,7 +536,10 @@
       "color": "Color",
       "publish": "Publish",
       "saveDraft": "Save draft",
-      "entry": "Simple editor"
+      "entry": "Simple editor",
+      "recoveryFound": "An unsaved draft was found. Restore it?",
+      "recoveryRestore": "Restore",
+      "recoveryDismiss": "Discard"
     }
   },
   "Clubs": {

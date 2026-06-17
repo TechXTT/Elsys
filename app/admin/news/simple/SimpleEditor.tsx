@@ -11,6 +11,7 @@ import { MediaField } from "@/app/admin/media/MediaField";
 import { MediaPicker } from "@/app/admin/media/MediaPicker";
 import { ColorTagPicker } from "@/app/admin/content/_components/ColorTagPicker";
 import { saveSimpleNews, type SimpleNewsState } from "./actions";
+import { saveDraft, loadDraft, clearDraft } from "@/app/admin/drafts/actions";
 
 export interface SimpleNewsRecord {
   slug: string;
@@ -37,21 +38,77 @@ export function SimpleEditor({ locale, categoryPages, record }: Props) {
   const isEdit = !!record;
 
   const [state, dispatch] = useFormState<SimpleNewsState, FormData>(saveSimpleNews, null);
+  // `defaults` are the field initial values; restoring a draft swaps them in and
+  // remounts the form (formKey) so uncontrolled inputs + internal-state pickers re-init.
+  const [draftRecord, setDraftRecord] = useState<SimpleNewsRecord | null>(null);
+  const defaults = draftRecord ?? record;
+  const [formKey, setFormKey] = useState(0);
   const [body, setBody] = useState(record?.markdown ?? "");
   const [gallery, setGallery] = useState<string[]>(record?.gallery ?? []);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [recovery, setRecovery] = useState<SimpleNewsRecord | null>(null);
   const [, tick] = useState(0);
 
   const formRef = useRef<HTMLFormElement>(null);
   const visRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (state?.ok) router.push("/admin/news");
-  }, [state, router]);
+  const lsKey = `news-simple-draft:${record?.slug ?? "new"}`;
+  const serverKey = `news:simple:${record?.slug ?? "new"}`;
 
-  // Autosave indicator (localStorage). Server-draft + crash recovery = G3-2.
-  const draftKey = `news-simple-draft:${record?.slug ?? "new"}`;
+  // Collect the current editor state as a recoverable draft record.
+  function snapshot(): SimpleNewsRecord {
+    const fd = formRef.current ? new FormData(formRef.current) : new FormData();
+    return {
+      slug: record?.slug ?? "",
+      title: String(fd.get("title") ?? ""),
+      excerpt: String(fd.get("excerpt") ?? ""),
+      markdown: body,
+      date: String(fd.get("date") ?? new Date().toISOString().slice(0, 10)),
+      featuredImage: String(fd.get("featuredImage") ?? ""),
+      gallery,
+      colorTag: String(fd.get("colorTag") ?? "BLUE"),
+      categoryPageId: String(fd.get("categoryPageId") ?? ""),
+      published: String(fd.get("visibility") ?? "DRAFT") === "PUBLISHED",
+    };
+  }
+
+  useEffect(() => {
+    if (state?.ok) {
+      // Clear drafts on a successful save so recovery doesn't resurrect them.
+      try { localStorage.removeItem(lsKey); } catch { /* ignore */ }
+      void clearDraft(serverKey);
+      router.push("/admin/news");
+    }
+  }, [state, router, lsKey, serverKey]);
+
+  // Crash recovery: on mount, look for a localStorage draft (5s) or a server
+  // draft (30s); offer to restore the newer one.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      let candidate: SimpleNewsRecord | null = null;
+      try {
+        const raw = localStorage.getItem(lsKey);
+        if (raw) {
+          const d = JSON.parse(raw);
+          candidate = { slug: record?.slug ?? "", title: d.title ?? "", excerpt: d.excerpt ?? "", markdown: d.body ?? "", date: d.date ?? new Date().toISOString().slice(0, 10), featuredImage: d.featuredImage ?? "", gallery: Array.isArray(d.gallery) ? d.gallery : [], colorTag: d.colorTag ?? "BLUE", categoryPageId: d.categoryPageId ?? "", published: d.visibility === "PUBLISHED" };
+        }
+      } catch { /* ignore */ }
+      if (!candidate) {
+        const server = await loadDraft(serverKey).catch(() => null);
+        if (server) candidate = server.data as unknown as SimpleNewsRecord;
+      }
+      // Only offer if the draft has a title and differs from the loaded record.
+      if (!cancelled && candidate?.title && candidate.title !== (record?.title ?? "")) {
+        setRecovery(candidate);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Local autosave (5s after last edit) — instant crash safety + indicator.
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   function onInput() {
     if (debounce.current) clearTimeout(debounce.current);
@@ -59,15 +116,40 @@ export function SimpleEditor({ locale, categoryPages, record }: Props) {
       try {
         if (!formRef.current) return;
         const data = Object.fromEntries(new FormData(formRef.current).entries());
-        localStorage.setItem(draftKey, JSON.stringify({ ...data, body, gallery }));
+        localStorage.setItem(lsKey, JSON.stringify({ ...data, body, gallery }));
         setSavedAt(Date.now());
       } catch { /* ignore */ }
     }, 5000);
   }
+
+  // Server draft autosave (every 30s) — cross-device durability.
+  useEffect(() => {
+    const id = setInterval(() => {
+      const snap = snapshot();
+      if (snap.title || snap.markdown) void saveDraft(serverKey, snap as unknown as Record<string, unknown>);
+    }, 30000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [body, gallery, serverKey]);
+
   useEffect(() => {
     const id = setInterval(() => tick((n) => n + 1), 5000);
     return () => clearInterval(id);
   }, []);
+
+  function restoreDraft() {
+    if (!recovery) return;
+    setBody(recovery.markdown ?? "");
+    setGallery(recovery.gallery ?? []);
+    setDraftRecord(recovery);
+    setFormKey((k) => k + 1);
+    setRecovery(null);
+  }
+  function dismissDraft() {
+    setRecovery(null);
+    try { localStorage.removeItem(lsKey); } catch { /* ignore */ }
+    void clearDraft(serverKey);
+  }
 
   const errors = state && !state.ok ? state.errors : {};
 
@@ -97,12 +179,22 @@ export function SimpleEditor({ locale, categoryPages, record }: Props) {
         </div>
       </div>
 
-      <form ref={formRef} action={dispatch} onInput={onInput} className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+      {recovery && (
+        <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--color-status-warning-text)]/30 bg-[var(--color-status-warning-bg)] px-4 py-3 text-body-sm text-[var(--color-status-warning-text)]">
+          <span>{t("recoveryFound")}</span>
+          <span className="flex gap-2">
+            <button type="button" onClick={restoreDraft} className="rounded-[var(--radius-md)] bg-[var(--color-action-primary)] px-3 py-1 font-medium text-[var(--color-text-on-action)]">{t("recoveryRestore")}</button>
+            <button type="button" onClick={dismissDraft} className="rounded-[var(--radius-md)] border border-current px-3 py-1 font-medium">{t("recoveryDismiss")}</button>
+          </span>
+        </div>
+      )}
+
+      <form key={formKey} ref={formRef} action={dispatch} onInput={onInput} className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         <input type="hidden" name="locale" value={locale} />
         {isEdit && <input type="hidden" name="editingSlug" value={record!.slug} />}
         <input type="hidden" name="body" value={body} />
         <input type="hidden" name="gallery" value={JSON.stringify(gallery)} />
-        <input ref={visRef} type="hidden" name="visibility" defaultValue={record?.published ? "PUBLISHED" : "DRAFT"} />
+        <input ref={visRef} type="hidden" name="visibility" defaultValue={defaults?.published ? "PUBLISHED" : "DRAFT"} />
 
         {/* Main column */}
         <div className="flex flex-col gap-5 rounded-[var(--radius-lg)] border border-line bg-surface p-6">
@@ -112,13 +204,13 @@ export function SimpleEditor({ locale, categoryPages, record }: Props) {
 
           <label className="flex flex-col gap-1.5">
             <span className="text-body-sm font-medium text-ink-heading">{t("title")} <span className="text-[var(--color-status-danger-text)]">{t("required")}</span></span>
-            <input name="title" defaultValue={record?.title} required className="rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-body-sm text-ink focus:border-[var(--color-action-primary)] focus:outline-none" />
+            <input name="title" defaultValue={defaults?.title} required className="rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-body-sm text-ink focus:border-[var(--color-action-primary)] focus:outline-none" />
             {errors.title && <span className="text-caption text-[var(--color-status-danger-text)]" role="alert">{errors.title}</span>}
           </label>
 
           <label className="flex flex-col gap-1.5">
             <span className="text-body-sm font-medium text-ink-heading">{t("excerpt")}</span>
-            <textarea name="excerpt" defaultValue={record?.excerpt} rows={3} placeholder={t("excerptPlaceholder")} className="rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-body-sm text-ink focus:border-[var(--color-action-primary)] focus:outline-none" />
+            <textarea name="excerpt" defaultValue={defaults?.excerpt} rows={3} placeholder={t("excerptPlaceholder")} className="rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-body-sm text-ink focus:border-[var(--color-action-primary)] focus:outline-none" />
           </label>
 
           <div className="flex flex-col gap-1.5">
@@ -150,7 +242,7 @@ export function SimpleEditor({ locale, categoryPages, record }: Props) {
         <aside className="h-fit rounded-[var(--radius-lg)] border border-line bg-surface p-5">
           <label className="mb-4 flex flex-col gap-1 text-body-sm">
             <span className="text-ink-heading">{t("category")}</span>
-            <select name="categoryPageId" defaultValue={record?.categoryPageId ?? ""} className="rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-body-sm text-ink focus:outline-none focus:border-[var(--color-action-primary)]">
+            <select name="categoryPageId" defaultValue={defaults?.categoryPageId ?? ""} className="rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-body-sm text-ink focus:outline-none focus:border-[var(--color-action-primary)]">
               <option value="">{t("noCategory")}</option>
               {categoryPages.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
             </select>
@@ -158,17 +250,17 @@ export function SimpleEditor({ locale, categoryPages, record }: Props) {
 
           <label className="mb-4 flex flex-col gap-1 text-body-sm">
             <span className="text-ink-heading">{t("date")}</span>
-            <input type="date" name="date" defaultValue={record?.date ?? new Date().toISOString().slice(0, 10)} required className="rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-body-sm text-ink focus:outline-none focus:border-[var(--color-action-primary)]" />
+            <input type="date" name="date" defaultValue={defaults?.date ?? new Date().toISOString().slice(0, 10)} required className="rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-body-sm text-ink focus:outline-none focus:border-[var(--color-action-primary)]" />
           </label>
 
           <div className="mb-4 flex flex-col gap-1.5 text-body-sm">
             <span className="text-ink-heading">{t("featured")}</span>
-            <MediaField name="featuredImage" defaultValue={record?.featuredImage} folder="news" />
+            <MediaField name="featuredImage" defaultValue={defaults?.featuredImage} folder="news" />
           </div>
 
           <div className="mb-4 flex flex-col gap-1.5 text-body-sm">
             <span className="text-ink-heading">{t("color")}</span>
-            <ColorTagPicker name="colorTag" defaultValue={record?.colorTag || "BLUE"} />
+            <ColorTagPicker name="colorTag" defaultValue={defaults?.colorTag || "BLUE"} />
           </div>
 
           <div className="flex flex-col gap-2">

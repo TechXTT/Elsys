@@ -138,3 +138,12 @@ Branch `feat/G3-1-simple-editor` (off Task 11 tip 6fd78ad). typecheck ✓ lint �
 - Entry point added on `/admin/news` header ("+ Опростен редактор"). i18n `Admin.simpleEditor.*`.
 - **FLAG (TipTap):** §2 locks TipTap, but it is not installed and the news body is stored/rendered as **markdown** end-to-end. Simple Mode reuses the existing `RichTextEditor` (curated toolbar over markdown) to avoid a storage+render migration mid-run. Swapping to TipTap is a dedicated PR (add deps, choose HTML/JSON storage, update the public ReactMarkdown renderer) — flagged, not done.
 - **FLAG (TEACHER default):** "TEACHER lands here" needs the TEACHER role, added in Task 15 (G5-1). For now Simple Mode is reachable by any admin via the toggle/entry; Task 15 wires role-based default + restricts Advanced.
+
+---
+
+## Task 13 — G3-2 Editor UX — ✅ DONE
+Branch `feat/G3-2-editor-ux` (off Task 12 tip 1abf866). typecheck ✓ lint ✓ build ✓ e2e editor-ux ✓ (1/1).
+- **Autosave + crash recovery** in the Simple editor: localStorage every 5s (instant) **and** server draft every 30s (cross-device) via a generic `Draft` model (`(userId, key)`) + `app/admin/drafts/actions.ts` (save/load/clear). On mount a recovery banner offers to restore the newer draft (localStorage preferred, server fallback); restore remounts the form (formKey + draft-aware defaults) so uncontrolled inputs + internal-state pickers re-init; drafts cleared on successful save. Migration `20260617002810_add_draft`.
+- **Image cropper** (`ImageCropper.tsx`) — **DESIGN-PENDING, built functional + flagged**: center cover-crop at a chosen aspect (16:9/4:3/1:1/original) → canvas → re-upload via `uploadMedia` → returns the new URL; wired into `MediaField` (Crop button on a selected image). Full drag-resize crop box + remote-host CORS hardening are follow-ups.
+- **Already shipped, verified:** required titles (Zod + `required`), native date/datetime pickers ("real" pickers), bulk ops (Task 2 `ContentListClient`). Note: news date is date-only (Sweboo parity); content `publishAt` is datetime-local.
+- Test `tests/e2e/editor-ux.spec.ts` (localStorage recovery path; 30s server path exercised by the action unit-style).
