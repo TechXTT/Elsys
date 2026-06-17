@@ -465,9 +465,10 @@
       "removeImage": "Премахни",
       "crop": "Изрежи",
       "cropTitle": "Изрязване на изображение",
-      "cropConfirm": "Изрежи и качи",
-      "cropOriginal": "Оригинал",
-      "cropError": "Изрязването се провали (възможно е изображението да е от друг домейн)."
+      "cropConfirm": "Приложи",
+      "cropOriginal": "Свободно",
+      "cropError": "Изрязването се провали (възможно е изображението да е от друг домейн).",
+      "cropScale": "Мащаб"
     },
     "contentForm": {
       "publishHeading": "Публикуване",
@@ -572,6 +573,14 @@
         "settings:edit": "Настройки",
         "audit:view": "Одит лог"
       }
+    },
+    "seo": {
+      "title": "SEO настройки",
+      "metaTitle": "Meta заглавие",
+      "metaDescription": "Meta описание",
+      "ogImage": "OG изображение",
+      "canonical": "Canonical URL",
+      "noindex": "Скрий от търсачки (noindex)"
     }
   },
   "Clubs": {

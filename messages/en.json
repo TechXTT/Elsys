@@ -465,9 +465,10 @@
       "removeImage": "Remove",
       "crop": "Crop",
       "cropTitle": "Crop image",
-      "cropConfirm": "Crop & upload",
-      "cropOriginal": "Original",
-      "cropError": "Crop failed (the image may be from another domain)."
+      "cropConfirm": "Apply",
+      "cropOriginal": "Free",
+      "cropError": "Crop failed (the image may be from another domain).",
+      "cropScale": "Scale"
     },
     "contentForm": {
       "publishHeading": "Publishing",
@@ -572,6 +573,14 @@
         "settings:edit": "Settings",
         "audit:view": "Audit log"
       }
+    },
+    "seo": {
+      "title": "SEO settings",
+      "metaTitle": "Meta title",
+      "metaDescription": "Meta description",
+      "ogImage": "OG image",
+      "canonical": "Canonical URL",
+      "noindex": "Hide from search engines (noindex)"
     }
   },
   "Clubs": {

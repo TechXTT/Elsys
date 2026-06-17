@@ -33,4 +33,19 @@ test.describe("Roles & permissions (G5-1)", () => {
     // Restore to TEACHER so the fixture stays stable for re-runs.
     await after.selectOption("TEACHER");
   });
+
+  test("the bootstrap ADMIN cannot be demoted (self/last-admin guard)", async ({ page }) => {
+    // Demoting the bootstrap admin must be blocked (self-demotion + last-admin
+    // invariant) with a friendly Bulgarian error. Exact-match the email cell so
+    // we don't collide with the 2FA specs' *-admin@elsys.bg fixtures.
+    await page.goto("/admin/roles");
+    const row = page.locator("tr").filter({ has: page.getByText("admin@elsys.bg", { exact: true }) });
+    await row.locator("select").selectOption("TEACHER");
+    await expect(page.getByRole("alert")).toBeVisible();
+    // Role stays ADMIN after a reload.
+    await page.reload();
+    await expect(
+      page.locator("tr").filter({ has: page.getByText("admin@elsys.bg", { exact: true }) }).locator("select")
+    ).toHaveValue("ADMIN");
+  });
 });

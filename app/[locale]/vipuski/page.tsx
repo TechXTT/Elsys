@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
-import { TeamCard } from "@/components/team-card";
+import { LeaderCard } from "@/components/leader-card";
 import { SectionHeading } from "@/components/Section";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import type { Locale } from "@/i18n/config";
@@ -15,7 +15,6 @@ export async function generateMetadata({ params }: { params: { locale: Locale } 
   return { title: t("title"), description: t("intro"), alternates: alternatesFor(params.locale, "/vipuski") };
 }
 
-// NOTE: dedicated LeaderCard is design-pending (gap backlog). Reuses TeamCard on tokens.
 export default async function LeadersPage({ params }: { params: { locale: Locale } }) {
   const locale = params.locale;
   const [tLeaders, tCommon] = await Promise.all([
@@ -47,7 +46,7 @@ export default async function LeadersPage({ params }: { params: { locale: Locale
               <h2 className="text-h3 text-ink-heading">{tLeaders("classOf", { year })}</h2>
               <div className="grid gap-[var(--spacing-lg)] sm:grid-cols-2 lg:grid-cols-4">
                 {items.map((l) => (
-                  <TeamCard key={l.id} name={l.name} role={l.role} photo={l.image} />
+                  <LeaderCard key={l.id} name={l.name} year={l.year} role={l.role} photo={l.image} />
                 ))}
               </div>
             </section>

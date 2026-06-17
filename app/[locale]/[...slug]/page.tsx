@@ -14,6 +14,8 @@ import { renderBlocks } from "@/lib/cms";
 import { collectBlockNeeds, type BlockContext } from "@/lib/blocks/registry";
 import { loadBlockData } from "@/lib/cms/block-data";
 import { resolveAlias } from "@/lib/routes";
+import { resolveRedirect } from "@/lib/redirects";
+import { permanentRedirect, redirect as nextRedirect } from "next/navigation";
 import { isPublic } from "@/lib/content/shared";
 import { alternatesFor, applySeo } from "@/lib/site";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
@@ -187,7 +189,16 @@ export default async function DynamicPage({ params }: { params: { locale: Locale
     if (resolved) untranslated = true;
   }
 
-  if (!resolved) notFound();
+  if (!resolved) {
+    // R1: before 404, check the legacy → new redirect table (G4 backfill).
+    const hit = await resolveRedirect(slugParts.join("/"));
+    if (hit) {
+      const dest = hit.toPath.startsWith("/") ? `/${locale}${hit.toPath}` : `/${locale}/${hit.toPath}`;
+      if (hit.status === 308) permanentRedirect(dest);
+      nextRedirect(dest);
+    }
+    notFound();
+  }
 
   const { page } = resolved;
 

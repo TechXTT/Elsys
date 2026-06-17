@@ -220,3 +220,39 @@ Crawled ~83 pages → **85 content URLs** (7 news, 12 blog, 11 item, 25 page, 30
 5. M4.4 visual-diff harness — **HARD STOP** per brief (operator will brief separately).
 
 **STOP per brief:** dry-run done + reported; **no `--commit`/non-dry run, no prod, no auto-publish.** Awaiting operator review of the report before proceeding.
+
+---
+
+# Post-review continuation (operator approved dry-run) — Parts A/B/C
+
+## Part A — security hardening — ✅ DONE
+Branch `feat/G5-sec-hardening` (off G4-4 tip 95ad1ff). typecheck ✓ lint ✓ build ✓ e2e roles 3/3 + two-factor 5/5.
+- **2FA scope:** middleware mandatory-2FA gate now covers **ADMIN + STUDENT_ADMIN** (both bounced to `/admin/security` until enrolled); TEACHER/STUDENT_EDITOR ungated.
+- **All admin API routes gated:** new `lib/auth/api-guard.ts` (`apiGuard(permission)`); applied to every `app/api/admin/**` handler via the matrix (news→news:edit, pages→pages:edit, navigation→nav:edit, users/reset-password→users:manage, admins/register→roles:manage/ADMIN-only, dashboard→audit:view, me→auth-only). **`2fa/precheck` intentionally ungated** (pre-login, no session) — it broke login when gated; reverted + commented.
+- **Last-admin invariant:** `wouldRemoveLastAdmin()` in `lib/auth/guard.ts` blocks demoting/deleting the final ADMIN (friendly BG `LAST_ADMIN_ERROR`) in `setUserRole` + admins/[id] PATCH/DELETE + users/[id] PATCH/DELETE, each AuditLogging the blocked attempt (`*_BLOCKED`). e2e covers the bootstrap-admin demotion guard.
+- Clears Task-15 security-review flags #1 (2FA scope), #3 (ungated REST), #4 (last-admin). Flag #2 (matrix grants) is a human policy review, unchanged.
+
+## Part B — design reconcile + cleanup — ✅ DONE
+Branch `feat/G2-design-reconcile` (off Part A tip 1fc8987). typecheck ✓ lint ✓ build ✓ e2e projects + awards-leaders 6/6.
+- **Cards → real components matched to Figma:** `components/project-card.tsx` (112:2 — cover image + Badge category + title + description, card-as-link), `components/award-item.tsx` (112:12 — title/subtitle + amber trophy), `components/leader-card.tsx` (112:19 — initials/photo avatar + name + coral "Випуск {year}" + role). Wired into `/evroproekti`, `/nagradi`, `/vipuski`; removed the inline "design-pending" markup.
+- **Image cropper → 111:2:** rule-of-thirds grid overlay + framed crop region with corner handles, a "Мащаб" zoom slider (tightens the centered crop + previews via transform), chips 16:9/4:3/1:1/Свободно, buttons Отказ/Приложи. Token-bound.
+- **Page-editor SEO panel (94:2 field pattern):** added an SEO card in the page editor's Settings tab (metaTitle/metaDescription/ogImage/canonical/noindex), wired through the pages REST API (POST/PUT accept + persist; GET already returns them) + `hasChanges`. `Admin.seo.*` i18n. Clears the Task-14 Page-SEO-UI flag.
+- **/evroproekti canonical:** renamed `app/[locale]/proekti` → `evroproekti`; **308** `/:locale/proekti(/*)` → `/evroproekti` in next.config; repointed project slugPrefix, sitemap, revalidate, metadata; nav already pointed there. e2e asserts the redirect. Grep confirms no stray `/proekti`.
+
+## Part C — G4 full commit path — ✅ DONE
+Branch `feat/G4-2-import-commit` (off Part B tip 36667be). typecheck ✓ lint ✓ build ✓ **full e2e 87/87** (with imported DRAFT content + redirects present — fixture seed untouched).
+- **Schema (additive):** `legacyId`/`legacyUrl` on NewsPost + Page; `legacyUrl` on the 8 typed models (legacyId existed); new **`RouteRedirect`** model. Migration `20260617030400_add_legacy_fields_and_redirects`.
+- **Commit path** (`scripts/import/importer.ts`, `run.ts --commit`): idempotent upsert News/Blog → NewsPost and the page tree → Page, **DRAFT** (never auto-published), keyed by natural slug, carrying legacyId/legacyUrl. DEV-DB guard refuses prod-looking URLs.
+- **Media pipeline** (`media.ts`): download → dedupe by content hash → Blob → Media row; carries legacy alt (flags missing); markdown rewritten to Blob URLs. **Consent never auto-asserted** (isMinorPhoto=false, consentRecordedAt=null; all flagged).
+- **News dates** (`news-dates.ts`): best-effort from the index `<time>` (5 recovered); missing → 1970 sentinel + "дата липсва" flag (never fabricated).
+- **Redirects:** `lib/redirects.ts` + 404 consumption in `[...slug]` (R1) + backfill of every legacy URL → new canonical (+ dropped-type Calendar → /novini).
+- **Specialized types:** Club/Team/Partner/Gallery/Project/Award/Leader are **not** distinct typed pages on the live site (the public site renders them as ordinary content pages), so they import as **Page/DRAFT** for editor reclassification — `extract.ts` dispatch is ready to add real extractors once a source layout is identified. Documented honestly in README.
+
+### REAL DEV-DB import run (`pnpm import:all --commit`) — summary
+- **84/85 extracted** (1 junk URL with spaces skipped). Committed **DRAFT**: **19 news + 65 pages**.
+- **Media:** 44 referenced, **37 imported to Blob** (dedupe + a few unfetchable), 33 missing alt, **44 flagged for consent review**.
+- **Redirects:** **85 persisted**, **99% coverage** (84 mapped + 1 dropped-type; 1 junk URL unmapped).
+- **News dates:** 5 recovered from the index, **14 flagged "дата липсва"** (1970 sentinel, DRAFT).
+- e2e stayed green (87/87) — imported DRAFT content is invisible to public tests; the fixture seed is unchanged.
+
+## HARD STOP (per brief): no prod import, no auto-publish, M4.4 visual-diff harness NOT built (awaiting separate brief).

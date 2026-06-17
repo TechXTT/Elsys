@@ -14,6 +14,9 @@ const nextConfig = {
     return [
       { source: "/:locale(bg|en)/news", destination: "/:locale/novini", permanent: true },
       { source: "/:locale(bg|en)/news/:slug*", destination: "/:locale/novini/:slug*", permanent: true },
+      // Projects canonical route is /evroproekti (aligns nav + legacy). 308.
+      { source: "/:locale(bg|en)/proekti", destination: "/:locale/evroproekti", permanent: true },
+      { source: "/:locale(bg|en)/proekti/:slug*", destination: "/:locale/evroproekti/:slug*", permanent: true },
     ];
   },
 };

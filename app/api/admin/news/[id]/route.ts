@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiGuard } from "@/lib/auth/api-guard";
 import { getServerSession } from "next-auth";
 import { put } from "@vercel/blob";
 import { authOptions } from "@/lib/auth";
@@ -54,6 +55,7 @@ function parseDeclaredMeta(value: FormDataEntryValue | null): DeclaredImageMeta[
 }
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
+  const __g = await apiGuard("news:edit"); if (__g instanceof NextResponse) return __g;
   const session = await getServerSession(authOptions);
   if (!session) {
     try {
@@ -101,6 +103,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
+  const __g = await apiGuard("news:edit"); if (__g instanceof NextResponse) return __g;
   const session = await getServerSession(authOptions);
   if (!session) {
     try {
@@ -357,6 +360,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+  const __g = await apiGuard("news:edit"); if (__g instanceof NextResponse) return __g;
   const session = await getServerSession(authOptions);
   if (!session) {
     try {
@@ -396,6 +400,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
  * PATCH ?action=restore - Restore a specific version
  */
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+  const __g = await apiGuard("news:edit"); if (__g instanceof NextResponse) return __g;
   const session = await getServerSession(authOptions);
   if (!session || !(session.user as any)?.id || (session.user as any)?.role !== "ADMIN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiGuard } from "@/lib/auth/api-guard";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getNewsPostVersions, restoreNewsPostVersion } from "@/lib/news-versions";
@@ -19,6 +20,7 @@ export async function GET(
   req: Request,
   { params }: { params: { id: string } }
 ) {
+  const __g = await apiGuard("news:edit"); if (__g instanceof NextResponse) return __g;
   try {
     const session = await getServerSession(authOptions);
     ensureAdmin(session);
@@ -42,6 +44,7 @@ export async function POST(
   req: Request,
   { params }: { params: { id: string } }
 ) {
+  const __g = await apiGuard("news:edit"); if (__g instanceof NextResponse) return __g;
   try {
     const session = await getServerSession(authOptions);
     ensureAdmin(session);

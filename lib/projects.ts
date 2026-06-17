@@ -59,5 +59,5 @@ export async function invalidateProjectsCache(): Promise<void> {
 export async function revalidateProjects(): Promise<void> {
   await invalidateProjectsCache();
   const { revalidatePath } = await import("next/cache");
-  for (const loc of locales) revalidatePath(`/${loc}/proekti`);
+  for (const loc of locales) revalidatePath(`/${loc}/evroproekti`);
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiGuard } from "@/lib/auth/api-guard";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/audit";
@@ -7,6 +8,7 @@ const REGISTRATION_ENABLED = process.env.ALLOW_ADMIN_REGISTRATION === "true" || 
 
 // Temporary admin registration endpoint; remove after initial setup.
 export async function POST(req: Request) {
+  const __g = await apiGuard("roles:manage"); if (__g instanceof NextResponse) return __g;
   if (!REGISTRATION_ENABLED) {
     return NextResponse.json({ error: "Регистрацията е изключена" }, { status: 403 });
   }

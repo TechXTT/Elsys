@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiGuard } from "@/lib/auth/api-guard";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
@@ -56,6 +57,7 @@ async function translateText(
 }
 
 export async function POST(req: Request) {
+  const __g = await apiGuard("news:edit"); if (__g instanceof NextResponse) return __g;
   const session = await getServerSession(authOptions);
   if (!session)
     return NextResponse.json({ error: "Неоторизиран достъп" }, { status: 401 });

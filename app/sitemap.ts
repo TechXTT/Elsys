@@ -18,7 +18,7 @@ const routes = [
   "/dokumenti",
   "/ekip",
   "/partnyori",
-  "/proekti",
+  "/evroproekti",
   "/nagradi",
   "/vipuski",
   "/kontakti",

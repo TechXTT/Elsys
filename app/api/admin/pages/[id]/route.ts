@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiGuard } from "@/lib/auth/api-guard";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -17,6 +18,7 @@ function ensureAdmin(session: any): asserts session is { user: { id: string; rol
 }
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
+  const __g = await apiGuard("pages:edit"); if (__g instanceof NextResponse) return __g;
   try {
     const session = await getServerSession(authOptions);
     ensureAdmin(session);
@@ -31,12 +33,14 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 }
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
+  const __g = await apiGuard("pages:edit"); if (__g instanceof NextResponse) return __g;
   try {
     const session = await getServerSession(authOptions);
     ensureAdmin(session);
     const userId = (session!.user as any).id as string;
     const body = (await req.json().catch(() => null)) as {
       slug?: string; locale?: string; title?: string; excerpt?: string | null; bodyMarkdown?: string | null; blocks?: unknown; published?: boolean;
+      metaTitle?: string | null; metaDescription?: string | null; ogImage?: string | null; noindex?: boolean; canonical?: string | null;
     } | null;
     if (!body) return NextResponse.json({ error: "Missing body" }, { status: 400 });
     const data: any = {};
@@ -64,6 +68,11 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     if (body.title !== undefined) data.title = (body.title || "").trim();
     if (body.excerpt !== undefined) data.excerpt = body.excerpt ?? null;
     if (body.bodyMarkdown !== undefined) data.bodyMarkdown = body.bodyMarkdown ?? null;
+    if (body.metaTitle !== undefined) data.metaTitle = body.metaTitle ?? null;
+    if (body.metaDescription !== undefined) data.metaDescription = body.metaDescription ?? null;
+    if (body.ogImage !== undefined) data.ogImage = body.ogImage ?? null;
+    if (body.noindex !== undefined) data.noindex = !!body.noindex;
+    if (body.canonical !== undefined) data.canonical = body.canonical ?? null;
     if (body.blocks !== undefined) data.blocks = body.blocks as any;
     if (body.published !== undefined) {
       data.published = !!body.published;
@@ -118,6 +127,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 }
 
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+  const __g = await apiGuard("pages:edit"); if (__g instanceof NextResponse) return __g;
   try {
     const session = await getServerSession(authOptions);
     ensureAdmin(session);

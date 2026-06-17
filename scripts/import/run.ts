@@ -2,8 +2,11 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { PrismaClient } from "@prisma/client";
 import { fetchPage } from "./lib/http";
 import { extract, type Extracted } from "./extract";
+import { upsertNews, upsertPage, persistRedirect } from "./importer";
+import { getNewsDatesFromIndex } from "./news-dates";
 import type { LegacyUrl } from "./crawl";
 
 // Migration runner (G4 / M4). DEFAULT = --dry-run: reads the cached crawl
@@ -28,6 +31,7 @@ interface Report {
   htmlWarnings: Record<string, number>;
   redirects: { coveragePct: number; mapped: number; unmapped: string[]; sample: { from: string; to: string }[] };
   unmappedUrls: string[];
+  committed: { news: number; pages: number; mediaImported: number; redirects: number };
 }
 
 function targetPath(e: Extracted): string {
@@ -41,15 +45,25 @@ async function main() {
   const only = args.find((a) => a.startsWith("--only="))?.split("=")[1];
   const limit = Number(args.find((a) => a.startsWith("--limit="))?.split("=")[1] ?? 0) || undefined;
 
-  if (commit) {
-    console.error("✋ --commit is not enabled in this build (DEV-DB write path + media/Blob + RouteRedirect are pending sub-phases).");
-    console.error("   Review the --dry-run report first; see scripts/import/README.md.");
-    process.exit(2);
-  }
-
   if (!existsSync(URLS_JSON)) {
     console.error(`No crawl inventory at ${URLS_JSON}. Run: pnpm import:crawl`);
     process.exit(1);
+  }
+
+  // DEV-DB safety: refuse --commit against an obviously production database.
+  const dbUrl = process.env.PRISMA_DATABASE_URL ?? "";
+  if (commit && /(\bprod\b|production)/i.test(dbUrl)) {
+    console.error("✋ Refusing --commit: PRISMA_DATABASE_URL looks like production. DEV DB only.");
+    process.exit(2);
+  }
+
+  const prisma = commit ? new PrismaClient() : null;
+  let userId: string | null = null;
+  // Load best-effort news dates from the index for both dry-run reporting + commit.
+  const dateMap = await getNewsDatesFromIndex({ cacheOnly: true });
+  if (commit && prisma) {
+    userId = (await prisma.user.findFirst({ where: { role: "ADMIN" }, select: { id: true } }))?.id ?? null;
+    console.log(`Commit mode: importing as DRAFT (author ${userId ?? "none"}), ${dateMap.size} index dates.`);
   }
 
   let urls: LegacyUrl[] = JSON.parse(await readFile(URLS_JSON, "utf8"));
@@ -58,7 +72,7 @@ async function main() {
 
   const report: Report = {
     generatedAt: new Date().toISOString(),
-    dryRun: true,
+    dryRun: !commit,
     totals: { urls: urls.length, extracted: 0, unmapped: 0 },
     countsByType: {},
     news: { count: 0, missingDate: [] },
@@ -67,6 +81,7 @@ async function main() {
     htmlWarnings: {},
     redirects: { coveragePct: 0, mapped: 0, unmapped: [], sample: [] },
     unmappedUrls: [],
+    committed: { news: 0, pages: 0, mediaImported: 0, redirects: 0 },
   };
 
   for (const u of urls) {
@@ -81,9 +96,10 @@ async function main() {
     report.redirects.mapped++;
     if (report.redirects.sample.length < 12) report.redirects.sample.push({ from: u.pathname, to });
 
+    const newsMissingDate = e.kind === "news" && e.legacyId != null && !dateMap.has(e.legacyId);
     if (e.kind === "news") {
       report.news.count++;
-      if (!e.date) report.news.missingDate.push(u.pathname);
+      if (newsMissingDate) report.news.missingDate.push(u.pathname);
     } else {
       report.pages.count++;
     }
@@ -95,6 +111,28 @@ async function main() {
       report.media.consentReviewRequired++;
     }
     for (const w of e.warnings) report.htmlWarnings[w] = (report.htmlWarnings[w] ?? 0) + 1;
+
+    // Commit: upsert the record (DRAFT) + backfill its legacy→new redirect.
+    if (commit && prisma) {
+      const res = e.kind === "news"
+        ? await upsertNews(prisma, e, dateMap, userId, { dryRun: false })
+        : await upsertPage(prisma, e, userId, { dryRun: false });
+      report.committed.mediaImported += res.mediaImported;
+      if (e.kind === "news") report.committed.news++; else report.committed.pages++;
+      await persistRedirect(prisma, u.url, to, e.legacyId ?? null, { dryRun: false });
+      report.committed.redirects++;
+    }
+  }
+
+  // Dropped-type legacy URLs (Calendar/Internships/Prep) → sensible targets (§2).
+  if (commit && prisma) {
+    const dropped: { from: string; to: string }[] = [
+      { from: "/obuchenie/kalendar-na-sybitijata", to: "/novini" },
+    ];
+    for (const d of dropped) {
+      await persistRedirect(prisma, d.from, d.to, null, { dryRun: false });
+      report.committed.redirects++;
+    }
   }
 
   const totalRedirectCandidates = report.redirects.mapped + report.redirects.unmapped.length;
@@ -105,7 +143,7 @@ async function main() {
   await writeFile(REPORT_JSON, JSON.stringify(report, null, 2));
 
   // Console summary.
-  console.log("\n=== Migration dry-run report ===");
+  console.log(`\n=== Migration ${commit ? "COMMIT" : "dry-run"} report ===`);
   console.log("URLs in inventory:", report.totals.urls, "| extracted:", report.totals.extracted, "| unmapped:", report.totals.unmapped);
   console.log("By type:", report.countsByType);
   console.log("News:", report.news.count, "(missing date:", report.news.missingDate.length + ")");
@@ -116,8 +154,13 @@ async function main() {
   console.log("Sample redirects:");
   for (const r of report.redirects.sample) console.log(`  ${r.from}  →  ${r.to}`);
   if (report.unmappedUrls.length) console.log("Unmapped:", report.unmappedUrls.slice(0, 10));
+  if (commit) {
+    console.log("Committed (DRAFT):", report.committed);
+  } else {
+    console.log("Imported content would land as DRAFT (never auto-published). Re-run with --commit to write to the DEV DB.");
+  }
   console.log(`\nFull report → ${REPORT_JSON}`);
-  console.log("Imported content would land as DRAFT (never auto-published). --commit is disabled pending review.");
+  if (prisma) await prisma.$disconnect();
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
