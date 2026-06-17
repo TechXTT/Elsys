@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 
 import { cn } from "@/lib/cn";
+import { isRemoteSrc } from "@/lib/image";
 
 export interface CarouselSlide {
   id: string;
@@ -104,7 +105,7 @@ export function CarouselHero({ slides }: Props) {
             {/* Decorative imagery sits on the right at lg+, never under the text,
                 so on-brand text stays on solid bg-header (6.1:1). */}
             <div aria-hidden className="absolute inset-y-0 right-0 hidden w-1/2 lg:block">
-              <Image fill src={slide.imageDesktop} alt="" sizes="50vw" className="object-cover" priority={i === 0} />
+              <Image fill src={slide.imageDesktop} alt="" sizes="50vw" className="object-cover" priority={i === 0} unoptimized={isRemoteSrc(slide.imageDesktop)} />
               <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-bg-header)] to-transparent" />
             </div>
 

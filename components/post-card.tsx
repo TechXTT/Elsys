@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Link } from "@/i18n/routing";
 import { defaultLocale, type Locale } from "@/i18n/config";
 import { cn } from "@/lib/cn";
+import { isRemoteSrc } from "@/lib/image";
 import { formatDateLabel } from "@/lib/format-date";
 import { PostItem } from "@/lib/types";
 
@@ -52,7 +53,7 @@ export function PostCard({
         <div
           className={cn("relative aspect-square shrink-0 overflow-hidden rounded-[var(--radius-md)] bg-subtle", thumbSize[variant])}
         >
-          <Image fill src={thumb} alt="" sizes="112px" className="object-cover" />
+          <Image fill src={thumb} alt="" sizes="112px" className="object-cover" unoptimized={isRemoteSrc(thumb)} />
         </div>
       )}
       <div className="flex min-w-0 flex-col gap-[var(--spacing-2xs)]">

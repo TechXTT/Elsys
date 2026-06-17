@@ -194,6 +194,11 @@ model NewsPost {
   /// Canonical publication state (R3). Public visibility = isPublic() (status PUBLISHED + date <= now).
   status        PublishStatus @default(PUBLISHED)
 
+  /// Optional free-text category label shown on the card chip (e.g. "Събитие"). E2.
+  category      String?
+  /// Optional colour for the category chip; maps to the Badge palette via colorTagToBadge(). E2.
+  colorTag      ColorTag?
+
   authorId      String?
   author        User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
 

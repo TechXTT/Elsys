@@ -21,8 +21,8 @@ export async function revalidateNews(slugs: string[] = []): Promise<void> {
   const { revalidatePath } = await import("next/cache");
   for (const loc of locales) {
     revalidatePath(`/${loc}`);
-    revalidatePath(`/${loc}/news`);
-    for (const slug of slugs) revalidatePath(`/${loc}/news/${slug}`);
+    revalidatePath(`/${loc}/novini`);
+    for (const slug of slugs) revalidatePath(`/${loc}/novini/${slug}`);
   }
 }
 
@@ -41,6 +41,9 @@ interface NewsRow {
   featuredImage: string | null;
   published: boolean;
   status?: string;
+  category?: string | null;
+  colorTag?: import("@prisma/client").ColorTag | null;
+  author?: { name: string | null } | null;
 }
 
 function toPostItem(row: NewsRow): PostItem {
@@ -51,10 +54,12 @@ function toPostItem(row: NewsRow): PostItem {
     title: row.title,
     excerpt: row.excerpt ?? undefined,
     date: row.date?.toISOString?.() ?? undefined,
-    href: `/news/${row.id}`,
+    href: `/novini/${row.id}`,
     image,
     images,
     published: row.published,
+    category: row.category ?? undefined,
+    colorTag: row.colorTag ?? undefined,
   };
 }
 
@@ -73,7 +78,7 @@ export async function getNewsPosts(locale?: Locale, includeDrafts = false): Prom
           ...(includeDrafts ? {} : publicWhere({ gateDate: true, now })),
         },
         orderBy: { date: "desc" },
-        select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true },
+        select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true, category: true, colorTag: true },
       });
 
       // If locale is not default, also fetch defaults to fill gaps (only when not includeDrafts)
@@ -85,7 +90,7 @@ export async function getNewsPosts(locale?: Locale, includeDrafts = false): Prom
             ...publicWhere({ gateDate: true, now }),
           },
           orderBy: { date: "desc" },
-          select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true },
+          select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true, category: true, colorTag: true },
         });
       }
 
@@ -99,22 +104,33 @@ export async function getNewsPosts(locale?: Locale, includeDrafts = false): Prom
   });
 }
 
-export async function getNewsPost(slug: string, locale?: Locale, includeDrafts = false): Promise<{ post: PostItem; markdown: string; blocks: unknown[] | null; useBlocks: boolean; published: boolean } | null> {
+export async function getNewsPost(slug: string, locale?: Locale, includeDrafts = false): Promise<{ post: PostItem; markdown: string; blocks: unknown[] | null; useBlocks: boolean; published: boolean; authorName: string | null } | null> {
   const loc = (locale ?? defaultLocale) as string;
   const localesToFetch = loc === defaultLocale ? [loc] : [loc, defaultLocale];
   const rows: NewsRow[] = await (prisma as any).newsPost.findMany({
     where: { id: slug, locale: { in: localesToFetch } },
-    select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true },
+    select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true, category: true, colorTag: true, author: { select: { name: true } } },
   });
   const now = new Date();
   // Public visibility: status PUBLISHED + date not in the future (canonical helper).
   const isPubliclyVisible = (row: NewsRow) => isPublic(row, now);
 
+  const pick = (row: NewsRow) => ({ post: toPostItem(row), markdown: row.bodyMarkdown, blocks: row.blocks, useBlocks: row.useBlocks, published: row.published, authorName: row.author?.name ?? null });
   const primary = rows.find(r => r.locale === loc);
-  if (primary && (includeDrafts || isPubliclyVisible(primary))) return { post: toPostItem(primary), markdown: primary.bodyMarkdown, blocks: primary.blocks, useBlocks: primary.useBlocks, published: primary.published };
+  if (primary && (includeDrafts || isPubliclyVisible(primary))) return pick(primary);
   const fb = rows.find(r => r.locale === defaultLocale);
-  if (fb && (includeDrafts || isPubliclyVisible(fb))) return { post: toPostItem(fb), markdown: fb.bodyMarkdown, blocks: fb.blocks, useBlocks: fb.useBlocks, published: fb.published };
+  if (fb && (includeDrafts || isPubliclyVisible(fb))) return pick(fb);
   return null;
+}
+
+/** N most-recent published posts for the requested locale (cached list). */
+export async function getLatestNews(locale?: Locale, limit = 3): Promise<PostItem[]> {
+  return (await getNewsPosts(locale)).slice(0, limit);
+}
+
+/** Up to `limit` published posts other than `slug` (cached list) — "related news". */
+export async function getRelatedNews(slug: string, locale?: Locale, limit = 3): Promise<PostItem[]> {
+  return (await getNewsPosts(locale)).filter((p) => p.id !== slug).slice(0, limit);
 }
 
 export async function createNewsPost(input: {

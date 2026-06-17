@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Link } from "@/i18n/routing";
 import type { Locale } from "@/i18n/config";
 import { cn } from "@/lib/cn";
+import { isRemoteSrc } from "@/lib/image";
 
 type GalleryTileSize = "sm" | "lg";
 
@@ -30,7 +31,7 @@ const aspect: Record<GalleryTileSize, string> = {
 export function GalleryTile({ image, alt, caption, size = "sm", href, locale, className }: GalleryTileProps) {
   const inner: ReactNode = (
     <>
-      <Image fill src={image} alt={alt} sizes="(min-width: 768px) 360px, 100vw" className="object-cover" />
+      <Image fill src={image} alt={alt} sizes="(min-width: 768px) 360px, 100vw" className="object-cover" unoptimized={isRemoteSrc(image)} />
       {caption && (
         <span
           className={cn(

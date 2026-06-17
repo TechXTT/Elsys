@@ -390,6 +390,93 @@ export const blockMeta: BlockMeta[] = [
       items: [],
     },
   },
+  // --- E2: blocks backed by Phase-D design components ---
+  {
+    type: "TeamGrid",
+    label: "Team Grid",
+    description: "Grid of people (photo/initials, name, role, contact)",
+    icon: "Layers",
+    category: "data",
+    fields: [
+      { name: "title", label: "Title", type: "text" },
+      { name: "items", label: "People", type: "array", fields: [
+        { name: "name", label: "Name", type: "text" },
+        { name: "role", label: "Role", type: "text" },
+        { name: "photo", label: "Photo", type: "image" },
+        { name: "email", label: "Email", type: "text" },
+      ]},
+    ],
+    defaultProps: { title: "Екип", items: [] },
+  },
+  {
+    type: "PartnerGrid",
+    label: "Partner Logos",
+    description: "Grid of partner logos (greyscale until hover)",
+    icon: "GalleryHorizontal",
+    category: "media",
+    fields: [
+      { name: "title", label: "Title", type: "text" },
+      { name: "items", label: "Partners", type: "array", fields: [
+        { name: "name", label: "Name", type: "text" },
+        { name: "logo", label: "Logo", type: "image" },
+        { name: "href", label: "Link", type: "link" },
+      ]},
+    ],
+    defaultProps: { title: "Партньори", items: [] },
+  },
+  {
+    type: "DocumentList",
+    label: "Document List",
+    description: "Downloadable documents with filetype + size",
+    icon: "FileText",
+    category: "data",
+    fields: [
+      { name: "title", label: "Title", type: "text" },
+      { name: "items", label: "Documents", type: "array", fields: [
+        { name: "name", label: "Name", type: "text" },
+        { name: "href", label: "File URL", type: "link" },
+        { name: "fileType", label: "Type", type: "text", placeholder: "PDF" },
+        { name: "size", label: "Size", type: "text", placeholder: "1.4 MB" },
+      ]},
+    ],
+    defaultProps: { title: "Документи", items: [] },
+  },
+  {
+    type: "ClubGrid",
+    label: "Club Grid",
+    description: "Grid of clubs (colour band, title, description)",
+    icon: "Star",
+    category: "data",
+    fields: [
+      { name: "title", label: "Title", type: "text" },
+      { name: "items", label: "Clubs", type: "array", fields: [
+        { name: "name", label: "Name", type: "text" },
+        { name: "description", label: "Description", type: "textarea" },
+        { name: "color", label: "Colour", type: "select", options: [
+          { value: "BLUE", label: "Blue" }, { value: "GREEN", label: "Green" },
+          { value: "RED", label: "Red" }, { value: "PURPLE", label: "Purple" },
+          { value: "TEAL", label: "Teal" }, { value: "ORANGE", label: "Orange" },
+        ]},
+        { name: "href", label: "Link", type: "link" },
+      ]},
+    ],
+    defaultProps: { title: "Клубове", items: [] },
+  },
+  {
+    type: "HeaderAccent",
+    label: "Announcement",
+    description: "Dismissible announcement bar (info / urgent)",
+    icon: "ListChecks",
+    category: "content",
+    fields: [
+      { name: "id", label: "ID (persists dismissal)", type: "text", placeholder: "olympiad-2026" },
+      { name: "message", label: "Message", type: "text", required: true },
+      { name: "priority", label: "Priority", type: "select", options: [
+        { value: "info", label: "Info" }, { value: "urgent", label: "Urgent" },
+      ]},
+    ],
+    defaultProps: { id: "announcement", message: "", priority: "info" },
+  },
 ];
 
 // Get icon component by name

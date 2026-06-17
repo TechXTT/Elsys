@@ -6,6 +6,7 @@ import { type BadgeColor, colorTagToBadge } from "@/components/ui/Badge";
 import { Link } from "@/i18n/routing";
 import type { Locale } from "@/i18n/config";
 import { cn } from "@/lib/cn";
+import { isRemoteSrc } from "@/lib/image";
 
 interface ClubCardProps {
   name: string;
@@ -42,7 +43,7 @@ export function ClubCard({ name, description, color = "BLUE", logo, href, locale
     <>
       <div className={cn("flex h-20 items-center justify-center", band)}>
         <span className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-[var(--radius-full)] bg-surface">
-          {logo && <Image fill src={logo} alt="" sizes="56px" className="object-contain p-[var(--spacing-2xs)]" />}
+          {logo && <Image fill src={logo} alt="" sizes="56px" className="object-contain p-[var(--spacing-2xs)]" unoptimized={isRemoteSrc(logo)} />}
         </span>
       </div>
       <div className="flex flex-1 flex-col gap-[var(--spacing-2xs)] p-[var(--spacing-lg)]">

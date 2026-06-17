@@ -12,9 +12,10 @@ async function login(page: import("@playwright/test").Page) {
 // (status PUBLISHED + date gate). Fixtures seeded in prisma/seed.js.
 test.describe("publish status (M0.4 / R3)", () => {
   test("a DRAFT page 404s publicly but lists in admin", async ({ page }) => {
-    // Public: the seeded DRAFT page must not render.
-    await page.goto("/bg/chernova-stranica");
-    await expect(page.getByText("Страницата не е намерена.")).toBeVisible();
+    // Public: the seeded DRAFT page must 404 (E3 wired notFound) and not render.
+    const pageRes = await page.goto("/bg/chernova-stranica");
+    expect(pageRes?.status()).toBe(404);
+    await expect(page.getByRole("heading", { name: "Страницата не е намерена" })).toBeVisible();
     await expect(
       page.getByText("Това е чернова и не трябва да е видима публично.")
     ).toHaveCount(0);
@@ -48,17 +49,18 @@ test.describe("publish status (M0.4 / R3)", () => {
       expect(res.ok()).toBeTruthy();
     };
 
-    // Future date → hidden from /bg/news.
+    // Future date → hidden from /bg/novini.
     await setDate("2099-01-01");
     await expect(async () => {
-      await page.goto("/bg/news");
+      await page.goto("/bg/novini");
       await expect(page.getByText(TITLE)).toHaveCount(0);
     }).toPass({ timeout: 15_000 });
 
-    // Date passes → visible.
-    await setDate("2020-01-01");
+    // Date passes → visible. Use a recent past date so the post sorts onto the
+    // first /novini page (the index paginates at 6/page — E1).
+    await setDate("2026-06-10");
     await expect(async () => {
-      await page.goto("/bg/news");
+      await page.goto("/bg/novini");
       await expect(page.getByText(TITLE)).toBeVisible();
     }).toPass({ timeout: 15_000 });
 

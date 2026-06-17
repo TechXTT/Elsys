@@ -11,7 +11,10 @@
     "missingHome": "Липсва файл home.json.",
     "pageNotFound": "Страницата не е намерена.",
     "viewMore": "Виж повече",
-    "skipToContent": "Към съдържанието"
+    "skipToContent": "Към съдържанието",
+    "home": "Начало",
+    "breadcrumb": "Навигация",
+    "untranslated": "Тази страница все още не е преведена и се показва на български."
   },
   "Nav": {
     "news": "Новини",
@@ -104,13 +107,37 @@
     "tracksTitle": "Профили",
     "tracksDescription": "Специализирани направления на обучение.",
     "whyTitle": "Защо ТУЕС?",
-    "numbersTitle": "ТУЕС в числа"
+    "numbersTitle": "ТУЕС в числа",
+    "metaTitle": "ТУЕС — Технологично училище „Електронни системи“",
+    "metaDescription": "Водещото технологично училище в България. Новини, прием, обучение и ученически живот в ТУЕС.",
+    "latestNews": "Последни",
+    "latestNewsAccent": "новини",
+    "allNews": "Всички новини",
+    "specialtiesTitle": "Нашите",
+    "specialtiesAccent": "специалности",
+    "clubsTitle": "Ученически",
+    "clubsAccent": "клубове",
+    "testimonialsTitle": "Какво казват",
+    "testimonialsAccent": "възпитаниците",
+    "ctaTitle": "Стани част от",
+    "ctaAccent": "ТУЕС",
+    "ctaText": "Кандидатствай след 7. клас и се присъедини към най-силната ИТ общност в България.",
+    "ctaButton": "Кандидатствай"
   },
   "News": {
     "title": "Новини",
     "empty": "Няма новини.",
     "publishedOn": "Публикувано на {date}",
-    "missing": "Публикацията не е намерена."
+    "missing": "Публикацията не е намерена.",
+    "metaDescription": "Новини и събития от ТУЕС.",
+    "paginationLabel": "Странициране на новините",
+    "previousPage": "Предишна страница",
+    "nextPage": "Следваща страница",
+    "by": "От {author}",
+    "relatedTitle": "Свързани",
+    "relatedAccent": "новини",
+    "filterAll": "Всички",
+    "filterLabel": "Филтър по категория"
   },
   "Blog": {
     "title": "Блог",
@@ -285,6 +312,66 @@
   "Document": {
     "download": "Изтегли",
     "downloadAria": "Изтегли „{name}“{meta}"
+  },
+  "NotFound": {
+    "title": "Страницата не е намерена",
+    "message": "Връзката може да е остаряла или страницата да е преместена. Върнете се в началото или потърсете.",
+    "home": "Към началото",
+    "search": "Търсене"
+  },
+  "Search": {
+    "title": "Търсене",
+    "placeholder": "Търсене в сайта...",
+    "prompt": "Въведете дума за търсене.",
+    "empty": "Няма резултати за „{query}“.",
+    "count": "Намерени {count, plural, one {# резултат} other {# резултата}} за „{query}“",
+    "typeNews": "Новина",
+    "typePage": "Страница"
+  },
+  "Gallery": {
+    "title": "Галерия",
+    "intro": "Моменти от живота в ТУЕС — събития, олимпиади, ежедневие.",
+    "filterLabel": "Филтър по албум",
+    "filterAll": "Всички",
+    "album": {
+      "sabitiya": "Събития",
+      "olimpiadi": "Олимпиади",
+      "ezhednevie": "Ежедневие",
+      "abiturienti": "Абитуриенти"
+    }
+  },
+  "Contact": {
+    "title": "Контакти",
+    "intro": "Свържете се с нас или ни намерете на място. Ще отговорим в рамките на два работни дни.",
+    "formTitle": "Изпратете запитване",
+    "name": "Име и фамилия",
+    "namePlaceholder": "Въведете текст...",
+    "email": "Имейл",
+    "emailPlaceholder": "Въведете текст...",
+    "emailHelp": "Ще отговорим на този адрес.",
+    "topic": "Тема",
+    "topicPlaceholder": "— Изберете —",
+    "topicGeneral": "Общо запитване",
+    "topicAdmissions": "Прием",
+    "topicPartnership": "Партньорство",
+    "message": "Съобщение",
+    "messagePlaceholder": "Вашето съобщение...",
+    "submit": "Изпрати",
+    "sending": "Изпращане...",
+    "success": "Благодарим! Съобщението е изпратено успешно.",
+    "errorValidation": "Моля, поправете грешките във формата.",
+    "error_turnstile": "Неуспешна проверка. Опитайте отново.",
+    "error_rateLimited": "Твърде много заявки. Опитайте по-късно.",
+    "error_send": "Възникна грешка при изпращането. Опитайте отново.",
+    "addressLabel": "Адрес",
+    "address": "бул. „Климент Охридски“ 8, бл. 1, София 1000",
+    "phoneLabel": "Телефон",
+    "phone": "+359 2 965 3293",
+    "emailLabel": "Имейл",
+    "emailValue": "info@elsys-bg.org",
+    "hoursLabel": "Приемно време",
+    "hours": "Пон–Пет, 8:30–16:30",
+    "mapPlaceholder": "карта"
   }
 }
 

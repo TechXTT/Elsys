@@ -2,6 +2,7 @@ import Image from "next/image";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
+import { isRemoteSrc } from "@/lib/image";
 
 interface PartnerLogoProps {
   /** Partner name — used as the image alt / link accessible name. */
@@ -30,6 +31,7 @@ export function PartnerLogo({ name, logo, href, grayscale = false, className }: 
       src={logo}
       alt={name}
       sizes="200px"
+      unoptimized={isRemoteSrc(logo)}
       className={cn(
         "object-contain p-[var(--spacing-md)] transition-[filter]",
         grayscale && "grayscale hover:grayscale-0 focus-visible:grayscale-0",

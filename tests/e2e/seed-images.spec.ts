@@ -5,8 +5,8 @@ import { test, expect } from "@playwright/test";
 // (naturalWidth === 0). This asserts images actually LOAD, not just that <img>
 // tags are present.
 test.describe("seed image integrity (M0.5)", () => {
-  test("/bg/news has no broken images", async ({ page }) => {
-    await page.goto("/bg/news");
+  test("/bg/novini has no broken images", async ({ page }) => {
+    await page.goto("/bg/novini");
 
     const result = await page.evaluate(async () => {
       const imgs = Array.from(document.querySelectorAll("img"));

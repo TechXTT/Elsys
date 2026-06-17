@@ -30,7 +30,7 @@ const NEWS_POST: PostItem = {
   title: "Прием 2026: важни дати и срокове",
   excerpt: "Публикуван е графикът за кандидатстване след 7. клас. Вижте ключовите дати и необходимите документи.",
   date: "2026-06-12",
-  href: "/news/priem-2026",
+  href: "/novini/priem-2026",
   image: "/images/news/open-doors.svg",
 };
 const BLOG_POST: PostItem = {

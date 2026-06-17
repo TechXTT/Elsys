@@ -30,7 +30,7 @@ async function authenticateAdmin(request: APIRequestContext): Promise<void> {
 }
 
 test.describe("admin news mutation → public cache invalidation", () => {
-  test("updating a news post title is visible on /bg/news without waiting for TTL expiry", async ({
+  test("updating a news post title is visible on /bg/novini without waiting for TTL expiry", async ({
     page,
     request,
   }) => {
@@ -38,7 +38,7 @@ test.describe("admin news mutation → public cache invalidation", () => {
     await authenticateAdmin(request);
 
     // 2. Load the public news page to discover which posts are actually shown
-    const publicPage = await request.get("/bg/news");
+    const publicPage = await request.get("/bg/novini");
     expect(publicPage.ok()).toBeTruthy();
     const publicHtml = await publicPage.text();
 
@@ -60,7 +60,7 @@ test.describe("admin news mutation → public cache invalidation", () => {
         typeof p.title === "string" && publicHtml.includes(p.title)
     );
     if (!visiblePost) {
-      test.skip(true, "No published post found on /bg/news — check seed data");
+      test.skip(true, "No published post found on /bg/novini — check seed data");
       return;
     }
 
@@ -88,7 +88,7 @@ test.describe("admin news mutation → public cache invalidation", () => {
     expect(putRes.ok()).toBeTruthy();
 
     // 7. The public news list must reflect the new title immediately (no TTL wait)
-    await page.goto("/bg/news");
+    await page.goto("/bg/novini");
     await expect(page.getByText(mutatedTitle)).toBeVisible({ timeout: 10_000 });
 
     // 8. Restore the original title so the test is idempotent

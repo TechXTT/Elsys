@@ -597,12 +597,27 @@ Registration for the first workshop is now open!`,
 
   console.log('Seeding news articles...');
 
+  // E2: category chip + colour for a few posts (bg/en labels) so the NewsCard
+  // Badge and the /novini category filter render with real data.
+  const newsCategory = {
+    'graduation-ceremony-2026': { colorTag: 'BLUE', bg: 'Събитие', en: 'Event' },
+    'hackathon-winners-2026': { colorTag: 'GREEN', bg: 'Успех', en: 'Achievement' },
+    'international-olympiad-medals': { colorTag: 'ORANGE', bg: 'Награди', en: 'Awards' },
+    'new-laboratory-opening': { colorTag: 'PURPLE', bg: 'Новина', en: 'News' },
+    'open-doors-day-spring': { colorTag: 'BLUE', bg: 'Събитие', en: 'Event' },
+  };
+
   // Track which slugs we've created version 1 for (to avoid duplicates)
   const seededVersions = new Set();
 
   for (const article of newsArticles) {
     // Dual-write status (R3): boolean -> PublishStatus. Scheduling stays date-encoded.
     const article2 = { ...article, status: article.published === false ? 'DRAFT' : 'PUBLISHED' };
+    const cat = newsCategory[article.id];
+    if (cat) {
+      article2.colorTag = cat.colorTag;
+      article2.category = article.locale === 'en' ? cat.en : cat.bg;
+    }
     await prisma.newsPost.upsert({
       where: {
         id_locale: {
@@ -739,6 +754,45 @@ Registration for the first workshop is now open!`,
 
   console.log(`✓ Seeded ${clubs.length} student clubs`);
 
+  // Top-level header navigation (7 roots). The header builds from Page rows
+  // (lib/navigation-build.ts → label = navLabel ?? slug), so each root needs a
+  // navLabel in BOTH locales or it renders its raw slug (Phase-C flag). Slugs
+  // mirror lib/nav.ts canonical paths so links resolve where the section page
+  // exists (Новини → /novini via the E1 route, Блог → /blog). Top-level only;
+  // dropdown children seed in a later phase. Sections without a built content
+  // page (priem/obuchenie/uchilishteto/uchenicheski-zhivot/evroproekti) render
+  // an empty placeholder until E2/E3 — expected.
+  const navRoots = [
+    { slug: "novini", order: 1, bg: "Новини", en: "News" },
+    { slug: "priem", order: 2, bg: "Прием", en: "Admissions" },
+    { slug: "obuchenie", order: 3, bg: "Обучение", en: "Education" },
+    { slug: "uchilishteto", order: 4, bg: "Училището", en: "The School" },
+    { slug: "uchenicheski-zhivot", order: 5, bg: "Ученически живот", en: "Student Life" },
+    { slug: "blog", order: 6, bg: "Блог", en: "Blog" },
+    { slug: "evroproekti", order: 7, bg: "Евро проекти", en: "EU Projects" },
+  ];
+  for (const root of navRoots) {
+    for (const locale of ["bg", "en"]) {
+      const data = {
+        slug: root.slug,
+        locale,
+        title: locale === "bg" ? root.bg : root.en,
+        navLabel: locale === "bg" ? root.bg : root.en,
+        visible: true,
+        order: root.order,
+        published: true,
+        status: "PUBLISHED",
+        kind: "PAGE",
+      };
+      await prisma.page.upsert({
+        where: { slug_locale: { slug: root.slug, locale } },
+        update: data,
+        create: { ...data, authorId: user.id },
+      });
+    }
+  }
+  console.log(`✓ Seeded ${navRoots.length} top-level nav roots (bg + en)`);
+
   // Seed a page + a kind=ROUTE alias that points at it.
   // This is living documentation of the ROUTE alias feature AND the fixture the
   // route-alias e2e relies on (CI seeds the DB, so the test can't depend on
@@ -789,6 +843,127 @@ Registration for the first workshop is now open!`,
   }
 
   console.log(`✓ Seeded ${pages.length} pages (incl. 1 ROUTE alias, 1 draft)`);
+
+  // E2: block-composed content for the flagship CMS pages (About + Admissions),
+  // replacing the title-only placeholders. Inline static content for team /
+  // partners / documents — TODO: source from Staff/Partner/Document models.
+  const contentPages = [
+    {
+      slug: 'za-uchilishteto',
+      locale: 'bg',
+      title: 'За училището',
+      excerpt: 'Водещото технологично училище в България от 1991 г.',
+      published: true,
+      status: 'PUBLISHED',
+      kind: 'PAGE',
+      bodyMarkdown: '',
+      blocks: [
+        { type: 'Section', props: { title: 'Кои сме', highlight: 'ние', markdown: 'Технологично училище „Електронни системи“ (ТУЕС) към Техническия университет — София е водещо професионално училище в сферата на компютърните технологии и електрониката. Основано през 1991 г., то подготвя поколения софтуерни инженери, мрежови специалисти и иноватори.' } },
+        { type: 'Stats', props: { items: [
+          { value: '1991', label: 'Година на основаване' },
+          { value: '2000+', label: 'Възпитаници' },
+          { value: '50+', label: 'Преподаватели' },
+          { value: '95%', label: 'Реализация' },
+        ] } },
+        { type: 'TeamGrid', props: { title: 'Преподавателски екип', items: [
+          { name: 'инж. Иван Петров', role: 'Компютърни мрежи', email: 'ipetrov@elsys-bg.org' },
+          { name: 'Мария Георгиева', role: 'Програмиране' },
+          { name: 'д-р Стоян Колев', role: 'Системно програмиране' },
+          { name: 'Елена Димитрова', role: 'Електроника' },
+        ] } },
+        { type: 'PartnerGrid', props: { title: 'Партньори', items: [
+          { name: 'ТУ-София', logo: '/images/logo.svg', href: 'https://tu-sofia.bg' },
+          { name: 'Партньор', logo: '/images/logo.svg' },
+          { name: 'Партньор', logo: '/images/logo.svg' },
+          { name: 'Партньор', logo: '/images/logo.svg' },
+        ] } },
+      ],
+    },
+    {
+      slug: 'priem',
+      locale: 'bg',
+      title: 'Прием',
+      excerpt: 'Кандидатствай за ТУЕС след завършен 7. клас.',
+      navLabel: 'Прием',
+      visible: true,
+      order: 2,
+      published: true,
+      status: 'PUBLISHED',
+      kind: 'PAGE',
+      bodyMarkdown: '',
+      blocks: [
+        { type: 'Section', props: { title: 'Прием в', highlight: 'ТУЕС', markdown: 'Приемът в ТУЕС се извършва след завършен 7. клас въз основа на резултатите от Националното външно оценяване. Следвайте стъпките по-долу и подгответе необходимите документи.' } },
+        { type: 'AdmissionsTimeline', props: { title: 'Стъпки за кандидатстване', steps: [
+          { title: 'Национално външно оценяване', date: 'Юни', description: 'Явете се на изпитите по математика и български език.' },
+          { title: 'Подаване на документи', date: 'Юли', description: 'Подайте заявление онлайн или на място в училището.' },
+          { title: 'Класиране', date: 'Юли', description: 'Класирането се извършва по бал съгласно държавния план-прием.' },
+          { title: 'Записване', date: 'Септември', description: 'Записване на приетите ученици с оригинални документи.' },
+        ] } },
+        { type: 'DocumentList', props: { title: 'Необходими документи', items: [
+          { name: 'Заявление за кандидатстване.pdf', href: '/docs/zayavlenie.pdf', fileType: 'PDF', size: '120 KB' },
+          { name: 'Правилник за прием 2026.pdf', href: '/docs/pravilnik-priem.pdf', fileType: 'PDF', size: '1.4 MB' },
+        ] } },
+        { type: 'CTA', props: { title: 'Готови ли сте да станете част от ТУЕС?', description: 'Запознайте се с условията и важните дати за прием 2026.', primaryButton: { label: 'Кандидатствай', href: '/priem' }, secondaryButton: { label: 'Контакти', href: '/uchilishteto/kontakti' } } },
+      ],
+    },
+    {
+      // Clubs listing (E3) — CMS-block page (no Club model). TODO: Club model.
+      slug: 'klubove',
+      locale: 'bg',
+      title: 'Клубове и дейности',
+      excerpt: 'Извънкласните занимания в ТУЕС — място за приятелства, проекти и страст към технологиите.',
+      published: true,
+      status: 'PUBLISHED',
+      kind: 'PAGE',
+      bodyMarkdown: '',
+      blocks: [
+        { type: 'ClubGrid', props: { items: [
+          { name: 'Роботика', description: 'Състезателна робототехника и автоматизация.', color: 'TEAL', href: '/uchenicheski-zhivot/klubove' },
+          { name: 'Олимпийци', description: 'Подготовка за национални и международни олимпиади.', color: 'BLUE' },
+          { name: 'Дебати', description: 'Реторика, критично мислене и публично говорене.', color: 'PURPLE' },
+          { name: 'ТУЕС Медиа', description: 'Видео, подкасти и училищна журналистика.', color: 'RED' },
+          { name: 'Гейм дев', description: 'Разработка на игри и интерактивни преживявания.', color: 'ORANGE' },
+          { name: 'Предприемачество', description: 'Стартъп идеи, питчинг и работа с ментори.', color: 'GREEN' },
+        ] } },
+      ],
+    },
+    {
+      // Documents listing (E3) — grouped DocumentList blocks. TODO: Document model + Blob.
+      slug: 'dokumenti',
+      locale: 'bg',
+      title: 'Документи',
+      excerpt: 'Заявления, правилници и бланки за изтегляне.',
+      published: true,
+      status: 'PUBLISHED',
+      kind: 'PAGE',
+      bodyMarkdown: '',
+      blocks: [
+        { type: 'DocumentList', props: { title: 'Прием 2026', items: [
+          { name: 'Заявление за кандидатстване.pdf', href: '/docs/zayavlenie.pdf', fileType: 'PDF', size: '120 KB' },
+          { name: 'Балообразуване и профили.pdf', href: '/docs/baloobrazuvane.pdf', fileType: 'PDF', size: '1.4 MB' },
+          { name: 'График на дейностите.pdf', href: '/docs/grafik-priem.pdf', fileType: 'PDF', size: '320 KB' },
+        ] } },
+        { type: 'DocumentList', props: { title: 'Правилници', items: [
+          { name: 'Правилник за дейността на училището.pdf', href: '/docs/pravilnik.pdf', fileType: 'PDF', size: '1.4 MB' },
+          { name: 'Етичен кодекс.pdf', href: '/docs/etichen-kodeks.pdf', fileType: 'PDF', size: '210 KB' },
+          { name: 'Правила за ползване на лаборатории.pdf', href: '/docs/laboratorii.pdf', fileType: 'PDF', size: '180 KB' },
+        ] } },
+        { type: 'DocumentList', props: { title: 'Бланки', items: [
+          { name: 'Бланка за отсъствие.docx', href: '/docs/otsastvie.docx', fileType: 'DOCX', size: '40 KB' },
+          { name: 'Заявление за уверение.docx', href: '/docs/uverenie.docx', fileType: 'DOCX', size: '38 KB' },
+        ] } },
+      ],
+    },
+  ];
+
+  for (const page of contentPages) {
+    await prisma.page.upsert({
+      where: { slug_locale: { slug: page.slug, locale: page.locale } },
+      update: page,
+      create: { ...page, authorId: user.id },
+    });
+  }
+  console.log(`✓ Seeded ${contentPages.length} block-composed content pages (About, Admissions)`);
 
   // R3 fixture: a PUBLISHED news post dated far in the future — hidden from
   // /bg/news by the isPublic date gate until its date passes (scheduling stays

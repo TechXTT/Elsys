@@ -2,6 +2,7 @@ import Image from "next/image";
 
 import { ButtonLink } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
+import { isRemoteSrc } from "@/lib/image";
 
 interface HeroCTA {
   label: string;
@@ -81,7 +82,7 @@ export default function Hero({ heading, subheading, eyebrow, image, imageLarge, 
           <div className="grid items-center gap-[var(--spacing-2xl)] lg:grid-cols-2">
             {copy}
             <div className="relative aspect-[4/3] overflow-hidden rounded-[var(--radius-lg)]">
-              <Image fill src={photo} alt="" sizes="(min-width: 1024px) 560px, 100vw" className="object-cover" priority />
+              <Image fill src={photo} alt="" sizes="(min-width: 1024px) 560px, 100vw" className="object-cover" priority unoptimized={isRemoteSrc(photo)} />
             </div>
           </div>
         ) : (
