@@ -868,10 +868,12 @@ Registration for the first workshop is now open!`,
     {
       // ROUTE alias node: routeOverride "za-nas" -> routePath "[...slug]"
       // (catch-all). The remainder of the URL becomes the resolved target path.
+      // NOTE: no navLabel — this is a routing fixture only, NOT a header nav root.
+      // "Училището" (uchilishteto) is the single canonical About entry; giving this
+      // alias a navLabel duplicated it and produced a malformed /za-nas/... nav href.
       slug: 'za-uchilishteto-route',
       locale: 'bg',
       title: 'За училището (route alias)',
-      navLabel: 'За нас',
       published: true,
       status: 'PUBLISHED',
       visible: true,
@@ -1355,6 +1357,18 @@ Registration for the first workshop is now open!`,
     create: { ...categorizedNews, authorId: user.id },
   });
   console.log('✓ Seeded 1 news post categorized by parent Page (M2.4)');
+
+  // Dedupe the news "event" category (QA): two posts carried the free-text
+  // category "Събитие" (singular) while the M2.4 taxonomy already has the
+  // canonical relational category Page "Събития" (plural). That surfaced as two
+  // distinct chips/filters for one concept. Migrate the free-text refs onto the
+  // canonical Page and clear the free-text so a single "Събития" category remains.
+  // (en variants keep their free-text "Event" — there is no en category Page.)
+  const dedupedEvent = await prisma.newsPost.updateMany({
+    where: { id: { in: ['graduation-ceremony-2026', 'open-doors-day-spring'] }, locale: 'bg' },
+    data: { categoryPageId: newsCategoryPage.id, category: null },
+  });
+  console.log(`✓ Deduped news category Събитие→Събития (${dedupedEvent.count} bg posts migrated)`);
 
   // --- Media Library (G2-1) -------------------------------------------------
   // Demonstrates the three states the library surfaces: alt OK, alt missing,

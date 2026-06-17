@@ -164,7 +164,14 @@ async function buildNavigation(locale: string, role?: string | null): Promise<Na
     select: { id: true, groupId: true, parentId: true, order: true, slug: true, visible: true, externalUrl: true, routePath: true, routeOverride: true, navLabel: true, kind: true, locale: true, accessRole: true }
   });
   if (pages.length) {
-    const tree = filterAccessible(filterVisible(buildGroupedTree(pages, locale)), role).map((n:any)=>mapWithPath(n, [], false, null));
+    const visibleTree = filterAccessible(filterVisible(buildGroupedTree(pages, locale)), role);
+    // Header nav shows only CURATED roots — pages explicitly given a localized
+    // navLabel (mirrors the curated footer set). Visible-but-uncurated roots —
+    // legal pages (poveritelnost/biskvitki/dostapnost), the "home" utility page,
+    // raw-slug imports, and route aliases — are excluded so the header never
+    // floods with every public page and never renders a raw slug. (QA: header-nav.)
+    const curatedRoots = visibleTree.filter((n: any) => typeof n.navLabel === "string" && n.navLabel.trim().length > 0);
+    const tree = curatedRoots.map((n:any)=>mapWithPath(n, [], false, null));
     return { items: tree, legacy: false };
   }
   const legacyItems = await (prisma as any).navigationItem.findMany({ orderBy: [{ parentId: 'asc' }, { order: 'asc' }] });

@@ -96,7 +96,10 @@ export function CarouselHero({ slides }: Props) {
             aria-roledescription={t("slide")}
             aria-label={t("slideLabel", { n: i + 1, total })}
             aria-hidden={!active}
-            inert={!active ? true : undefined}
+            // React 18 renders boolean inert as inert="true" and warns; the DOM wants
+            // the empty-string boolean attribute. Cast satisfies the typed-boolean prop
+            // while emitting inert="" at runtime (omitted entirely when the slide is active).
+            inert={!active ? ("" as unknown as boolean) : undefined}
             className={cn(
               "absolute inset-0 transition-opacity duration-500",
               active ? "opacity-100" : "pointer-events-none opacity-0",
