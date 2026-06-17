@@ -232,8 +232,9 @@ model NewsPost {
   blocks        Json?
   /// Whether the post uses block editor (true) or markdown (false)
   useBlocks     Boolean  @default(false)
-  /// Publish date
-  date          DateTime
+  /// Publish date. Nullable: imported posts with no recoverable date land as
+  /// DRAFT with date=null ("дата липсва") rather than a fabricated value (G4-3).
+  date          DateTime?
   /// Array of images: [{ name, url, size }]
   images        Json?
   /// Featured image URL (card cover)

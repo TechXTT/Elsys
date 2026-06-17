@@ -287,3 +287,8 @@ Branch `feat/M1-3-home-r5`. typecheck ✓ lint ✓ build ✓ e2e home-flagship +
 - Homepage is now **one DB source of truth**: a seeded CMS `home` Page (bg+en) composed of blocks (CarouselHero, NewsList w/ new `moreHref`/`moreLabel` "all news" link, Stats, Features, ClubGrid, Testimonials, CTA). `app/[locale]/page.tsx` renders the compiled blocks (JSON-LD still emitted as metadata); the minimal Hero fallback only fires if the home page is missing.
 - **Deleted the static fallbacks:** `loadHome` + `loadBlogJson` removed from `lib/content.ts`; `content/{bg,en}/home.json` deleted; the static CLUBS_PREVIEW/numbers/tracks/testimonials sections gone.
 - `/blog` folded into news: deleted the `/blog` pages, added **308** `/blog(/*)` → `/novini` redirects, dropped `/blog` from the sitemap.
+
+## Task 6 — G4-3 undated-news cleanup — ✅ DONE
+Branch `feat/G4-3-cleanup`. typecheck ✓ lint ✓ build ✓ e2e 8/8 (publish-status/novini/home).
+- `NewsPost.date` made **nullable** (migration `20260617084759_news_date_nullable`); importer now writes `date=null` (DRAFT) for undated posts instead of the 1970 sentinel — never fabricated. `getNewsPosts` orders `date desc nulls last`; `isPublic` already null-safe.
+- Backfilled the 14 existing sentinel rows to `date=null`. Simple editor shows a **"дата липсва"** hint + an empty (required) date field for imported dateless posts, so an editor must set a real date before publishing.

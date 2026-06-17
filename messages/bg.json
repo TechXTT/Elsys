@@ -550,7 +550,8 @@
       "metaDescription": "Meta описание",
       "ogImage": "OG изображение",
       "canonical": "Canonical URL",
-      "noindex": "Скрий от търсачки (noindex)"
+      "noindex": "Скрий от търсачки (noindex)",
+      "dateMissing": "дата липсва"
     },
     "roles": {
       "title": "Роли и права",

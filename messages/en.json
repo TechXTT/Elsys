@@ -550,7 +550,8 @@
       "metaDescription": "Meta description",
       "ogImage": "OG image",
       "canonical": "Canonical URL",
-      "noindex": "Hide from search engines (noindex)"
+      "noindex": "Hide from search engines (noindex)",
+      "dateMissing": "date missing"
     },
     "roles": {
       "title": "Roles & permissions",
