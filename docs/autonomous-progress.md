@@ -195,3 +195,28 @@ Branch `feat/G4-1-crawler`. typecheck ✓ (crawler runs cache-only; classify uni
 - `scripts/import/lib/http.ts` — cached (`.cache/`, gitignored) + throttled (≤1 req/s) + robots-aware fetch (`fetchPage`/`fetchBinary`), `cacheOnly` mode so `--dry-run` does zero live traffic; inline `pLimit`.
 - `scripts/import/crawl.ts` — BFS from seeds, classifies every content URL (type + legacyId + slug) → `.cache/urls.json`. `--limit`, `--cache-only`. Verified cache-only run + classify.
 - `package.json`: `import:crawl`, `import:all` (runner built in a later sub-phase).
+
+## G4-2 — HTML→markdown/blocks converter — ✅ DONE
+Branch `feat/G4-1-crawler` (stacked). `scripts/import/html-to-blocks.ts`: Sweboo TinyMCE → GFM markdown + collected images + warnings. Unit-checked.
+
+## G4-3 — extractors (news/blog/page) — ✅ DONE
+`scripts/import/extract.ts`: `.single-text > .text` (title `.page-title`) → NewsPost (news/blog; blog→"Блог"; featured=first image; date heuristics, null fallback) / Page (parentSlug from path). Verified on real cached pages.
+
+## G4-4 — runner + dry-run report — ✅ DONE
+`scripts/import/run.ts`: default **--dry-run** reads the cached inventory, extracts all, writes `.cache/import-report.json` (counts, news missing-date, media missing-alt + consent-review, HTML warnings, redirect coverage, unmapped). `--commit` **disabled** (gated) pending the write/media/redirect sub-phases. `scripts/import/README.md` + `docs/patterns/migration.md` document the fixture-seed vs real-import split.
+
+### Live crawl performed (authorized: read-only, throttled ≤1 req/s, cached)
+Crawled ~83 pages → **85 content URLs** (7 news, 12 blog, 11 item, 25 page, 30 other). Dry-run report:
+- **84 extracted, 0 unmapped.** News **19** (7 news + 12 blog) — **all 19 missing a structured date** (Sweboo exposes no parseable publish date → needs a date source or editor entry; FLAGGED). Pages **65**.
+- **Media: 44 referenced, 33 missing alt, 44 flagged for consent review** (consent never auto-asserted).
+- HTML conversion warnings (low): wbr, picture/source, script, nav, link, br, stray `a` — all minor.
+- **Redirect coverage 99%** (84 mapped, 1 uncached). News map `/novini-i-sybitija/novini/<slug>-<id>` → `/novini/<slug>`; pages keep their path.
+
+### ⏳ Remaining G4 sub-phases (NOT built — flagged; commit path is gated)
+1. Additive `legacyId`/`legacyUrl` on NewsPost + Page; DB upsert path (DRAFT, idempotent by legacyId).
+2. Media pipeline: download → dedupe-by-hash → Blob → Media rows (carry alt, flag missing-alt + minors' consent).
+3. `RouteRedirect` model + migration + 404 consumption (R1) + full legacy-URL backfill (incl. dropped-type targets per §2).
+4. Specialized extractors for Document/Club/Team/Partner/Gallery/Project/Award/Leader (currently these legacy pages route to Page/DRAFT for editor reclassification).
+5. M4.4 visual-diff harness — **HARD STOP** per brief (operator will brief separately).
+
+**STOP per brief:** dry-run done + reported; **no `--commit`/non-dry run, no prod, no auto-publish.** Awaiting operator review of the report before proceeding.
