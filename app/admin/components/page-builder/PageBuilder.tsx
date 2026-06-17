@@ -22,8 +22,11 @@ import {
   PanelRight,
   Settings,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { PageBuilderProvider, usePageBuilder } from "./PageBuilderContext";
 import { BlockPalette } from "./BlockPalette";
+
+export type EditorMode = "simple" | "advanced";
 import { BuilderCanvas } from "./BuilderCanvas";
 import { PropertyPanel } from "./PropertyPanel";
 import type { BlockInstance } from "./types";
@@ -39,6 +42,8 @@ const previewWidths: Record<PreviewMode, string> = {
 function BuilderToolbar({
   previewMode,
   setPreviewMode,
+  editorMode,
+  setEditorMode,
   showLeftPanel,
   setShowLeftPanel,
   showRightPanel,
@@ -51,6 +56,8 @@ function BuilderToolbar({
 }: {
   previewMode: PreviewMode;
   setPreviewMode: (mode: PreviewMode) => void;
+  editorMode: EditorMode;
+  setEditorMode: (mode: EditorMode) => void;
   showLeftPanel: boolean;
   setShowLeftPanel: (show: boolean) => void;
   showRightPanel: boolean;
@@ -62,17 +69,38 @@ function BuilderToolbar({
   hasChanges?: boolean;
 }) {
   const { canUndo, canRedo, undo, redo, state } = usePageBuilder();
+  const t = useTranslations("Admin.builder");
 
   return (
-    <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-2 dark:border-slate-700 dark:bg-slate-900">
+    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-border-default)] bg-[var(--color-bg-surface)] px-4 py-2">
+      {/* Опростен / Разширен — teacher-friendly mode (controls palette depth). */}
+      <div role="tablist" aria-label={t("modeLabel")} className="flex rounded-[var(--radius-md)] border border-[var(--color-border-default)] p-0.5">
+        {(["simple", "advanced"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            role="tab"
+            aria-selected={editorMode === m}
+            data-ui="builder-mode"
+            onClick={() => setEditorMode(m)}
+            className={`text-body-sm rounded-[var(--radius-sm)] px-[var(--spacing-sm)] py-1 font-medium transition-colors ${
+              editorMode === m
+                ? "bg-[var(--color-action-primary)] text-[var(--color-text-on-brand)]"
+                : "text-[var(--color-text-body)] hover:bg-[var(--color-bg-subtle)]"
+            }`}
+          >
+            {t(m)}
+          </button>
+        ))}
+      </div>
       {/* Left: Undo/Redo + Panel toggles */}
       <div className="flex items-center gap-2">
         <button
           onClick={() => setShowLeftPanel(!showLeftPanel)}
           className={`rounded-lg p-2 transition-colors ${
             showLeftPanel
-              ? "bg-brand-50 text-brand-600 dark:bg-brand-950/50 dark:text-brand-400"
-              : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+              ? "bg-[var(--color-bg-brand-tint)] text-[var(--color-text-link)]"
+              : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-subtle)]"
           }`}
           title="Toggle blocks panel"
         >
@@ -150,8 +178,8 @@ function BuilderToolbar({
           onClick={() => setShowPreview(!showPreview)}
           className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
             showPreview
-              ? "bg-brand-50 text-brand-600 dark:bg-brand-950/50 dark:text-brand-400"
-              : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+              ? "bg-[var(--color-bg-brand-tint)] text-[var(--color-text-link)]"
+              : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-subtle)]"
           }`}
         >
           {showPreview ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
@@ -194,8 +222,8 @@ function BuilderToolbar({
           onClick={() => setShowRightPanel(!showRightPanel)}
           className={`rounded-lg p-2 transition-colors ${
             showRightPanel
-              ? "bg-brand-50 text-brand-600 dark:bg-brand-950/50 dark:text-brand-400"
-              : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+              ? "bg-[var(--color-bg-brand-tint)] text-[var(--color-text-link)]"
+              : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-subtle)]"
           }`}
           title="Toggle properties panel"
         >
@@ -209,11 +237,13 @@ function BuilderToolbar({
 function BuilderLayout({
   showPreview,
   previewMode,
+  editorMode,
   showLeftPanel,
   showRightPanel,
 }: {
   showPreview: boolean;
   previewMode: PreviewMode;
+  editorMode: EditorMode;
   showLeftPanel: boolean;
   showRightPanel: boolean;
 }) {
@@ -223,19 +253,19 @@ function BuilderLayout({
     <div className="flex flex-1 overflow-hidden">
       {/* Left Panel - Block Palette */}
       {showLeftPanel && (
-        <div className="flex w-96 flex-shrink-0 flex-col border-r border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
-          <div className="border-b border-slate-200 p-3 dark:border-slate-700">
-            <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
-              <Layers className="h-4 w-4 text-brand-600" />
+        <div className="flex w-96 flex-shrink-0 flex-col border-r border-[var(--color-border-default)] bg-[var(--color-bg-surface)]">
+          <div className="border-b border-[var(--color-border-default)] p-3">
+            <h3 className="text-body-sm flex items-center gap-2 font-semibold text-[var(--color-text-heading)]">
+              <Layers className="h-4 w-4 text-[var(--color-text-link)]" />
               Blocks
             </h3>
           </div>
-          <BlockPalette />
+          <BlockPalette mode={editorMode} />
         </div>
       )}
 
       {/* Main Canvas */}
-      <div className="flex-1 overflow-auto bg-slate-100 dark:bg-slate-950">
+      <div className="flex-1 overflow-auto bg-[var(--color-bg-subtle)]">
         <div
           className="mx-auto h-full transition-all duration-300"
           style={{
@@ -297,6 +327,7 @@ function PageBuilderInner({
   hasChanges,
 }: Omit<PageBuilderProps, "initialBlocks">) {
   const [previewMode, setPreviewMode] = useState<PreviewMode>("desktop");
+  const [editorMode, setEditorMode] = useState<EditorMode>("simple");
   const [showLeftPanel, setShowLeftPanel] = useState(true);
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
@@ -329,10 +360,12 @@ function PageBuilderInner({
   }, [onSave]);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900">
+    <div className="flex h-full flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border-default)] bg-[var(--color-bg-subtle)]">
       <BuilderToolbar
         previewMode={previewMode}
         setPreviewMode={setPreviewMode}
+        editorMode={editorMode}
+        setEditorMode={setEditorMode}
         showLeftPanel={showLeftPanel}
         setShowLeftPanel={setShowLeftPanel}
         showRightPanel={showRightPanel}
@@ -346,6 +379,7 @@ function PageBuilderInner({
       <BuilderLayout
         showPreview={showPreview}
         previewMode={previewMode}
+        editorMode={editorMode}
         showLeftPanel={showLeftPanel}
         showRightPanel={showRightPanel}
       />

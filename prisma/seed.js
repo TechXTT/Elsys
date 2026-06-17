@@ -1,8 +1,24 @@
 /* eslint-disable no-console */
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
+const crypto = require('node:crypto');
 
 const prisma = new PrismaClient();
+
+// --- TOTP 2FA test fixtures (G) -------------------------------------------
+// Must match playwright.config TOTP_ENCRYPTION_KEY fallback + lib/totp format.
+// Test/dev only — production sets a real TOTP_ENCRYPTION_KEY in env.
+const TEST_TOTP_KEY = process.env.TOTP_ENCRYPTION_KEY || 'VbeDo/97t5ZKj36M3TlkM5pFLsyFCly/DGLOKH0bdWw=';
+const TEST_2FA_SECRET = 'JBSWY3DPEHPK3PXP'; // base32; e2e computes TOTPs from this
+const TEST_RECOVERY = ['aaaaa-bbbbb', 'ccccc-ddddd'];
+function encryptTotpSecret(plain) {
+  const key = Buffer.from(TEST_TOTP_KEY, 'base64');
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const ct = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()]);
+  return [iv.toString('base64'), cipher.getAuthTag().toString('base64'), ct.toString('base64')].join('.');
+}
+const normRecovery = (c) => c.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 
 async function main() {
   const email = process.env.ADMIN_EMAIL || 'admin@elsys.bg';
@@ -18,6 +34,37 @@ async function main() {
   });
 
   console.log('Admin user ensured:', { id: user.id, email: user.email });
+
+  // 2FA (G): mandatory for ADMIN. Enroll the bootstrap admin with a KNOWN secret
+  // + recovery codes so e2e can compute valid TOTPs and exercise the gated flow.
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { twoFactorEnabled: true, twoFactorSecret: encryptTotpSecret(TEST_2FA_SECRET), twoFactorEnrolledAt: new Date() },
+  });
+  await prisma.twoFactorRecoveryCode.deleteMany({ where: { userId: user.id } });
+  for (const code of TEST_RECOVERY) {
+    await prisma.twoFactorRecoveryCode.create({ data: { userId: user.id, codeHash: await bcrypt.hash(normRecovery(code), 10) } });
+  }
+  // Dedicated 2FA e2e admins (isolated so lockout/enroll mutations don't bleed):
+  //   setup-admin  — un-enrolled, mandatory-gate test (read-only, never mutated)
+  //   enroll-admin — un-enrolled, enrollment test (mutated; test cleans up)
+  //   lockout-admin— enrolled (known secret), lockout test (locks only itself)
+  const pw = await bcrypt.hash('admin123', 10);
+  for (const email of ['setup-admin@elsys.bg', 'enroll-admin@elsys.bg']) {
+    await prisma.user.upsert({
+      where: { email },
+      update: { role: 'ADMIN', twoFactorEnabled: false, twoFactorSecret: null, twoFactorEnrolledAt: null },
+      create: { email, name: 'Setup Admin', role: 'ADMIN', password: pw },
+    });
+    await prisma.twoFactorRecoveryCode.deleteMany({ where: { user: { email } } });
+  }
+  const lockoutAdmin = await prisma.user.upsert({
+    where: { email: 'lockout-admin@elsys.bg' },
+    update: { role: 'ADMIN', twoFactorEnabled: true, twoFactorSecret: encryptTotpSecret(TEST_2FA_SECRET), twoFactorEnrolledAt: new Date() },
+    create: { email: 'lockout-admin@elsys.bg', name: 'Lockout Admin', role: 'ADMIN', password: pw, twoFactorEnabled: true, twoFactorSecret: encryptTotpSecret(TEST_2FA_SECRET), twoFactorEnrolledAt: new Date() },
+  });
+  await prisma.twoFactorRecoveryCode.deleteMany({ where: { userId: lockoutAdmin.id } });
+  console.log('✓ 2FA: enrolled bootstrap + lockout admins; un-enrolled setup + enroll admins');
 
   // Seed news articles
   const newsArticles = [

@@ -16,19 +16,19 @@ export function PageHeader({ title, description, breadcrumbs, actions }: PageHea
     <div className="mb-8 space-y-4">
       {/* Breadcrumbs */}
       {breadcrumbs && breadcrumbs.length > 0 && (
-        <nav className="flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400">
-          <Link href="/admin" className="hover:text-slate-700 dark:hover:text-slate-300">
+        <nav className="text-body-sm flex items-center gap-1 text-[var(--color-text-muted)]">
+          <Link href="/admin" className="hover:text-[var(--color-text-link)]">
             Dashboard
           </Link>
           {breadcrumbs.map((crumb, index) => (
             <span key={index} className="flex items-center gap-1">
               <ChevronRight className="h-4 w-4" />
               {crumb.href ? (
-                <Link href={crumb.href as any} className="hover:text-slate-700 dark:hover:text-slate-300">
+                <Link href={crumb.href as any} className="hover:text-[var(--color-text-link)]">
                   {crumb.label}
                 </Link>
               ) : (
-                <span className="text-slate-700 dark:text-slate-300">{crumb.label}</span>
+                <span className="text-[var(--color-text-body)]">{crumb.label}</span>
               )}
             </span>
           ))}
@@ -38,9 +38,9 @@ export function PageHeader({ title, description, breadcrumbs, actions }: PageHea
       {/* Title and Actions */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{title}</h1>
+          <h1 className="text-h2 text-[var(--color-text-heading)]">{title}</h1>
           {description && (
-            <p className="mt-1 text-slate-600 dark:text-slate-400">{description}</p>
+            <p className="mt-1 text-[var(--color-text-muted)]">{description}</p>
           )}
         </div>
         {actions && <div className="flex items-center gap-3">{actions}</div>}

@@ -14,7 +14,15 @@ import type { BlockCategory, BlockMeta } from "./types";
 
 type BlockPaletteProps = {
   onAddBlock?: (type: string) => void;
+  /** "simple" shows only the teacher-friendly block subset; "advanced" shows all. */
+  mode?: "simple" | "advanced";
 };
+
+// Teacher-friendly subset surfaced in Опростен (simple) mode.
+const SIMPLE_BLOCKS = new Set([
+  "Hero", "Section", "Markdown", "Stats", "Quote", "MediaGallery",
+  "NewsList", "TeamGrid", "PartnerGrid", "DocumentList", "ClubGrid", "CTA",
+]);
 
 function BlockItem({ block, onAdd }: { block: BlockMeta; onAdd: () => void }) {
   const Icon = getBlockIcon(block.icon);
@@ -29,21 +37,21 @@ function BlockItem({ block, onAdd }: { block: BlockMeta; onAdd: () => void }) {
       draggable
       onDragStart={handleDragStart}
       onClick={onAdd}
-      className="group flex cursor-grab items-center gap-3 rounded-lg border border-transparent bg-slate-50 p-2.5 transition-all hover:border-brand-300 hover:bg-brand-50 hover:shadow-sm active:cursor-grabbing dark:bg-slate-800/50 dark:hover:border-brand-600 dark:hover:bg-brand-950/30"
+      className="group flex cursor-grab items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-[var(--color-bg-subtle)] p-2.5 transition-all hover:border-[var(--color-action-secondary-border)] hover:bg-[var(--color-bg-brand-tint)] active:cursor-grabbing"
     >
-      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white text-slate-600 shadow-sm ring-1 ring-slate-200/60 transition-colors group-hover:bg-brand-100 group-hover:text-brand-600 group-hover:ring-brand-200 dark:bg-slate-700 dark:text-slate-300 dark:ring-slate-600 dark:group-hover:bg-brand-900/50 dark:group-hover:text-brand-400">
+      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] text-[var(--color-text-link)] ring-1 ring-[var(--color-border-default)]">
         <Icon className="h-4 w-4" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-slate-900 dark:text-white">
+        <p className="text-body-sm font-medium text-[var(--color-text-heading)]">
           {block.label}
         </p>
-        <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+        <p className="text-caption truncate text-[var(--color-text-muted)]">
           {block.description}
         </p>
       </div>
       <div className="flex-shrink-0 opacity-0 transition-opacity group-hover:opacity-100">
-        <GripVertical className="h-4 w-4 text-slate-400" />
+        <GripVertical className="h-4 w-4 text-[var(--color-text-muted)]" />
       </div>
     </div>
   );
@@ -65,20 +73,20 @@ function CategorySection({
   const CategoryIcon = categoryInfo.icon;
 
   return (
-    <div className="border-b border-slate-200 dark:border-slate-700 last:border-0">
+    <div className="border-b border-[var(--color-border-default)] last:border-0">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
+        className="flex w-full items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-[var(--color-bg-subtle)]"
       >
-        <CategoryIcon className="h-4 w-4 text-slate-500" />
-        <span className="flex-1 text-sm font-medium text-slate-700 dark:text-slate-200">
+        <CategoryIcon className="h-4 w-4 text-[var(--color-text-muted)]" />
+        <span className="text-body-sm flex-1 font-medium text-[var(--color-text-body)]">
           {categoryInfo.label}
         </span>
-        <span className="text-xs text-slate-400">{blocks.length}</span>
+        <span className="text-caption text-[var(--color-text-muted)]">{blocks.length}</span>
         {isOpen ? (
-          <ChevronDown className="h-4 w-4 text-slate-400" />
+          <ChevronDown className="h-4 w-4 text-[var(--color-text-muted)]" />
         ) : (
-          <ChevronRight className="h-4 w-4 text-slate-400" />
+          <ChevronRight className="h-4 w-4 text-[var(--color-text-muted)]" />
         )}
       </button>
       {isOpen && (
@@ -96,7 +104,7 @@ function CategorySection({
   );
 }
 
-export function BlockPalette({ onAddBlock }: BlockPaletteProps) {
+export function BlockPalette({ onAddBlock, mode = "advanced" }: BlockPaletteProps) {
   const { addBlock } = usePageBuilder();
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -108,30 +116,32 @@ export function BlockPalette({ onAddBlock }: BlockPaletteProps) {
     }
   };
 
+  const inMode = (type: string) => mode === "advanced" || SIMPLE_BLOCKS.has(type);
   const categories = Object.keys(blockCategories) as BlockCategory[];
 
-  // Filter blocks by search
+  // Filter blocks by search (within the active mode subset)
   const filteredBlocks = searchQuery.trim()
     ? blockMeta.filter(
         (b) =>
-          b.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          b.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          b.type.toLowerCase().includes(searchQuery.toLowerCase())
+          inMode(b.type) &&
+          (b.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            b.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            b.type.toLowerCase().includes(searchQuery.toLowerCase()))
       )
     : null;
 
   return (
     <div className="flex h-full flex-col">
       {/* Search */}
-      <div className="border-b border-slate-200 p-3 dark:border-slate-700">
+      <div className="border-b border-[var(--color-border-default)] p-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)]" />
           <input
             type="text"
             placeholder="Search blocks..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:border-brand-500"
+            className="text-body-sm w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] py-2 pl-9 pr-3 text-[var(--color-text-body)] placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-action-secondary-border)] focus:outline-none"
           />
         </div>
       </div>
@@ -158,16 +168,19 @@ export function BlockPalette({ onAddBlock }: BlockPaletteProps) {
             )}
           </div>
         ) : (
-          // Category sections
-          categories.map((cat, idx) => (
-            <CategorySection
-              key={cat}
-              category={cat}
-              blocks={getBlocksByCategory(cat)}
-              onAddBlock={handleAddBlock}
-              defaultOpen={idx === 0}
-            />
-          ))
+          // Category sections (filtered by mode; empty categories hidden)
+          categories
+            .map((cat) => ({ cat, blocks: getBlocksByCategory(cat).filter((b) => inMode(b.type)) }))
+            .filter(({ blocks }) => blocks.length > 0)
+            .map(({ cat, blocks }, idx) => (
+              <CategorySection
+                key={cat}
+                category={cat}
+                blocks={blocks}
+                onAddBlock={handleAddBlock}
+                defaultOpen={idx === 0}
+              />
+            ))
         )}
       </div>
 

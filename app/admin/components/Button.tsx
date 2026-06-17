@@ -27,21 +27,23 @@ interface LinkButtonProps {
   external?: boolean;
 }
 
+// Token-bound (design system). Focus ring via the shared [data-ui]:focus-visible
+// rule. Danger keeps a coral surface for destructive intent.
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 shadow-sm",
+    "bg-[var(--color-action-primary)] text-[var(--color-text-on-brand)] hover:bg-[var(--color-action-primary-hover)]",
   secondary:
-    "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 focus:ring-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700",
+    "border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] text-[var(--color-text-body)] hover:bg-[var(--color-bg-subtle)]",
   danger:
-    "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm",
+    "bg-[var(--color-status-danger-text)] text-[var(--color-text-on-brand)] hover:opacity-90",
   ghost:
-    "text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus:ring-slate-500 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200",
+    "text-[var(--color-text-body)] hover:bg-[var(--color-bg-subtle)]",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: "px-3 py-1.5 text-sm gap-1.5",
-  md: "px-4 py-2 text-sm gap-2",
-  lg: "px-6 py-3 text-base gap-2",
+  sm: "px-[var(--spacing-sm)] py-[var(--spacing-2xs)] text-body-sm gap-1.5 min-h-9",
+  md: "px-[var(--spacing-md)] py-[var(--spacing-xs)] text-body-sm gap-2 min-h-11",
+  lg: "px-[var(--spacing-lg)] py-[var(--spacing-sm)] text-body gap-2 min-h-11",
 };
 
 const iconSizes: Record<ButtonSize, string> = {
@@ -68,8 +70,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         ref={ref}
+        data-ui="admin-button"
         disabled={disabled || loading}
-        className={`inline-flex items-center justify-center rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed dark:focus:ring-offset-slate-900 ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+        className={`inline-flex items-center justify-center rounded-[var(--radius-md)] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
         {...props}
       >
         {loading ? (
@@ -119,11 +122,11 @@ export function LinkButton({
   className = "",
   external,
 }: LinkButtonProps) {
-  const classes = `inline-flex items-center justify-center rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-900 ${variantClasses[variant]} ${sizeClasses[size]} ${className}`;
+  const classes = `inline-flex items-center justify-center rounded-[var(--radius-md)] font-medium transition-colors ${variantClasses[variant]} ${sizeClasses[size]} ${className}`;
 
   if (external) {
     return (
-      <a href={href} target="_blank" rel="noopener noreferrer" className={classes}>
+      <a href={href} target="_blank" rel="noopener noreferrer" data-ui="admin-button" className={classes}>
         {Icon && iconPosition === "left" && <Icon className={iconSizes[size]} />}
         {children}
         {Icon && iconPosition === "right" && <Icon className={iconSizes[size]} />}
@@ -132,7 +135,7 @@ export function LinkButton({
   }
 
   return (
-    <Link href={href as any} className={classes}>
+    <Link href={href as any} data-ui="admin-button" className={classes}>
       {Icon && iconPosition === "left" && <Icon className={iconSizes[size]} />}
       {children}
       {Icon && iconPosition === "right" && <Icon className={iconSizes[size]} />}

@@ -29,6 +29,12 @@ export async function middleware(req: NextRequest) {
       }
       return NextResponse.redirect(loginUrl);
     }
+    // Mandatory 2FA gate (CLAUDE.md #3): an un-enrolled ADMIN is blocked from all
+    // admin routes except the setup page until 2FA is enabled. Sign-out lives at
+    // /api/auth/* (outside this matcher), so logout always works.
+    if ((token as any).role === "ADMIN" && !(token as any).twoFactorEnabled && !pathname.startsWith("/admin/security")) {
+      return NextResponse.redirect(new URL("/admin/security", req.url));
+    }
     return NextResponse.next();
   }
   // Route-alias resolution lives in the app/[locale]/[...slug] resolver now

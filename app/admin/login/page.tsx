@@ -1,9 +1,12 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+
+import { Button } from "@/components/ui/Button";
+import { FormField, Input } from "@/components/ui/Form";
 import { AdminLocaleSwitcher } from "../components/AdminLocaleSwitcher";
 
 export default function AdminLogin() {
@@ -12,9 +15,43 @@ export default function AdminLogin() {
   const callbackUrl = params?.get("callbackUrl") || "/admin";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [step, setStep] = useState<"credentials" | "twofa">("credentials");
+  const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
+  const [useRecovery, setUseRecovery] = useState(false);
+  const [recovery, setRecovery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [loadingAction, setLoadingAction] = useState<"login" | "register" | null>(null);
+  const [loadingAction, setLoadingAction] = useState<"login" | "register" | "twofa" | null>(null);
+  const boxes = useRef<Array<HTMLInputElement | null>>([]);
+
+  async function attempt(token?: string) {
+    const res = await signIn("credentials", { email, password, token, callbackUrl, redirect: false });
+    return res;
+  }
+
+  // NextAuth v4 collapses authorize's thrown errors, so a no-session precheck
+  // decides when to reveal the code step + reports lockout. authorize() stays
+  // the sole verifier (it re-checks the token / consumes recovery codes once).
+  async function precheck(): Promise<{ ok: boolean; required?: boolean; locked?: boolean } | null> {
+    try {
+      const r = await fetch("/api/admin/2fa/precheck", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      return (await r.json()) as { ok: boolean; required?: boolean; locked?: boolean };
+    } catch {
+      return null;
+    }
+  }
+
+  function mapError(code?: string | null): string {
+    switch (code) {
+      case "INVALID_2FA": return t("error_invalid_2fa");
+      case "2FA_LOCKED": return t("error_locked");
+      default: return t("error_invalid_credentials");
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -22,31 +59,84 @@ export default function AdminLogin() {
     setError(null);
     setMessage(null);
     try {
-      const res = await signIn("credentials", { email, password, callbackUrl, redirect: false });
-      if (res?.error) {
-        setError("Invalid email or password");
-      } else if (res?.ok) {
-        window.location.href = callbackUrl;
+      const pre = await precheck();
+      if (!pre?.ok) {
+        setError(t("error_invalid_credentials"));
+      } else if (pre.locked) {
+        setError(t("error_locked"));
+      } else if (pre.required) {
+        setStep("twofa");
+        setTimeout(() => boxes.current[0]?.focus(), 0);
+      } else {
+        const res = await attempt();
+        if (res?.ok) window.location.href = callbackUrl;
+        else setError(mapError(res?.error));
       }
     } catch (err) {
       console.error("Login error", err);
-      setError("An error occurred during sign in");
+      setError(t("error_generic"));
     } finally {
       setLoadingAction(null);
     }
   }
 
+  async function onVerify(e: React.FormEvent) {
+    e.preventDefault();
+    const token = useRecovery ? recovery.trim() : digits.join("");
+    if (!token) return;
+    setLoadingAction("twofa");
+    setError(null);
+    try {
+      const res = await attempt(token);
+      if (res?.ok) {
+        window.location.href = callbackUrl;
+      } else {
+        // authorize's error is collapsed by v4 — ask the precheck whether the
+        // account is now locked to choose the message.
+        const pre = await precheck();
+        setError(pre?.locked ? t("error_locked") : t("error_invalid_2fa"));
+        setDigits(["", "", "", "", "", ""]);
+        setTimeout(() => boxes.current[0]?.focus(), 0);
+      }
+    } catch (err) {
+      console.error("2FA verify error", err);
+      setError(t("error_generic"));
+    } finally {
+      setLoadingAction(null);
+    }
+  }
+
+  function setDigit(i: number, v: string) {
+    const d = v.replace(/\D/g, "").slice(-1);
+    setDigits((prev) => {
+      const next = [...prev];
+      next[i] = d;
+      return next;
+    });
+    if (d && i < 5) boxes.current[i + 1]?.focus();
+  }
+  function onDigitKey(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Backspace" && !digits[i] && i > 0) boxes.current[i - 1]?.focus();
+  }
+  function onPaste(e: React.ClipboardEvent) {
+    const text = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (text.length) {
+      e.preventDefault();
+      const next = ["", "", "", "", "", ""];
+      for (let i = 0; i < text.length; i++) next[i] = text[i];
+      setDigits(next);
+      boxes.current[Math.min(text.length, 5)]?.focus();
+    }
+  }
+
   async function onRegister() {
     if (!email || !password) {
-      setError("Enter email and password to register");
-      setMessage(null);
+      setError(t("error_invalid_credentials"));
       return;
     }
-
     setLoadingAction("register");
     setError(null);
     setMessage(null);
-
     try {
       const response = await fetch("/api/admin/register", {
         method: "POST",
@@ -54,139 +144,112 @@ export default function AdminLogin() {
         body: JSON.stringify({ email, password }),
       });
       const data = (await response.json().catch(() => null)) as { error?: string } | null;
-
       if (!response.ok) {
-        setError(data?.error ?? "Registration failed");
+        setError(data?.error ?? t("error_generic"));
         return;
       }
-
-      setMessage("Account created. Redirecting to dashboard…");
-      const signInResult = await signIn("credentials", { email, password, callbackUrl, redirect: false });
-
-      if (!signInResult) {
-        setError("Registration succeeded but sign in did not complete. Please try again.");
-        setMessage(null);
-        return;
-      }
-
-      if (signInResult.error) {
-        setError("Registration succeeded but sign in did not complete. Please try again.");
-        setMessage(null);
-        return;
-      }
-
-      if (signInResult.ok) {
-        window.location.href = callbackUrl;
-      }
+      const res = await attempt();
+      if (res?.ok) window.location.href = callbackUrl;
+      else if (res?.error === "2FA_REQUIRED") setStep("twofa");
+      else setError(t("error_generic"));
     } catch (err) {
       console.error("Register error", err);
-      setError("An error occurred during registration");
+      setError(t("error_generic"));
     } finally {
       setLoadingAction(null);
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      {/* Language Switcher - top right */}
+    <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg-subtle)] p-[var(--spacing-md)]">
       <div className="absolute right-4 top-4">
         <AdminLocaleSwitcher />
       </div>
 
       <div className="w-full max-w-md">
-        {/* Logo/Brand */}
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 text-2xl font-bold text-white shadow-lg">
-            E
+        <div className="mb-[var(--spacing-xl)] text-center">
+          <div className="mx-auto mb-[var(--spacing-md)] flex h-16 w-16 items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-action-primary)] text-2xl font-bold text-[var(--color-text-on-brand)]">
+            Е
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{t("title")}</h1>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-            {t("subtitle")}
-          </p>
+          <h1 className="text-h2 text-[var(--color-text-heading)]">{t("title")}</h1>
+          <p className="text-body-sm mt-[var(--spacing-xs)] text-[var(--color-text-muted)]">{t("subtitle")}</p>
         </div>
 
-        {/* Login Card */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <form onSubmit={onSubmit} className="space-y-5">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                {t("email")}
-              </label>
-              <input
-                type="email"
-                name="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                placeholder="admin@elsys.bg"
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder-slate-400 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500"
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                {t("password")}
-              </label>
-              <input
-                type="password"
-                name="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="••••••••"
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder-slate-400 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500"
-              />
-            </div>
+        <div className="rounded-[var(--radius-lg)] border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] p-[var(--spacing-xl)]">
+          {step === "credentials" ? (
+            <form onSubmit={onSubmit} className="flex flex-col gap-[var(--spacing-md)]">
+              <FormField htmlFor="email" label={t("email")}>
+                <Input id="email" type="email" name="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="admin@elsys.bg" />
+              </FormField>
+              <FormField htmlFor="password" label={t("password")}>
+                <Input id="password" type="password" name="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" />
+              </FormField>
 
-            {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
-                {error}
-              </div>
-            )}
-            {message && (
-              <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-400">
-                {message}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loadingAction !== null}
-              className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 font-medium text-white shadow-sm transition-all hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 dark:focus:ring-offset-slate-900"
-            >
-              {loadingAction === "login" ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
-                    <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" className="opacity-75" />
-                  </svg>
-                  {t("signingIn")}
-                </span>
-              ) : (
-                t("signIn")
+              {error && (
+                <p role="alert" className="text-body-sm rounded-[var(--radius-md)] bg-[var(--color-status-danger-bg)] px-[var(--spacing-md)] py-[var(--spacing-sm)] text-[var(--color-status-danger-text)]">{error}</p>
               )}
-            </button>
+              {message && (
+                <p role="status" className="text-body-sm rounded-[var(--radius-md)] bg-[var(--color-status-success-bg)] px-[var(--spacing-md)] py-[var(--spacing-sm)] text-[var(--color-status-success-text)]">{message}</p>
+              )}
 
-            {process.env.ALLOW_ADMIN_REGISTRATION === "true" && (
-              <button
-                type="button"
-                onClick={onRegister}
-                disabled={loadingAction !== null}
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-              >
-                {loadingAction === "register" ? t("creatingAccount") : t("createAccount")}
+              <Button type="submit" size="lg" disabled={loadingAction !== null} className="w-full">
+                {loadingAction === "login" ? t("signingIn") : t("signIn")}
+              </Button>
+
+              {process.env.ALLOW_ADMIN_REGISTRATION === "true" && (
+                <Button type="button" variant="secondary" size="lg" onClick={onRegister} disabled={loadingAction !== null} className="w-full">
+                  {loadingAction === "register" ? t("creatingAccount") : t("createAccount")}
+                </Button>
+              )}
+            </form>
+          ) : (
+            <form onSubmit={onVerify} className="flex flex-col gap-[var(--spacing-md)]">
+              <div>
+                <p className="text-body-sm font-medium text-[var(--color-text-body)]">{t("twoFactorLabel")}</p>
+                <p className="text-caption mt-[var(--spacing-2xs)] text-[var(--color-text-muted)]">{t("twoFactorPrompt")}</p>
+              </div>
+
+              {!useRecovery ? (
+                <div className="flex gap-[var(--spacing-xs)]" onPaste={onPaste}>
+                  {digits.map((d, i) => (
+                    <input
+                      key={i}
+                      ref={(el) => { boxes.current[i] = el; }}
+                      data-ui="twofa-digit"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={d}
+                      onChange={(e) => setDigit(i, e.target.value)}
+                      onKeyDown={(e) => onDigitKey(i, e)}
+                      aria-label={t("digitAria", { n: i + 1 })}
+                      autoComplete={i === 0 ? "one-time-code" : "off"}
+                      className="text-h4 h-12 w-11 rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] text-center text-[var(--color-text-heading)] focus:border-[var(--color-action-secondary-border)] focus:outline-none"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <FormField htmlFor="recovery" label={t("recoveryLabel")}>
+                  <Input id="recovery" data-ui="twofa-recovery" value={recovery} onChange={(e) => setRecovery(e.target.value)} placeholder="xxxxx-xxxxx" autoComplete="off" />
+                </FormField>
+              )}
+
+              {error && (
+                <p role="alert" className="text-body-sm rounded-[var(--radius-md)] bg-[var(--color-status-danger-bg)] px-[var(--spacing-md)] py-[var(--spacing-sm)] text-[var(--color-status-danger-text)]">{error}</p>
+              )}
+
+              <Button type="submit" size="lg" disabled={loadingAction !== null} className="w-full">
+                {loadingAction === "twofa" ? t("verifying") : t("verify")}
+              </Button>
+
+              <button type="button" onClick={() => { setUseRecovery((v) => !v); setError(null); }} className="text-caption text-[var(--color-text-link)] hover:underline">
+                {useRecovery ? t("useCode") : t("useRecovery")}
               </button>
-            )}
-          </form>
+            </form>
+          )}
         </div>
 
-        {/* Footer */}
-        <div className="mt-6 text-center">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1 text-sm text-slate-600 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
-          >
+        <div className="mt-[var(--spacing-lg)] text-center">
+          <Link href="/" className="text-body-sm text-[var(--color-text-link)] no-underline hover:underline">
             ← {t("backToSite")}
           </Link>
         </div>

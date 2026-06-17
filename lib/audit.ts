@@ -9,6 +9,9 @@ function getClientIp(headers: Headers): string | undefined {
 
 export async function recordAudit(params: {
   req?: Request | null;
+  /** Direct overrides (e.g. from NextAuth's plain-object authorize req). */
+  ip?: string | null;
+  userAgent?: string | null;
   userId?: string | null;
   action: string;
   entity?: string | null;
@@ -16,8 +19,8 @@ export async function recordAudit(params: {
   details?: unknown;
 }): Promise<void> {
   try {
-    const ip = params.req ? getClientIp(params.req.headers) : undefined;
-    const userAgent = params.req?.headers.get("user-agent") ?? undefined;
+    const ip = params.ip ?? (params.req ? getClientIp(params.req.headers) : undefined);
+    const userAgent = params.userAgent ?? params.req?.headers.get("user-agent") ?? undefined;
     await (prisma as any).auditLog.create({
       data: {
         userId: params.userId ?? undefined,

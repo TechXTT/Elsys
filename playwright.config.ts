@@ -24,6 +24,9 @@ export default defineConfig({
     timeout: 120_000,
     env: {
       REDIS_URL: process.env.REDIS_URL ?? "",
+      // Fixed dev/test key so the seeded 2FA admin's secret decrypts in the test
+      // server (must match prisma/seed.js TEST_TOTP_KEY). Prod sets a real key.
+      TOTP_ENCRYPTION_KEY: process.env.TOTP_ENCRYPTION_KEY ?? "VbeDo/97t5ZKj36M3TlkM5pFLsyFCly/DGLOKH0bdWw=",
     },
   },
 });

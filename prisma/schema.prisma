@@ -23,6 +23,13 @@ model User {
   gradeLevel     Int?
   gradeClass     GradeClass?
 
+  // TOTP 2FA (G). Secret is AES-256-GCM ciphertext (never plaintext); recovery
+  // codes live hashed in TwoFactorRecoveryCode. Mandatory for ADMIN via gate.
+  twoFactorEnabled    Boolean   @default(false)
+  twoFactorSecret     String?
+  twoFactorEnrolledAt DateTime?
+  twoFactorRecoveryCodes TwoFactorRecoveryCode[]
+
   accounts       Account[]
   sessions       Session[]
   auditLogs      AuditLog[]
@@ -41,6 +48,18 @@ model User {
 enum Role {
   USER
   ADMIN
+}
+
+/// Single-use TOTP recovery codes (G). Stored as bcrypt hashes; usedAt enforces one-time use.
+model TwoFactorRecoveryCode {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
 }
 
 enum GradeClass {
