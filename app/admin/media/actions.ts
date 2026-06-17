@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/audit";
 import { isMediaFolder, DEFAULT_FOLDER } from "@/lib/media/folders";
 import { listMedia, type MediaItem } from "@/lib/media";
+import { requirePermission } from "@/lib/auth/guard";
 
 type UploadResult =
   | { ok: true; ids: string[] }
@@ -37,7 +38,7 @@ async function requireUserId(): Promise<string> {
 
 /** Upload one or more files to a folder. Used by the dropzone + MediaPicker. */
 export async function uploadMedia(folder: string, formData: FormData): Promise<UploadResult> {
-  const userId = await requireUserId();
+  const userId = await requirePermission("media:edit");
   const targetFolder = isMediaFolder(folder) ? folder : DEFAULT_FOLDER;
 
   const files = formData.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
@@ -100,7 +101,7 @@ export async function updateMediaMeta(
   id: string,
   input: { alt?: string; isMinorPhoto?: boolean; consentRecorded?: boolean }
 ): Promise<MetaResult> {
-  const userId = await requireUserId();
+  const userId = await requirePermission("media:edit");
   const parsed = metaSchema.safeParse(input);
   if (!parsed.success) {
     const errors: Record<string, string> = {};
@@ -144,7 +145,7 @@ export async function updateMediaMeta(
 
 /** Delete a media row and its Blob object. */
 export async function deleteMedia(id: string): Promise<{ ok: boolean; error?: string }> {
-  const userId = await requireUserId();
+  const userId = await requirePermission("media:edit");
   const existing = await prisma.media.findUnique({ where: { id }, select: { url: true, pathname: true } });
   if (!existing) return { ok: false, error: "Файлът не е намерен." };
 

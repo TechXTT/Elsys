@@ -160,3 +160,26 @@ Branch `feat/G2-14-seo` (off Task 13 tip 1cbb850). typecheck ✓ lint ✓ build 
 - **News SEO UI:** collapsible "SEO настройки" section in the Simple editor (metaTitle/metaDescription/ogImage MediaField/canonical/noindex); persisted by `saveSimpleNews`; loaded on edit; covered by autosave/recovery.
 - **FLAG (Page SEO UI):** schema + metadata wiring done for Page, but surfacing the SEO panel in the **Page editor** (the PageBuilder) is a separate UI effort — deferred; news gets the full UI now.
 - Test `tests/e2e/seo.spec.ts`.
+
+---
+
+## Task 15 — G5-1 Roles (PLAN M5.1) — ✅ DONE  ⚠️ SECURITY-REVIEW REQUIRED
+Branch `feat/G5-1-roles` (off Task 14 tip f9e0734). typecheck ✓ lint ✓ build ✓ e2e roles ✓ (2/2); full suite green except the pre-existing 2FA shared-account parallel flake (passes 5/5 in isolation — see Task 10 note).
+- Additive Role enum values: `TEACHER, STUDENT_EDITOR, STUDENT_ADMIN` (USER + ADMIN kept). Migration `20260617010032_add_roles`.
+- `lib/auth/permissions.ts` — client-safe permission matrix (`ROLE_PERMISSIONS`, `can`, `defaultEditorMode`). `lib/auth/guard.ts` (server) — `requirePermission` / `requireUserId` / `currentRole`.
+- **Enforced in Server Actions:** content create/update/delete/bulk → `content:edit`; media upload/update/delete → `media:edit`; news Simple save → `news:edit`; role assignment → `roles:manage`.
+- **Users & roles admin UI** `/admin/roles` (ADMIN-gated): read-only permission matrix (role × permission) + per-user role-assignment table; `setUserRole` Server Action writes **AuditLog** (`USER_ROLE_CHANGE`) and guards against self-demotion lockout. Sidebar link + i18n.
+- TEACHER now lands in Simple Mode (`/admin/news` redirects TEACHER → `/admin/news/simple`), closing the Task-12 flag.
+- Seed: a `teacher@elsys.bg` (TEACHER, password `teacher123`) for the roles UI + TEACHER routing.
+
+### ⚠️ SECURITY-REVIEW FLAGS (for the human)
+1. **2FA scope:** mandatory 2FA is still ADMIN-only. STUDENT_ADMIN has near-admin capabilities (users:manage, nav, content) — decide whether STUDENT_ADMIN (and/or TEACHER) must also enrol 2FA.
+2. **Matrix authority:** `ROLE_PERMISSIONS` in `lib/auth/permissions.ts` is the single source of truth — review the exact grants (esp. STUDENT_ADMIN getting `users:manage` but NOT `roles:manage`).
+3. **Enforcement coverage:** Server Actions are gated, but the **deprecated REST routes** under `app/api/admin/**` were NOT re-gated with the new matrix (they predate it and still use their own ADMIN checks). Audit them before relying on roles for REST.
+4. **Self-demotion guard** only blocks the acting admin removing their own ADMIN role; it does not prevent the *last* admin being demoted by another admin — add a "≥1 ADMIN" invariant if desired.
+5. Role changes are audited; consider alerting on `USER_ROLE_CHANGE` in the audit review.
+
+---
+
+## STOP — end of Tasks 1–15. Remainder (G3-3, G4 import run, G5-2/5.3, G5-4) needs human/design/legal per the brief.
+(Then the operator queued **Phase G4 — migration scraper/seeder**; starting that next.)

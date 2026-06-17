@@ -1,10 +1,9 @@
 "use server";
 
-import { getServerSession } from "next-auth";
 import { z } from "zod";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/audit";
+import { requirePermission } from "@/lib/auth/guard";
 import { slugify } from "@/lib/slug";
 import { defaultLocale, type Locale } from "@/i18n/config";
 import {
@@ -48,9 +47,7 @@ export async function saveSimpleNews(
   _prev: SimpleNewsState,
   formData: FormData
 ): Promise<SimpleNewsState> {
-  const session = await getServerSession(authOptions);
-  const userId = (session?.user as { id?: string } | undefined)?.id;
-  if (!userId) throw new Error("Unauthorized");
+  const userId = await requirePermission("news:edit");
 
   const locale = ((formData.get("locale") as string) || defaultLocale) as Locale;
   const editingSlug = (formData.get("editingSlug") as string) || "";
