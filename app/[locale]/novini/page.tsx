@@ -106,7 +106,7 @@ export default async function NewsIndex({
                 className={cn(
                   "text-body-sm inline-flex items-center gap-[var(--spacing-2xs)] rounded-[var(--radius-full)] border px-[var(--spacing-md)] py-[var(--spacing-2xs)] no-underline transition-colors",
                   active
-                    ? "border-transparent bg-[var(--color-action-primary)] text-ink-on-brand"
+                    ? "border-transparent bg-[var(--color-action-primary)] text-ink-on-action"
                     : "border-line bg-surface text-ink hover:bg-subtle",
                 )}
               >

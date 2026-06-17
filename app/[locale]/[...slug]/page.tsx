@@ -1,4 +1,5 @@
 import React from "react";
+import type { Metadata } from "next";
 // Disable force-dynamic to enable ISR caching
 export const revalidate = 300; // 5-minute ISR (revalidate on-demand from admin API)
 import { notFound } from "next/navigation";
@@ -13,6 +14,7 @@ import { renderBlocks } from "@/lib/cms";
 import { getNewsPosts } from "@/lib/news";
 import { resolveAlias } from "@/lib/routes";
 import { isPublic } from "@/lib/content/shared";
+import { alternatesFor } from "@/lib/site";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import type { PostItem } from "@/lib/types";
 
@@ -36,8 +38,10 @@ function PageContent({
   untranslatedNote?: string;
 }) {
   const blocks = Array.isArray(page.blocks) ? page.blocks : [];
+  // Content language for screen readers: a bg-fallback rendered under /en must
+  // announce lang="bg"; real (DeepL) EN announces lang="en" (J item 5).
   return (
-    <>
+    <div lang={untranslatedNote ? defaultLocale : locale}>
       {untranslatedNote && (
         <div className="container-page pt-[var(--spacing-lg)]">
           <p role="status" className="text-body-sm rounded-[var(--radius-md)] bg-brand-tint px-[var(--spacing-md)] py-[var(--spacing-sm)] text-ink">
@@ -61,7 +65,7 @@ function PageContent({
       ) : (
         <div className="container-page py-[var(--spacing-2xl)] text-body text-ink-muted">{comingSoon}</div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -122,6 +126,36 @@ async function resolvePageHierarchical(
 
   if (current && isPublic(current)) return { page: current, foundAt: "hierarchical" };
   return null;
+}
+
+// Canonical + hreflang for every resolved dynamic page (legal pages, content
+// pages, etc.). Title/description come from the resolved Page; the alternates
+// always cover every locale so bg-only pages still advertise their /en URL
+// (served via the in-page locale fallback).
+export async function generateMetadata({ params }: { params: { locale: Locale; slug?: string[] } }): Promise<Metadata> {
+  const slugParts = Array.isArray(params.slug) ? params.slug : [];
+  if (!slugParts.length) return {};
+  const joined = slugParts.join("/");
+
+  const lookup = async (loc: Locale) =>
+    (prisma as any).page
+      .findUnique({
+        where: { slug_locale: { slug: joined, locale: loc } },
+        select: { title: true, excerpt: true, published: true, status: true },
+      })
+      .catch(() => null);
+
+  let page = await lookup(params.locale);
+  if ((!page || !isPublic(page)) && params.locale !== defaultLocale) {
+    page = await lookup(defaultLocale);
+  }
+  if (!page || !isPublic(page)) return { alternates: alternatesFor(params.locale, `/${joined}`) };
+
+  return {
+    title: page.title,
+    description: page.excerpt || undefined,
+    alternates: alternatesFor(params.locale, `/${joined}`),
+  };
 }
 
 export default async function DynamicPage({ params }: { params: { locale: Locale; slug?: string[] } }) {

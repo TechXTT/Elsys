@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import {
@@ -22,6 +23,7 @@ import {
 } from "lucide-react";
 import { validateBlocks } from "@/lib/blocks/registry";
 import PageBuilder from "@/app/admin/components/page-builder";
+import { translatePageToEn } from "@/app/admin/pages/actions";
 
 type PageDto = {
   id: string;
@@ -33,6 +35,7 @@ type PageDto = {
   bodyMarkdown?: string | null;
   blocks?: Array<{ type: string; props?: Record<string, unknown> | null }>;
   published: boolean;
+  machineTranslated?: boolean;
 };
 
 type PageVersion = {
@@ -46,6 +49,7 @@ type PageVersion = {
 export default function EditPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const t = useTranslations("Admin");
   const id = params?.id as string;
   const [currentId, setCurrentId] = useState<string>(id);
 
@@ -54,6 +58,9 @@ export default function EditPage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [translating, setTranslating] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [isMachineDraft, setIsMachineDraft] = useState(false);
 
   // Page data
   const [originalData, setOriginalData] = useState<PageDto | null>(null);
@@ -109,6 +116,7 @@ export default function EditPage() {
       setBody(p.bodyMarkdown ?? "");
       setBlocks(p.blocks?.map(b => ({ type: b.type, props: b.props ?? {} })) ?? []);
       setPublished(p.published);
+      setIsMachineDraft(!!p.machineTranslated);
       setCreatingForLocale(false);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to load");
@@ -183,6 +191,27 @@ export default function EditPage() {
       setLocale(target);
       setCreatingForLocale(true);
       setVersions([]);
+    }
+  }
+
+  // Machine-translate the BG page into an EN review-draft (DeepL). Never
+  // publishes — creates/refreshes a DRAFT marked machineTranslated (J).
+  async function onTranslateEn() {
+    setTranslating(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const r = await translatePageToEn(currentId);
+      if (!r.ok) {
+        setError(r.message || "Преводът е неуспешен.");
+        return;
+      }
+      setNotice(t("translateNotice"));
+      await switchLocale("en");
+    } catch {
+      setError("Грешка при превода.");
+    } finally {
+      setTranslating(false);
     }
   }
 
@@ -311,6 +340,11 @@ export default function EditPage() {
               <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">
                 /{locale}/{slug}
               </code>
+              {isMachineDraft && !creatingForLocale && (
+                <span className="flex-shrink-0 rounded-[var(--radius-sm)] bg-[var(--color-status-warning-bg)] px-1.5 py-0.5 text-xs text-[var(--color-status-warning-text)]">
+                  {t("machineBadge")}
+                </span>
+              )}
               {hasChanges && (
                 <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
@@ -347,6 +381,19 @@ export default function EditPage() {
           </div>
 
           <div className="h-5 w-px bg-slate-200 dark:bg-slate-700" />
+
+          {/* Translate BG → EN draft (DeepL) */}
+          {locale === "bg" && !creatingForLocale && (
+            <button
+              onClick={onTranslateEn}
+              disabled={translating}
+              title={t("translateToEnHint")}
+              className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50 dark:text-slate-400 dark:hover:bg-slate-800"
+            >
+              {translating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
+              {t("translateToEn")}
+            </button>
+          )}
 
           {/* Preview button */}
           <a
@@ -399,6 +446,17 @@ export default function EditPage() {
             onClick={() => setError(null)}
             className="ml-auto rounded p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50"
           >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Translation notice */}
+      {notice && (
+        <div className="flex items-center gap-3 border-b border-line bg-brand-tint px-6 py-3">
+          <Globe className="h-5 w-5 text-ink-link" />
+          <p className="text-sm text-ink">{notice}</p>
+          <button onClick={() => setNotice(null)} className="ml-auto rounded p-1 text-ink-muted hover:bg-subtle">
             <X className="h-4 w-4" />
           </button>
         </div>

@@ -57,7 +57,7 @@ function Band({ children, className = "" }: { children: React.ReactNode; classNa
 // Tokenised markdown body (prose-equivalent without the typography plugin churn).
 function Prose({ children }: { children: string }) {
   return (
-    <div className="text-body flex flex-col gap-[var(--spacing-md)] text-ink [&_a]:text-ink-link [&_a]:underline [&_h2]:text-h3 [&_h2]:text-ink-heading [&_h3]:text-h4 [&_h3]:text-ink-heading [&_ol]:list-decimal [&_ol]:pl-[var(--spacing-lg)] [&_ul]:list-disc [&_ul]:pl-[var(--spacing-lg)] [&_strong]:font-semibold">
+    <div className="text-body flex max-w-[72ch] flex-col gap-[var(--spacing-md)] text-ink [&_a]:text-ink-link [&_a]:underline [&_h2]:text-h3 [&_h2]:text-ink-heading [&_h3]:text-h4 [&_h3]:text-ink-heading [&_ol]:list-decimal [&_ol]:pl-[var(--spacing-lg)] [&_ul]:list-disc [&_ul]:pl-[var(--spacing-lg)] [&_strong]:font-semibold [&_blockquote]:rounded-[var(--radius-md)] [&_blockquote]:border-l-4 [&_blockquote]:border-[var(--color-status-warning-text)] [&_blockquote]:bg-[var(--color-status-warning-bg)] [&_blockquote]:px-[var(--spacing-md)] [&_blockquote]:py-[var(--spacing-sm)] [&_blockquote]:text-[var(--color-status-warning-text)] [&_blockquote_a]:text-[var(--color-status-warning-text)]">
       <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{children}</ReactMarkdown>
     </div>
   );

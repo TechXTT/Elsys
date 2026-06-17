@@ -65,7 +65,7 @@ function StatCard({
   color?: "brand" | "emerald" | "amber" | "slate";
 }) {
   const iconColors: Record<string, string> = {
-    brand: "bg-[var(--color-action-primary)] text-[var(--color-text-on-brand)]",
+    brand: "bg-[var(--color-action-primary)] text-[var(--color-text-on-action)]",
     emerald: "bg-[var(--color-status-success-bg)] text-[var(--color-status-success-text)]",
     amber: "bg-[var(--color-status-warning-bg)] text-[var(--color-status-warning-text)]",
     slate: "bg-[var(--color-bg-subtle)] text-[var(--color-text-muted)]",
@@ -141,24 +141,24 @@ function NewsRow({
   return (
     <Link
       href={`/admin/news?edit=${id}` as any}
-      className="group flex items-center gap-4 border-b border-slate-100 px-5 py-4 transition-colors last:border-0 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
+      className="group flex items-center gap-4 border-b border-line px-5 py-4 transition-colors last:border-0 hover:bg-subtle"
     >
       <div
         className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${
-          status === "published" ? "bg-emerald-500" : "bg-amber-400"
+          status === "published" ? "bg-[var(--color-tag-green)]" : "bg-[var(--color-tag-amber)]"
         }`}
       />
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-slate-900 truncate group-hover:text-brand-600 dark:text-white dark:group-hover:text-brand-400">
+        <p className="font-medium text-ink-heading truncate group-hover:text-ink-link">
           {title}
         </p>
-        <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-500">
+        <div className="mt-0.5 flex items-center gap-2 text-xs text-ink-muted">
           {author && <span>{author}</span>}
-          {author && <span className="text-slate-300 dark:text-slate-600">•</span>}
+          {author && <span className="text-ink-muted">•</span>}
           <span>{formatDistanceToNow(new Date(updatedAt))}</span>
         </div>
       </div>
-      <ChevronRight className="h-4 w-4 text-slate-300 transition-transform group-hover:translate-x-1 group-hover:text-brand-500 dark:text-slate-600" />
+      <ChevronRight className="h-4 w-4 text-ink-muted transition-transform group-hover:translate-x-1 group-hover:text-ink-link" />
     </Link>
   );
 }
@@ -177,21 +177,21 @@ function ActivityRow({
 }) {
   const getActionColor = (action: string) => {
     const lower = action.toLowerCase();
-    if (lower.includes("create") || lower.includes("add")) return "bg-emerald-500";
-    if (lower.includes("update") || lower.includes("edit")) return "bg-brand-500";
-    if (lower.includes("delete")) return "bg-red-500";
-    return "bg-slate-400";
+    if (lower.includes("create") || lower.includes("add")) return "bg-[var(--color-tag-green)]";
+    if (lower.includes("update") || lower.includes("edit")) return "bg-[var(--color-tag-blue)]";
+    if (lower.includes("delete")) return "bg-[var(--color-status-danger-text)]";
+    return "bg-[var(--color-text-muted)]";
   };
 
   return (
     <div className="flex items-start gap-3 px-5 py-3">
       <div className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${getActionColor(action)}`} />
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-slate-700 dark:text-slate-300">
-          <span className="font-medium text-slate-900 dark:text-white">{action}</span>
-          {entity && <span className="text-slate-500"> → {entity}</span>}
+        <p className="text-sm text-ink">
+          <span className="font-medium text-ink-heading">{action}</span>
+          {entity && <span className="text-ink-muted"> → {entity}</span>}
         </p>
-        <p className="mt-0.5 text-xs text-slate-400">
+        <p className="mt-0.5 text-xs text-ink-muted">
           {user} • {formatDistanceToNow(time)}
         </p>
       </div>
@@ -260,7 +260,7 @@ export function DashboardClient() {
           onClick={fetchData}
           disabled={loading}
           data-ui="admin-button"
-          className="text-body-sm inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-action-primary)] px-[var(--spacing-md)] py-2.5 font-medium text-[var(--color-text-on-brand)] transition-colors hover:bg-[var(--color-action-primary-hover)] disabled:opacity-50"
+          className="text-body-sm inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-action-primary)] px-[var(--spacing-md)] py-2.5 font-medium text-[var(--color-text-on-action)] transition-colors hover:bg-[var(--color-action-primary-hover)] disabled:opacity-50"
         >
           <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           {t("refresh")}
@@ -364,7 +364,7 @@ export function DashboardClient() {
             </div>
             {loading ? (
               <div className="flex items-center justify-center py-16">
-                <RefreshCw className="h-6 w-6 animate-spin text-slate-400" />
+                <RefreshCw className="h-6 w-6 animate-spin text-ink-muted" />
               </div>
             ) : data?.recentNews && data.recentNews.length > 0 ? (
               <div>
@@ -380,7 +380,7 @@ export function DashboardClient() {
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+              <div className="flex flex-col items-center justify-center py-16 text-ink-muted">
                 <Newspaper className="h-10 w-10 mb-2 opacity-40" />
                 <span>{t("recentNews.empty")}</span>
               </div>
@@ -409,7 +409,7 @@ export function DashboardClient() {
             </div>
             {loading ? (
               <div className="flex items-center justify-center py-12">
-                <RefreshCw className="h-5 w-5 animate-spin text-slate-400" />
+                <RefreshCw className="h-5 w-5 animate-spin text-ink-muted" />
               </div>
             ) : data?.recentActivity && data.recentActivity.length > 0 ? (
               <div className="max-h-[300px] divide-y divide-slate-100 overflow-y-auto dark:divide-slate-800">
@@ -424,7 +424,7 @@ export function DashboardClient() {
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+              <div className="flex flex-col items-center justify-center py-12 text-ink-muted">
                 <Activity className="h-8 w-8 mb-2 opacity-40" />
                 <span className="text-sm">{t("recentActivity.empty")}</span>
               </div>

@@ -31,7 +31,7 @@ interface LinkButtonProps {
 // rule. Danger keeps a coral surface for destructive intent.
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-[var(--color-action-primary)] text-[var(--color-text-on-brand)] hover:bg-[var(--color-action-primary-hover)]",
+    "bg-[var(--color-action-primary)] text-[var(--color-text-on-action)] hover:bg-[var(--color-action-primary-hover)]",
   secondary:
     "border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] text-[var(--color-text-body)] hover:bg-[var(--color-bg-subtle)]",
   danger:

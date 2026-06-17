@@ -76,9 +76,13 @@ test.describe("Button (Phase B)", () => {
     expect(focus.outlineColor).toBe("rgb(90, 172, 233)"); // --color-action-focus-ring #5aace9
 
     // Dark mode: the nested [data-theme="dark"] panel re-declares tokens.
+    // Task I dark-AA fix — the dark primary is a light-blue chip with navy
+    // (on-action) label: brand/300 bg + brand/900 text = 5.71:1 (was brand/400
+    // #2f94e4 + white = 3.24:1, failed AA).
     const darkPrimary = page.getByTestId("button-dark").getByRole("button").nth(0);
     expect(await computed(darkPrimary)).toMatchObject({
-      bg: "rgb(47, 148, 228)", // dark --color-action-primary brand/400 #2f94e4
+      bg: "rgb(90, 172, 233)", // dark --color-action-primary brand/300 #5aace9
+      color: "rgb(4, 44, 83)", // dark --color-text-on-action brand/900 #042c53 (navy)
     });
   });
 });

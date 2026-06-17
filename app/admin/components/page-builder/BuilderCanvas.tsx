@@ -1,10 +1,12 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import { usePageBuilder } from "./PageBuilderContext";
 import { BlockWrapper, EmptyCanvas } from "./BlockWrapper";
 
 export function BuilderCanvas() {
+  const t = useTranslations("Admin.builder");
   const { state, dispatch } = usePageBuilder();
   const { blocks, selectedBlockId, hoveredBlockId } = state;
 
@@ -62,9 +64,9 @@ export function BuilderCanvas() {
             e.preventDefault();
             dispatch({ type: 'SET_DROP_TARGET', target: { index: blocks.length - 1, position: 'after' } });
           }}
-          className="flex h-24 items-center justify-center rounded-xl border-2 border-dashed border-slate-300 text-slate-400 transition-colors hover:border-brand-400 hover:bg-brand-50/50 dark:border-slate-700 dark:hover:border-brand-500"
+          className="flex h-24 items-center justify-center rounded-xl border-2 border-dashed border-line text-ink-muted transition-colors hover:border-[var(--color-action-secondary-border)] hover:bg-brand-tint"
         >
-          Drop here to add at the end
+          {t("dropAtEnd")}
         </div>
       )}
     </div>

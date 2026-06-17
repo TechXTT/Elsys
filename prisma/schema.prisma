@@ -155,6 +155,10 @@ model Page {
   published    Boolean  @default(true)
   /// Canonical publication state (R3). Public visibility = isPublic() in lib/content/shared.ts.
   status       PublishStatus @default(PUBLISHED)
+  /// True when this row was filled by the DeepL "Преведи на английски" action and
+  /// has not yet been human-reviewed. Drives the admin "машинен превод — за преглед"
+  /// badge + review filter; cleared to false on any editor save/publish of the row (J).
+  machineTranslated Boolean @default(false)
 
   // Navigation hierarchy & presentation (merged from NavigationItem)
   parentId     String?
@@ -212,6 +216,10 @@ model NewsPost {
   published     Boolean  @default(true)
   /// Canonical publication state (R3). Public visibility = isPublic() (status PUBLISHED + date <= now).
   status        PublishStatus @default(PUBLISHED)
+  /// True when this row was filled by the DeepL "Преведи на английски" action and
+  /// has not yet been human-reviewed. Drives the admin "машинен превод — за преглед"
+  /// badge + review filter; cleared to false on any editor save/publish of the row (J).
+  machineTranslated Boolean @default(false)
 
   /// Optional free-text category label shown on the card chip (e.g. "Събитие"). E2.
   category      String?

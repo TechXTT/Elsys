@@ -85,7 +85,7 @@ function BuilderToolbar({
             onClick={() => setEditorMode(m)}
             className={`text-body-sm rounded-[var(--radius-sm)] px-[var(--spacing-sm)] py-1 font-medium transition-colors ${
               editorMode === m
-                ? "bg-[var(--color-action-primary)] text-[var(--color-text-on-brand)]"
+                ? "bg-[var(--color-action-primary)] text-[var(--color-text-on-action)]"
                 : "text-[var(--color-text-body)] hover:bg-[var(--color-bg-subtle)]"
             }`}
           >

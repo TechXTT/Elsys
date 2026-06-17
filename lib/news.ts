@@ -43,6 +43,7 @@ interface NewsRow {
   status?: string;
   category?: string | null;
   colorTag?: import("@prisma/client").ColorTag | null;
+  machineTranslated?: boolean;
   author?: { name: string | null } | null;
 }
 
@@ -61,6 +62,7 @@ function toPostItem(row: NewsRow): PostItem {
     status: row.status ?? undefined,
     category: row.category ?? undefined,
     colorTag: row.colorTag ?? undefined,
+    machineTranslated: row.machineTranslated ?? false,
   };
 }
 
@@ -79,7 +81,7 @@ export async function getNewsPosts(locale?: Locale, includeDrafts = false): Prom
           ...(includeDrafts ? {} : publicWhere({ gateDate: true, now })),
         },
         orderBy: { date: "desc" },
-        select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true, category: true, colorTag: true },
+        select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true, category: true, colorTag: true, machineTranslated: true },
       });
 
       // If locale is not default, also fetch defaults to fill gaps (only when not includeDrafts)
@@ -91,7 +93,7 @@ export async function getNewsPosts(locale?: Locale, includeDrafts = false): Prom
             ...publicWhere({ gateDate: true, now }),
           },
           orderBy: { date: "desc" },
-          select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true, category: true, colorTag: true },
+          select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true, category: true, colorTag: true, machineTranslated: true },
         });
       }
 
@@ -105,7 +107,7 @@ export async function getNewsPosts(locale?: Locale, includeDrafts = false): Prom
   });
 }
 
-export async function getNewsPost(slug: string, locale?: Locale, includeDrafts = false): Promise<{ post: PostItem; markdown: string; blocks: unknown[] | null; useBlocks: boolean; published: boolean; authorName: string | null } | null> {
+export async function getNewsPost(slug: string, locale?: Locale, includeDrafts = false): Promise<{ post: PostItem; markdown: string; blocks: unknown[] | null; useBlocks: boolean; published: boolean; authorName: string | null; contentLocale: string } | null> {
   const loc = (locale ?? defaultLocale) as string;
   const localesToFetch = loc === defaultLocale ? [loc] : [loc, defaultLocale];
   const rows: NewsRow[] = await (prisma as any).newsPost.findMany({
@@ -116,7 +118,7 @@ export async function getNewsPost(slug: string, locale?: Locale, includeDrafts =
   // Public visibility: status PUBLISHED + date not in the future (canonical helper).
   const isPubliclyVisible = (row: NewsRow) => isPublic(row, now);
 
-  const pick = (row: NewsRow) => ({ post: toPostItem(row), markdown: row.bodyMarkdown, blocks: row.blocks, useBlocks: row.useBlocks, published: row.published, authorName: row.author?.name ?? null });
+  const pick = (row: NewsRow) => ({ post: toPostItem(row), markdown: row.bodyMarkdown, blocks: row.blocks, useBlocks: row.useBlocks, published: row.published, authorName: row.author?.name ?? null, contentLocale: row.locale });
   const primary = rows.find(r => r.locale === loc);
   if (primary && (includeDrafts || isPubliclyVisible(primary))) return pick(primary);
   const fb = rows.find(r => r.locale === defaultLocale);
@@ -147,6 +149,8 @@ export async function createNewsPost(input: {
   featuredImage?: string | null;
   authorId?: string;
   published?: boolean;
+  /** Mark as an unreviewed machine translation (J). Defaults to false. */
+  machineTranslated?: boolean;
 }) {
   const localeValue = input.locale ?? defaultLocale;
   const row: NewsRow = await (prisma as any).newsPost.create({
@@ -163,6 +167,7 @@ export async function createNewsPost(input: {
       featuredImage: input.featuredImage ?? null,
       published: input.published ?? true,
       status: statusFromPublished(input.published ?? true),
+      machineTranslated: input.machineTranslated ?? false,
       authorId: input.authorId ?? null,
     },
   });
@@ -216,6 +221,12 @@ export async function updateNewsPost(args: {
   featuredImage?: string | null;
   authorId?: string;
   published?: boolean;
+  /**
+   * Review state for the machine-translation flag (J). Omitted on a normal
+   * editor save → defaults to false, which clears the "за преглед" badge once a
+   * human has saved/published the row.
+   */
+  machineTranslated?: boolean;
 }) {
   const localeValue = args.locale ?? defaultLocale;
 
@@ -263,6 +274,7 @@ export async function updateNewsPost(args: {
         featuredImage: args.featuredImage ?? null,
         published: args.published ?? true,
         status: statusFromPublished(args.published ?? true),
+        machineTranslated: args.machineTranslated ?? false,
         authorId: args.authorId ?? null,
       },
     });
@@ -282,6 +294,7 @@ export async function updateNewsPost(args: {
       featuredImage: args.featuredImage ?? null,
       published: args.published ?? true,
       status: statusFromPublished(args.published ?? true),
+      machineTranslated: args.machineTranslated ?? false,
       authorId: args.authorId ?? null,
     },
   });

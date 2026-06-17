@@ -158,6 +158,10 @@
   },
   "Admin": {
     "title": "Admin Console",
+    "translateToEn": "Translate to English",
+    "translateToEnHint": "Creates an English draft via machine translation",
+    "translateNotice": "English draft created (machine translation) — review and publish.",
+    "machineBadge": "machine translation — for review",
     "greeting": {
       "morning": "Good morning",
       "afternoon": "Good afternoon",
@@ -290,6 +294,12 @@
       "filter_published": "Published",
       "filter_draft": "Drafts",
       "filter_archived": "Archive",
+      "filter_review": "For review",
+      "machineBadge": "machine translation — for review",
+      "translateDraft": "Translate to English (draft)",
+      "translateDraftHint": "Creates an English draft via machine translation (for review)",
+      "translateDraftDone": "English draft created (for review).",
+      "translateError": "Translation error.",
       "sortNewest": "Newest",
       "sortOldest": "Oldest",
       "sortAZ": "A→Z",
@@ -324,7 +334,35 @@
     "builder": {
       "modeLabel": "Editor mode",
       "simple": "Simple",
-      "advanced": "Advanced"
+      "advanced": "Advanced",
+      "dropAtEnd": "Drop here to add at the end",
+      "addItem": "Add",
+      "item": "Item {n}",
+      "noItems": "No items yet. Click \"Add\" to create one.",
+      "properties": "Properties",
+      "selectBlock": "Select a block to edit its properties",
+      "noProperties": "No editable properties for this block type."
+    },
+    "editor": {
+      "edit": "Edit",
+      "preview": "Preview",
+      "placeholder": "Write your content here...",
+      "nothingToPreview": "Nothing to preview. Start writing to see your content here.",
+      "markdownHint": "Supports Markdown formatting. Use the toolbar or keyboard shortcuts (Ctrl+B, Ctrl+I).",
+      "tooltip": {
+        "bold": "Bold (Ctrl+B)",
+        "italic": "Italic (Ctrl+I)",
+        "h1": "Heading 1",
+        "h2": "Heading 2",
+        "h3": "Heading 3",
+        "bulletList": "Bullet List",
+        "numberedList": "Numbered List",
+        "quote": "Quote",
+        "inlineCode": "Inline Code",
+        "link": "Link",
+        "image": "Image",
+        "hr": "Horizontal Rule"
+      }
     },
     "badge": {
       "admin": "Admin",

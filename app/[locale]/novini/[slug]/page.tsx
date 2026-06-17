@@ -108,7 +108,7 @@ export default async function NewsArticle({ params }: { params: { locale: Locale
 
   const data = await getNewsPost(params.slug, locale);
   if (!data) notFound();
-  const { post, markdown, blocks, useBlocks, authorName } = data;
+  const { post, markdown, blocks, useBlocks, authorName, contentLocale } = data;
 
   // Existing render path: the canonical body is bodyMarkdown (the admin writes
   // it via blocksToMarkdown on save). Block-only posts (e.g. seeded with empty
@@ -135,7 +135,9 @@ export default async function NewsArticle({ params }: { params: { locale: Locale
   };
 
   return (
-    <article className="container-page flex flex-col gap-[var(--spacing-lg)] py-[var(--spacing-2xl)]">
+    // lang reflects the actual content language: a bg-fallback under /en stays
+    // lang="bg" for screen readers; real (DeepL) EN is lang="en" (J item 5).
+    <article lang={contentLocale} className="container-page flex flex-col gap-[var(--spacing-lg)] py-[var(--spacing-2xl)]">
       <JsonLd data={jsonLd} />
 
       <Breadcrumbs

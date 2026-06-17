@@ -1,6 +1,6 @@
 import "./globals.css";
 import React from "react";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { Inter, Manrope } from "next/font/google";
 
 // Fonts must be initialized at module scope.
@@ -59,9 +59,19 @@ export default async function RootLayout({
   const initialTheme = themeCookie === "dark" || themeCookie === "light" ? themeCookie : undefined;
   const initialHtmlClass = initialTheme === "dark" ? "dark" : undefined;
   const initialDataTheme = initialTheme ?? undefined;
+  // Document language per URL (WCAG 3.1.1). The root layout can't read the route
+  // locale (it's a child segment), so middleware resolves it from the URL and
+  // passes it as the `x-next-locale` request header (K). Cookie + params are
+  // fallbacks for routes that bypass the intl middleware (e.g. /admin). The
+  // AUTHORITATIVE per-content signal stays the `lang` set on each rendered
+  // page/article subtree — bg-fallback under /en announces lang="bg", real
+  // (DeepL) EN announces lang="en" (J item 5).
+  const headerLocale = headers().get("x-next-locale") ?? undefined;
+  const localeCookie = cookies().get("NEXT_LOCALE")?.value;
+  const htmlLang = (params?.locale ?? headerLocale ?? localeCookie) === "en" ? "en" : "bg";
 
   return (
-    <html className={[initialHtmlClass, inter.variable, manrope.variable].filter(Boolean).join(" ")} data-theme={initialDataTheme} suppressHydrationWarning>
+    <html lang={htmlLang} className={[initialHtmlClass, inter.variable, manrope.variable].filter(Boolean).join(" ")} data-theme={initialDataTheme} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitializer }} />
       </head>
