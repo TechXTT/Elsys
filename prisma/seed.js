@@ -1022,6 +1022,57 @@ Registration for the first workshop is now open!`,
   }
   console.log(`✓ Seeded ${contentPages.length} block-composed content pages (About, Admissions)`);
 
+  // --- Homepage as DB blocks (M1.3 R5) — single source of truth ---------------
+  const homeBlocksBg = [
+    { type: 'CarouselHero', props: {} },
+    { type: 'NewsList', props: { title: 'Последни новини', limit: 3, moreHref: '/novini', moreLabel: 'Всички новини' } },
+    { type: 'Stats', props: { items: [
+      { value: '1000+', label: 'Алумни' }, { value: '35+', label: 'Години опит' },
+      { value: '50+', label: 'Партньори' }, { value: '95%', label: 'Реализация' },
+    ] } },
+    { type: 'Features', props: { title: 'Специалности', items: [
+      { title: 'Системно програмиране', description: 'Дълбоки основи в компютърните системи.' },
+      { title: 'Изкуствен интелект', description: 'Модерни алгоритми и машинно обучение.' },
+      { title: 'Компютърни мрежи', description: 'Мрежова администрация и сигурност.' },
+    ] } },
+    { type: 'ClubGrid', props: { title: 'Клубове' } },
+    { type: 'Testimonials', props: { title: 'Истории на ученици', items: [
+      { quote: 'Проектните предмети ме научиха да работя в екип.', author: 'Мария', role: '11 клас, ИИ' },
+      { quote: 'Стажът ми стана първа работа. Общността е богатство.', author: 'Иван', role: "Випуск '22" },
+      { quote: 'Клубовете правят училището втори дом.', author: 'Никола', role: '10 клас, Мрежи' },
+    ] } },
+    { type: 'CTA', props: { title: 'Готови ли сте за ТУЕС?', description: 'Запознайте се с приема и кандидатствайте.', primaryButton: { label: 'Кандидатствай сега', href: '/priem' } } },
+  ];
+  const homeBlocksEn = [
+    { type: 'CarouselHero', props: {} },
+    { type: 'NewsList', props: { title: 'Latest news', limit: 3, moreHref: '/novini', moreLabel: 'All news' } },
+    { type: 'Stats', props: { items: [
+      { value: '1000+', label: 'Alumni' }, { value: '35+', label: 'Years' },
+      { value: '50+', label: 'Partners' }, { value: '95%', label: 'Placement' },
+    ] } },
+    { type: 'Features', props: { title: 'Specialties', items: [
+      { title: 'Systems programming', description: 'Deep foundations in computer systems.' },
+      { title: 'Artificial intelligence', description: 'Modern algorithms and machine learning.' },
+      { title: 'Computer networks', description: 'Network administration and security.' },
+    ] } },
+    { type: 'ClubGrid', props: { title: 'Clubs' } },
+    { type: 'Testimonials', props: { title: 'Student stories', items: [
+      { quote: 'Project courses taught me to work in a team.', author: 'Maria', role: 'Grade 11, AI' },
+      { quote: 'My internship became my first job.', author: 'Ivan', role: "Class of '22" },
+      { quote: 'Clubs make the school a second home.', author: 'Nikola', role: 'Grade 10, Networks' },
+    ] } },
+    { type: 'CTA', props: { title: 'Ready for TUES?', description: 'Explore admissions and apply.', primaryButton: { label: 'Apply now', href: '/priem' } } },
+  ];
+  for (const [locale, blocks, title] of [['bg', homeBlocksBg, 'Начало'], ['en', homeBlocksEn, 'Home']]) {
+    const data = { title, blocks, kind: 'PAGE', published: true, status: 'PUBLISHED', groupId: 'home' };
+    await prisma.page.upsert({
+      where: { slug_locale: { slug: 'home', locale } },
+      update: data,
+      create: { slug: 'home', locale, ...data, authorId: user.id },
+    });
+  }
+  console.log('✓ Seeded homepage as DB blocks (bg + en) — M1.3 R5');
+
   // ---------------------------------------------------------------------------
   // H: footer-linked legal pages (/poveritelnost, /biskvitki, /dostapnost).
   // EU public-sector compliance pages. These are STRUCTURAL TEMPLATES, not legal

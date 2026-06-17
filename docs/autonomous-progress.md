@@ -281,3 +281,9 @@ Branch `feat/G5-4-gdpr`. typecheck ✓ lint ✓ build ✓ e2e 2/2. New dep: **@v
 - `ConsentedAnalytics` mounts Vercel `<Analytics/>` **only** when analytics consent is granted (reacts live). Both mounted in the locale layout.
 - **IP minimization:** `lib/ip.ts#anonymizeIp` (zero IPv4 host octet / truncate IPv6) applied to the **audit log** ip; contact-form **rate-limit key** now a one-way SHA-256 hash of the IP. Raw IP never written down.
 - **Contact form** stays email-only (no PII at rest) — documented in `docs/gdpr-retention.md` (retention posture, templated for the DPO). `Consent.*` i18n.
+
+## Task 5 — M1.3 Homepage R5 (DB-driven) — ✅ DONE
+Branch `feat/M1-3-home-r5`. typecheck ✓ lint ✓ build ✓ e2e home-flagship + cms-pages + novini 4/4.
+- Homepage is now **one DB source of truth**: a seeded CMS `home` Page (bg+en) composed of blocks (CarouselHero, NewsList w/ new `moreHref`/`moreLabel` "all news" link, Stats, Features, ClubGrid, Testimonials, CTA). `app/[locale]/page.tsx` renders the compiled blocks (JSON-LD still emitted as metadata); the minimal Hero fallback only fires if the home page is missing.
+- **Deleted the static fallbacks:** `loadHome` + `loadBlogJson` removed from `lib/content.ts`; `content/{bg,en}/home.json` deleted; the static CLUBS_PREVIEW/numbers/tracks/testimonials sections gone.
+- `/blog` folded into news: deleted the `/blog` pages, added **308** `/blog(/*)` → `/novini` redirects, dropped `/blog` from the sitemap.
