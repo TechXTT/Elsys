@@ -1,12 +1,14 @@
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import type { AbstractIntlMessages } from "next-intl";
 
 import { locales, type Locale } from "@/i18n/config";
 import { getNavigationTree } from "@/lib/navigation-build";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { SkipLink } from "@/components/ui/SkipLink";
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -35,10 +37,14 @@ export default async function LocaleLayout({
   }
 
   const navigation = await getNavigationTree(locale);
+  const tCommon = await getTranslations({ locale, namespace: "Common" });
   return (
     <NextIntlClientProvider locale={locale} messages={messages} timeZone="Europe/Sofia">
+      <SkipLink href="#main">{tCommon("skipToContent")}</SkipLink>
       <SiteHeader initialNav={navigation.items} />
-      {children}
+      <main id="main" tabIndex={-1} className="outline-none">
+        {children}
+      </main>
       <SiteFooter />
     </NextIntlClientProvider>
   );

@@ -1,3 +1,7 @@
+/* Generated design tokens (design/tokens.json → pnpm tokens:generate).
+   Must precede @tailwind so the CSS variables are available to all layers. */
+@import "./styles/tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -12,11 +16,15 @@
 	--color-text-muted: #5b708d;
 	--color-brand: #134f82;
 	--color-brand-accent: #1e6fb1;
-	--radius-sm: 4px;
-	--radius-md: 8px;
-	--radius-lg: 14px;
+	/* Radius scale is canonical in styles/tokens.css (--radius-sm/md/lg/none/full).
+	   Legacy --radius-lg was 14px; tokens.json wins at 12px (one source of truth). */
 	--shadow-focus: 0 0 0 2px #fff, 0 0 0 4px var(--color-brand-accent);
 	--transition-fast: 120ms cubic-bezier(.4,0,.2,1);
+
+	/* Font-family stand-ins until M1.1 resolves the licensed Cyrillic families.
+	   Swap these two lines (or the next/font imports) at M1.1 — no component rewrites. */
+	--font-heading: var(--font-display); /* Manrope stand-in (rounded geometric) */
+	--font-body: var(--font-sans);       /* Inter stand-in */
 }
 
 /* Dark theme tokens */
@@ -34,7 +42,13 @@ body { background: var(--color-bg); color: var(--color-text); -webkit-font-smoot
 h1, h2, h3, .font-display { font-family: var(--font-display), var(--font-sans), ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
 ::selection { background: var(--color-brand-accent); color:#fff; }
 a { text-underline-offset: 2px; }
-a:focus-visible, button:focus-visible, select:focus-visible { outline: none; box-shadow: var(--shadow-focus); border-radius: var(--radius-sm); }
+/* Legacy focus ring for app chrome. Excludes design-system primitives, which
+   carry [data-ui] and own their token ring (rule below). */
+a:not([data-ui]):focus-visible, button:not([data-ui]):focus-visible, select:not([data-ui]):focus-visible { outline: none; box-shadow: var(--shadow-focus); border-radius: var(--radius-sm); }
+
+/* components/ui primitives: a single 2px --color-action-focus-ring, offset 2px
+   (WCAG 2.4.7). Applied on the focusable element, which sets data-ui. */
+[data-ui]:focus-visible { outline: 2px solid var(--color-action-focus-ring); outline-offset: 2px; }
 
 .container-page { margin-left:auto; margin-right:auto; width:100%; max-width:72rem; padding-left:1rem; padding-right:1rem; }
 .gradient-hero { background: radial-gradient(circle at 30% 30%, #1e6fb1 0%, #134f82 50%, #0a3d62 100%); opacity:0.85; }
@@ -55,7 +69,8 @@ a:focus-visible, button:focus-visible, select:focus-visible { outline: none; box
 }
 .section-accent > * { position: relative; z-index: 1; }
 
-header { box-shadow: 0 1px 0 rgba(2,6,23,0.04), 0 2px 10px rgba(2,6,23,0.04); }
+/* Legacy global header shadow removed in Phase C — SiteHeader owns its chrome
+   (flat brand bar by default, surface + bottom border when scrolled). */
 
 .btn-primary { display:inline-flex; align-items:center; justify-content:center; gap:0.375rem; border:none; cursor:pointer; background: var(--color-brand); color:#fff; font-size:0.875rem; font-weight:600; padding:0.5rem 1rem; border-radius:6px; box-shadow:0 2px 4px rgba(0,0,0,0.06); transition: background-color var(--transition-fast), box-shadow var(--transition-fast); text-decoration:none; }
 .btn-primary:hover { background: var(--color-brand-accent); }
@@ -71,13 +86,15 @@ header { box-shadow: 0 1px 0 rgba(2,6,23,0.04), 0 2px 10px rgba(2,6,23,0.04); }
 
 /* Form controls: consistent light/dark appearances */
 @layer base {
-	input[type="text"],
-	input[type="email"],
-	input[type="password"],
-	input[type="date"],
-	input[type="number"],
-	select,
-	textarea {
+	/* Legacy form styling for app chrome. Excludes [data-ui] primitives, which
+	   own their full token-bound styling (components/ui/Form.tsx). */
+	input[type="text"]:not([data-ui]),
+	input[type="email"]:not([data-ui]),
+	input[type="password"]:not([data-ui]),
+	input[type="date"]:not([data-ui]),
+	input[type="number"]:not([data-ui]),
+	select:not([data-ui]),
+	textarea:not([data-ui]) {
 		@apply rounded border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-400;
 	}
 

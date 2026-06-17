@@ -1,59 +1,87 @@
-import React from "react";
+import Image from "next/image";
 import NextLink from "next/link";
+import type { ColorTag } from "@prisma/client";
+
+import { Badge, colorTagToBadge } from "@/components/ui/Badge";
 import { defaultLocale, type Locale } from "@/i18n/config";
+import { cn } from "@/lib/cn";
+import { formatDateLabel } from "@/lib/format-date";
 import { PostItem } from "@/lib/types";
-
-function resolveDateLocale(locale: Locale): string {
-  // Restrict to known-good BCP 47 tags and fallback to en-GB
-  if (locale === "bg") return "bg-BG";
-  if (locale === "en") return "en-GB";
-  return "en-GB";
-}
-
-function formatDateLabel(value: string | undefined, locale: Locale) {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "short", day: "numeric" };
-  const primary = resolveDateLocale(locale);
-  try {
-    return new Intl.DateTimeFormat(primary, options).format(date);
-  } catch {
-    try {
-      return new Intl.DateTimeFormat("en-GB", options).format(date);
-    } catch {
-      return new Intl.DateTimeFormat(undefined, options).format(date);
-    }
-  }
-}
 
 interface NewsCardProps {
   post: PostItem;
   locale?: Locale;
+  /** Larger lead treatment (bigger image + heading). Figma 26:2 "featured". */
+  featured?: boolean;
+  /** Optional category chip — mapped through the ColorTag→Badge adapter. */
+  category?: ColorTag;
+  categoryLabel?: string;
+  className?: string;
 }
 
-export const NewsCard: React.FC<NewsCardProps> = ({ post, locale = defaultLocale }) => {
+/**
+ * NewsCard (Figma 26:2) — image + category Badge + title + excerpt + date.
+ * The whole card is a single link; the image is decorative (alt="") so the
+ * link's accessible name is its visible text. Variants: with-image × featured.
+ */
+export function NewsCard({
+  post,
+  locale = defaultLocale,
+  featured = false,
+  category,
+  categoryLabel,
+  className,
+}: NewsCardProps) {
   const displayDate = formatDateLabel(post.date, locale);
   const coverImage = post.image ?? post.images?.[0]?.url;
-  // Build a locale-prefixed href that works in both App Router and Pages Router contexts
+
+  // Build a locale-prefixed href that works in both App Router and Pages Router.
   const rawHref = post.href || "/";
   const hasLocalePrefix = /^\/(?:bg|en)(?:\/|$)/.test(rawHref);
-  const href = hasLocalePrefix ? rawHref : `/${locale}/${rawHref.startsWith('/') ? '' : '/'}${rawHref.replace(/^\//, '')}`;
+  const href = hasLocalePrefix
+    ? rawHref
+    : `/${locale}/${rawHref.replace(/^\//, "")}`;
+
   return (
     <NextLink
-      href={href as unknown as any}
-      className="hover-lift block overflow-hidden rounded-lg border border-slate-200 bg-white transition dark:border-slate-700 dark:bg-slate-800"
+      href={href as unknown as never}
+      data-ui="news-card"
+      className={cn(
+        "group flex h-full flex-col overflow-hidden rounded-[var(--radius-lg)] no-underline",
+        "border border-line bg-surface transition-colors hover:border-line-strong",
+        className,
+      )}
     >
       {coverImage && (
-        <div className="aspect-[4/3] overflow-hidden border-b border-slate-200 dark:border-slate-700">
-          <img src={coverImage} alt={post.title} className="h-full w-full object-cover" />
+        <div
+          className={cn(
+            "relative w-full overflow-hidden border-b border-line bg-subtle",
+            featured ? "aspect-[16/9]" : "aspect-[4/3]",
+          )}
+        >
+          <Image
+            fill
+            src={coverImage}
+            alt=""
+            sizes={featured ? "(min-width: 768px) 720px, 100vw" : "(min-width: 768px) 360px, 100vw"}
+            className="object-cover"
+          />
         </div>
       )}
-      <div className="p-4">
-        {displayDate && <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{displayDate}</p>}
-        <h3 className="mt-1 font-semibold text-slate-900 dark:text-slate-100">{post.title}</h3>
-        {post.excerpt && <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{post.excerpt}</p>}
+      <div className="flex flex-1 flex-col gap-[var(--spacing-xs)] p-[var(--spacing-lg)]">
+        {category && categoryLabel && (
+          <span>
+            <Badge color={colorTagToBadge(category)} size="sm">
+              {categoryLabel}
+            </Badge>
+          </span>
+        )}
+        <h3 className={cn("text-ink-heading", featured ? "text-h3" : "text-h4")}>{post.title}</h3>
+        {post.excerpt && (
+          <p className={cn("text-ink-muted", featured ? "text-body-lg" : "text-body")}>{post.excerpt}</p>
+        )}
+        {displayDate && <p className="text-caption mt-auto pt-[var(--spacing-2xs)] text-ink-muted">{displayDate}</p>}
       </div>
     </NextLink>
   );
-};
+}

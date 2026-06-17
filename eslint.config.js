@@ -18,6 +18,9 @@ module.exports = tseslint.config(
       "content/**",
       "docs/**",
       "graphify-out/**",
+      // Figma plugin runtime (references the `figma` global) — kept as a
+      // documented fallback build path, not part of the Next app.
+      "design/figma-plugin/**",
     ],
   },
   js.configs.recommended,

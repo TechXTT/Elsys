@@ -1,6 +1,8 @@
 {
   "Locale": {
-    "switcher": "Language"
+    "switcher": "Language",
+    "bg": "BG",
+    "en": "EN"
   },
   "Common": {
     "loading": "Loading...",
@@ -8,7 +10,8 @@
     "noContent": "No content available.",
     "missingHome": "Missing home.json file.",
     "pageNotFound": "Page not found.",
-    "viewMore": "See more"
+    "viewMore": "See more",
+    "skipToContent": "Skip to content"
   },
   "Nav": {
     "news": "News",
@@ -55,19 +58,43 @@
     "menu": "Menu",
     "mobileMenu": "Mobile menu",
     "homeAria": "Home",
-    "brandShort": "TUES"
+    "brandShort": "TUES",
+    "tagline": "Technology School of Electronic Systems",
+    "search": "Search",
+    "searchPlaceholder": "Search...",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "drawerTitle": "Menu"
   },
   "Footer": {
     "title": "TUES at TU-Sofia",
-    "description": "Technological School of Electronic Systems",
+    "brand": "TUES",
+    "description": "Technology School of Electronic Systems",
     "linksTitle": "Links",
     "contactsTitle": "Contacts",
+    "colEducation": "Education",
+    "colAbout": "About",
+    "colCommunity": "Community",
     "news": "News",
     "admissions": "Admissions",
     "school": "About the school",
+    "specialties": "Specialties",
+    "schedules": "Schedules",
+    "documents": "Documents",
+    "history": "History",
+    "team": "Team",
+    "partners": "Partners",
+    "contacts": "Contacts",
+    "clubs": "Clubs",
+    "olympiads": "Olympiads",
+    "alumni": "Alumni",
     "address": "Sofia 1000, 8 Kliment Ohridski Blvd",
     "email": "tues@elsys-bg.org",
-    "copyright": "© {year} TUES at TU-Sofia"
+    "copyright": "© {year} TUES at TU-Sofia",
+    "rightsReserved": "© {year} TUES at TU-Sofia. All rights reserved.",
+    "privacy": "Privacy",
+    "cookies": "Cookies",
+    "accessibility": "Accessibility"
   },
   "Home": {
     "newsTitle": "News & events",
@@ -241,6 +268,23 @@
     "empty": "No clubs published yet.",
     "meetingSchedule": "Meeting schedule",
     "contact": "Contact"
+  },
+  "Carousel": {
+    "carousel": "carousel",
+    "region": "Highlights carousel",
+    "slide": "slide",
+    "slideLabel": "{n} of {total}",
+    "previous": "Previous slide",
+    "next": "Next slide",
+    "pause": "Pause",
+    "play": "Play"
+  },
+  "HeaderAccent": {
+    "dismiss": "Dismiss message"
+  },
+  "Document": {
+    "download": "Download",
+    "downloadAria": "Download “{name}”{meta}"
   }
 }
 

@@ -4,59 +4,91 @@ import React from "react";
 import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/routing";
+import { cn } from "@/lib/cn";
 
-export const SiteFooter: React.FC = () => {
+// Curated footer columns. hrefs are the intended canonical routes; some target
+// pages land in Phase E (flagged in the Phase-C report).
+const COLUMNS: { title: string; links: { key: string; href: string }[] }[] = [
+  {
+    title: "colEducation",
+    links: [
+      { key: "specialties", href: "/obuchenie" },
+      { key: "admissions", href: "/priem" },
+      { key: "schedules", href: "/grafik" },
+      { key: "documents", href: "/dokumenti" },
+    ],
+  },
+  {
+    title: "colAbout",
+    links: [
+      { key: "history", href: "/za-nas" },
+      { key: "team", href: "/ekip" },
+      { key: "partners", href: "/partnyori" },
+      { key: "contacts", href: "/kontakti" },
+    ],
+  },
+  {
+    title: "colCommunity",
+    links: [
+      { key: "news", href: "/novini" },
+      { key: "clubs", href: "/klubove" },
+      { key: "olympiads", href: "/olimpiadi" },
+      { key: "alumni", href: "/vazpitanitsi" },
+    ],
+  },
+];
+
+const POLICIES: { key: string; href: string }[] = [
+  { key: "privacy", href: "/poveritelnost" },
+  { key: "cookies", href: "/biskvitki" },
+  { key: "accessibility", href: "/dostapnost" },
+];
+
+export function SiteFooter() {
   const t = useTranslations("Footer");
-  const currentYear = new Date().getFullYear();
+  const year = new Date().getFullYear();
+  const linkCls = "text-body-sm text-[var(--color-text-on-brand)] opacity-90 hover:underline hover:opacity-100";
 
   return (
-    <footer className="mt-16 border-t border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
-      <div className="container-page grid gap-8 py-10 md:grid-cols-3">
-        <div>
-          <div className="flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-100">
-            <img src="/images/logo.svg" alt="TUES" className="h-8 w-8" />
-            {t("title")}
-          </div>
-          <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">{t("description")}</p>
-        </div>
-        <div>
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t("linksTitle")}</h3>
-          <ul className="mt-2 space-y-1 text-sm">
-            <li>
-              <Link className="text-slate-600 hover:underline dark:text-slate-400" href="/novini">
-                {t("news")}
-              </Link>
-            </li>
-            <li>
-              <Link className="text-slate-600 hover:underline dark:text-slate-400" href="/priem">
-                {t("admissions")}
-              </Link>
-            </li>
-            <li>
-              <Link className="text-slate-600 hover:underline dark:text-slate-400" href="/uchilishteto">
-                {t("school")}
-              </Link>
-            </li>
-          </ul>
-        </div>
-        <div>
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t("contactsTitle")}</h3>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-            {t("address")}
+    <footer className="bg-[var(--color-bg-footer)] text-[var(--color-text-on-brand)]">
+      <div className="container-page grid gap-[var(--spacing-2xl)] py-[var(--spacing-3xl)] md:grid-cols-4">
+        <div className="flex flex-col gap-[var(--spacing-sm)]">
+          <span className="text-h4 font-semibold">{t("brand")}</span>
+          <p className="text-body-sm opacity-80">
+            {t("description")}
             <br />
-            <a className="hover:underline" href="mailto:tues@elsys-bg.org">
-              {t("email")}
-            </a>
+            {t("address")}
           </p>
         </div>
+
+        {COLUMNS.map((col) => (
+          <nav key={col.title} aria-label={t(col.title)} className="flex flex-col gap-[var(--spacing-sm)]">
+            <h2 className="text-overline opacity-80">{t(col.title)}</h2>
+            <ul className="flex flex-col gap-[var(--spacing-xs)]">
+              {col.links.map((link) => (
+                <li key={link.key}>
+                  <Link data-ui="footer" href={link.href} className={linkCls}>
+                    {t(link.key)}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ))}
       </div>
-      <div className="border-t border-slate-200 dark:border-slate-700">
-        <div className="container-page py-4 text-xs text-slate-500 dark:text-slate-400">
-          {t("copyright", { year: currentYear })}
+
+      <div className="border-t border-white/20">
+        <div className="container-page flex flex-col gap-[var(--spacing-sm)] py-[var(--spacing-md)] text-body-sm opacity-80 md:flex-row md:items-center md:justify-between">
+          <span>{t("rightsReserved", { year })}</span>
+          <div className="flex flex-wrap gap-[var(--spacing-lg)]">
+            {POLICIES.map((policy) => (
+              <Link key={policy.key} data-ui="footer" href={policy.href} className={cn(linkCls)}>
+                {t(policy.key)}
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </footer>
   );
-};
-
-
+}

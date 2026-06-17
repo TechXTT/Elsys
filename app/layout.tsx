@@ -3,9 +3,12 @@ import React from "react";
 import { cookies } from "next/headers";
 import { Inter, Manrope } from "next/font/google";
 
-// Fonts must be initialized at module scope
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
-const manrope = Manrope({ subsets: ["latin"], variable: "--font-display" });
+// Fonts must be initialized at module scope.
+// Cyrillic subset + display:"swap" are required for the BG/EN site (WCAG, no FOIT).
+// Stand-ins until M1.1: Inter -> --font-body, Manrope -> --font-heading
+// (the var() bindings live in app/globals.css / app/styles/tokens.css).
+const inter = Inter({ subsets: ["latin", "cyrillic"], display: "swap", variable: "--font-sans" });
+const manrope = Manrope({ subsets: ["latin", "cyrillic"], display: "swap", variable: "--font-display" });
 
 const themeInitializer = `(() => {
   try {

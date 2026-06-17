@@ -1,6 +1,8 @@
 {
   "Locale": {
-    "switcher": "Език"
+    "switcher": "Език",
+    "bg": "BG",
+    "en": "EN"
   },
   "Common": {
     "loading": "Зареждане...",
@@ -8,7 +10,8 @@
     "noContent": "Няма съдържание.",
     "missingHome": "Липсва файл home.json.",
     "pageNotFound": "Страницата не е намерена.",
-    "viewMore": "Виж повече"
+    "viewMore": "Виж повече",
+    "skipToContent": "Към съдържанието"
   },
   "Nav": {
     "news": "Новини",
@@ -55,19 +58,43 @@
     "menu": "Меню",
     "mobileMenu": "Мобилно меню",
     "homeAria": "Начало",
-    "brandShort": "ТУЕС"
+    "brandShort": "ТУЕС",
+    "tagline": "Технологично училище „Електронни системи“",
+    "search": "Търсене",
+    "searchPlaceholder": "Търсене...",
+    "openMenu": "Отваряне на менюто",
+    "closeMenu": "Затваряне на менюто",
+    "drawerTitle": "Меню"
   },
   "Footer": {
     "title": "ТУЕС към ТУ-София",
-    "description": "Технологично училище Електронни системи",
+    "brand": "ТУЕС",
+    "description": "Технологично училище „Електронни системи“",
     "linksTitle": "Връзки",
     "contactsTitle": "Контакти",
+    "colEducation": "Обучение",
+    "colAbout": "За нас",
+    "colCommunity": "Общност",
     "news": "Новини",
     "admissions": "Прием",
     "school": "Училището",
+    "specialties": "Специалности",
+    "schedules": "Графици",
+    "documents": "Документи",
+    "history": "История",
+    "team": "Екип",
+    "partners": "Партньори",
+    "contacts": "Контакти",
+    "clubs": "Клубове",
+    "olympiads": "Олимпиади",
+    "alumni": "Възпитаници",
     "address": "София 1000, бул. Климент Охридски 8",
     "email": "tues@elsys-bg.org",
-    "copyright": "© {year} ТУЕС към ТУ-София"
+    "copyright": "© {year} ТУЕС към ТУ-София",
+    "rightsReserved": "© {year} ТУЕС към ТУ-София. Всички права запазени.",
+    "privacy": "Поверителност",
+    "cookies": "Бисквитки",
+    "accessibility": "Достъпност"
   },
   "Home": {
     "newsTitle": "Новини и събития",
@@ -241,6 +268,23 @@
     "empty": "Все още няма публикувани клубове.",
     "meetingSchedule": "График на срещите",
     "contact": "Контакт"
+  },
+  "Carousel": {
+    "carousel": "карусел",
+    "region": "Карусел с акценти",
+    "slide": "слайд",
+    "slideLabel": "{n} от {total}",
+    "previous": "Предишен слайд",
+    "next": "Следващ слайд",
+    "pause": "Пауза",
+    "play": "Възпроизвеждане"
+  },
+  "HeaderAccent": {
+    "dismiss": "Затвори съобщението"
+  },
+  "Document": {
+    "download": "Изтегли",
+    "downloadAria": "Изтегли „{name}“{meta}"
   }
 }
 

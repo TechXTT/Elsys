@@ -23,14 +23,17 @@ test.describe("seed image integrity (M0.5)", () => {
       return {
         total: imgs.length,
         broken: imgs.filter((img) => img.naturalWidth === 0).map((img) => img.currentSrc || img.src),
-        missingAlt: imgs.filter((img) => !img.getAttribute("alt")).length,
+        // Missing = the alt attribute is absent entirely. An explicit alt=""
+        // is the WCAG-correct decorative declaration (Phase D NewsCard covers
+        // are decorative — the whole card is one link named by its title).
+        missingAlt: imgs.filter((img) => img.getAttribute("alt") === null).length,
       };
     });
 
     // The seeded news cards must actually render images (guard against a vacuous pass).
     expect(result.total).toBeGreaterThan(0);
     expect(result.broken).toEqual([]);
-    // Alt text is required for every image (WCAG 2.1 AA).
+    // Every image must DECLARE alt (empty for decorative, descriptive otherwise) — WCAG 2.1 AA.
     expect(result.missingAlt).toBe(0);
   });
 });

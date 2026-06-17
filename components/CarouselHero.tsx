@@ -1,7 +1,11 @@
 "use client";
+
 import Image from "next/image";
-import { useState, useEffect, useCallback } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
+import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
+
+import { cn } from "@/lib/cn";
 
 export interface CarouselSlide {
   id: string;
@@ -18,88 +22,152 @@ interface Props {
   slides: CarouselSlide[];
 }
 
+const AUTO_ADVANCE_MS = 6000; // ≥5s (WCAG 2.2.2 — no rapid auto-advance)
+
+/**
+ * CarouselHero (Figma 29:11) — on-brand hero carousel over bg-header (brand/600,
+ * white text 6.1:1). WCAG-compliant per design-system.md §3: labelled slide
+ * groups, visible Pause/Play, no auto-advance under 5s, pause on hover/focus,
+ * prefers-reduced-motion disables auto-advance, keyboard arrows, dot buttons
+ * with aria-current.
+ */
 export function CarouselHero({ slides }: Props) {
+  const t = useTranslations("Carousel");
   const [current, setCurrent] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const regionRef = useRef<HTMLElement>(null);
 
-  const prev = useCallback(() => setCurrent((c) => (c - 1 + slides.length) % slides.length), [slides.length]);
-  const next = useCallback(() => setCurrent((c) => (c + 1) % slides.length), [slides.length]);
+  const total = slides.length;
+  const prev = useCallback(() => setCurrent((c) => (c - 1 + total) % total), [total]);
+  const next = useCallback(() => setCurrent((c) => (c + 1) % total), [total]);
 
+  // Honour prefers-reduced-motion: only enable auto-advance when motion is OK.
   useEffect(() => {
-    if (slides.length <= 1) return;
-    const id = setInterval(next, 6000);
-    return () => clearInterval(id);
-  }, [next, slides.length]);
+    const media = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+    if (media && !media.matches) setIsPlaying(true);
+  }, []);
 
-  if (slides.length === 0) return null;
+  const autoActive = isPlaying && !isPaused && total > 1;
+  useEffect(() => {
+    if (!autoActive) return;
+    const timer = setInterval(next, AUTO_ADVANCE_MS);
+    return () => clearInterval(timer);
+  }, [autoActive, next, current]);
 
-  const slide = slides[current];
+  if (total === 0) return null;
+
+  const onKeyDown = (event: React.KeyboardEvent) => {
+    if (total <= 1) return;
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      prev();
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault();
+      next();
+    }
+  };
+
+  const ctlBase =
+    "flex h-11 w-11 items-center justify-center rounded-[var(--radius-full)] bg-surface text-ink-link shadow-card transition-colors hover:bg-brand-tint";
 
   return (
-    <section className="relative h-[480px] w-full overflow-hidden sm:h-[560px] lg:h-[640px]" aria-label="Карусел">
-      {/* Images */}
-      {slides.map((s, i) => (
-        <div
-          key={s.id}
-          aria-hidden={i !== current}
-          className={`absolute inset-0 transition-opacity duration-700 ${i === current ? "opacity-100" : "opacity-0"}`}
-        >
-          <Image
-            fill
-            src={s.imageDesktop}
-            alt=""
-            sizes="100vw"
-            priority={i === 0}
-            className="object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-        </div>
-      ))}
-
-      {/* Content */}
-      <div className="relative z-10 flex h-full flex-col items-center justify-end pb-16 text-center text-white px-4">
-        <h2 className="text-3xl font-bold drop-shadow-lg sm:text-4xl lg:text-5xl">{slide.title}</h2>
-        {slide.subtitle && (
-          <p className="mt-3 max-w-2xl text-base text-white/90 drop-shadow sm:text-lg">{slide.subtitle}</p>
-        )}
-        {slide.linkUrl && slide.linkLabel && (
-          <a
-            href={slide.linkUrl}
-            className="mt-6 inline-flex items-center rounded-full bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2"
+    <section
+      ref={regionRef}
+      aria-roledescription={t("carousel")}
+      aria-label={t("region")}
+      data-ui="carousel-hero"
+      onKeyDown={onKeyDown}
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onFocusCapture={() => setIsPaused(true)}
+      onBlurCapture={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsPaused(false);
+      }}
+      className="relative isolate min-h-[360px] overflow-hidden bg-header sm:min-h-[420px] lg:min-h-[460px]"
+    >
+      {slides.map((slide, i) => {
+        const active = i === current;
+        return (
+          <div
+            key={slide.id}
+            role="group"
+            aria-roledescription={t("slide")}
+            aria-label={t("slideLabel", { n: i + 1, total })}
+            aria-hidden={!active}
+            inert={!active ? true : undefined}
+            className={cn(
+              "absolute inset-0 transition-opacity duration-500",
+              active ? "opacity-100" : "pointer-events-none opacity-0",
+            )}
           >
-            {slide.linkLabel}
-          </a>
-        )}
-      </div>
+            {/* Decorative imagery sits on the right at lg+, never under the text,
+                so on-brand text stays on solid bg-header (6.1:1). */}
+            <div aria-hidden className="absolute inset-y-0 right-0 hidden w-1/2 lg:block">
+              <Image fill src={slide.imageDesktop} alt="" sizes="50vw" className="object-cover" priority={i === 0} />
+              <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-bg-header)] to-transparent" />
+            </div>
 
-      {/* Navigation arrows */}
-      {slides.length > 1 && (
+            <div className="container-page relative flex h-full min-h-[360px] max-w-3xl flex-col justify-center gap-[var(--spacing-md)] py-[var(--spacing-3xl)] sm:min-h-[420px] lg:min-h-[460px]">
+              <h2 className="text-h1 lg:text-display text-ink-on-brand">{slide.title}</h2>
+              {slide.subtitle && <p className="text-body-lg max-w-xl text-ink-on-brand">{slide.subtitle}</p>}
+              {slide.linkUrl && slide.linkLabel && (
+                <span>
+                  <a
+                    href={slide.linkUrl}
+                    data-ui="carousel-cta"
+                    className="text-body inline-flex items-center rounded-[var(--radius-md)] bg-surface px-[var(--spacing-lg)] py-[var(--spacing-sm)] font-semibold text-ink-link no-underline transition-colors hover:bg-brand-tint"
+                  >
+                    {slide.linkLabel}
+                  </a>
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })}
+
+      {total > 1 && (
         <>
-          <button
-            onClick={prev}
-            aria-label="Предишен слайд"
-            className="absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/30 p-2 text-white backdrop-blur-sm hover:bg-black/50 focus:outline-none focus:ring-2 focus:ring-white"
-          >
-            <ChevronLeft className="h-5 w-5" />
+          <button type="button" onClick={prev} aria-label={t("previous")} data-ui="carousel-prev" className={cn(ctlBase, "absolute left-[var(--spacing-md)] top-1/2 -translate-y-1/2")}>
+            <ChevronLeft size={20} aria-hidden />
           </button>
-          <button
-            onClick={next}
-            aria-label="Следващ слайд"
-            className="absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/30 p-2 text-white backdrop-blur-sm hover:bg-black/50 focus:outline-none focus:ring-2 focus:ring-white"
-          >
-            <ChevronRight className="h-5 w-5" />
+          <button type="button" onClick={next} aria-label={t("next")} data-ui="carousel-next" className={cn(ctlBase, "absolute right-[var(--spacing-md)] top-1/2 -translate-y-1/2")}>
+            <ChevronRight size={20} aria-hidden />
           </button>
 
-          {/* Dot indicators */}
-          <div className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 gap-2">
-            {slides.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrent(i)}
-                aria-label={`Слайд ${i + 1}`}
-                aria-current={i === current}
-                className={`h-2 rounded-full transition-all ${i === current ? "w-6 bg-white" : "w-2 bg-white/50"}`}
-              />
-            ))}
+          <div className="container-page absolute inset-x-0 bottom-[var(--spacing-lg)] flex items-center gap-[var(--spacing-md)]">
+            <button
+              type="button"
+              onClick={() => setIsPlaying((p) => !p)}
+              aria-pressed={isPlaying}
+              aria-label={isPlaying ? t("pause") : t("play")}
+              data-ui="carousel-pause"
+              className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-full)] text-ink-on-brand hover:bg-[color-mix(in_srgb,var(--color-text-on-brand)_18%,transparent)]"
+            >
+              {isPlaying ? <Pause size={18} aria-hidden /> : <Play size={18} aria-hidden />}
+            </button>
+            <div className="flex items-center gap-[var(--spacing-xs)]">
+              {slides.map((slide, i) => (
+                <button
+                  key={slide.id}
+                  type="button"
+                  onClick={() => setCurrent(i)}
+                  aria-label={t("slideLabel", { n: i + 1, total })}
+                  aria-current={i === current}
+                  data-ui="carousel-dot"
+                  className="flex h-11 items-center px-[var(--spacing-2xs)]"
+                >
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "h-2 rounded-[var(--radius-full)] transition-all",
+                      i === current ? "w-6 bg-[var(--color-text-on-brand)]" : "w-2 bg-[color-mix(in_srgb,var(--color-text-on-brand)_45%,transparent)]",
+                    )}
+                  />
+                </button>
+              ))}
+            </div>
           </div>
         </>
       )}

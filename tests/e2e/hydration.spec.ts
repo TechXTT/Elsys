@@ -24,8 +24,9 @@ test.describe("client hydration", () => {
       })
       .toBe("object");
 
-    // The switcher shows the *next* locale; on /bg its aria-label is "Език".
-    await page.getByRole("button", { name: "Език" }).click();
+    // The LanguageSwitcher (group "Език") exposes BG/EN buttons; clicking EN
+    // can only navigate if the page hydrated.
+    await page.getByRole("group", { name: "Език" }).getByRole("button", { name: "EN" }).click();
 
     // Real client-side navigation must occur — fails if the button is dead.
     await page.waitForURL(/\/en(\/|$)/, { timeout: 10_000 });
