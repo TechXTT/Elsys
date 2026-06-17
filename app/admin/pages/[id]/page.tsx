@@ -339,10 +339,14 @@ export default function EditPage() {
   }
 
   return (
-    <div className="-mx-8 lg:-mx-48 flex h-[calc(100vh-3.5rem)] flex-col">
+    // Full-bleed within the admin content area: cancel ONLY the page padding
+    // (p-4 lg:p-8) so the builder spans the column beside the w-64 sidebar — the
+    // old -mx-48 over-extended under the sidebar and past the viewport. min-w-0
+    // lets the inner flex columns shrink; overflow-x-hidden is only a backstop.
+    <div className="-mx-4 lg:-mx-8 flex h-[calc(100vh-3.5rem)] min-w-0 flex-col overflow-x-hidden">
       {/* Header */}
-      <header className="flex flex-shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6 py-3 dark:border-slate-700 dark:bg-slate-900">
-        <div className="flex items-center gap-4">
+      <header className="flex flex-shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-6 py-3 dark:border-slate-700 dark:bg-slate-900">
+        <div className="flex min-w-0 items-center gap-4">
           <Link
             href="/admin/navigation"
             className="flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
@@ -376,7 +380,7 @@ export default function EditPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {/* Locale switcher */}
           <div className="flex rounded-lg bg-slate-100 p-0.5 dark:bg-slate-800">
             <button
