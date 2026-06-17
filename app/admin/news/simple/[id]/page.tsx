@@ -26,6 +26,7 @@ export default async function EditSimpleNewsPage({
       select: {
         id: true, title: true, excerpt: true, bodyMarkdown: true, date: true,
         featuredImage: true, images: true, colorTag: true, categoryPageId: true, published: true,
+        metaTitle: true, metaDescription: true, ogImage: true, noindex: true, canonical: true,
       },
     }),
     getNewsCategoryPages(locale),
@@ -47,6 +48,11 @@ export default async function EditSimpleNewsPage({
     colorTag: row.colorTag ?? undefined,
     categoryPageId: row.categoryPageId ?? undefined,
     published: row.published,
+    metaTitle: row.metaTitle ?? undefined,
+    metaDescription: row.metaDescription ?? undefined,
+    ogImage: row.ogImage ?? undefined,
+    noindex: row.noindex,
+    canonical: row.canonical ?? undefined,
   };
 
   return <SimpleEditor locale={locale} categoryPages={categoryPages} record={record} />;

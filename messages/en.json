@@ -539,7 +539,13 @@
       "entry": "Simple editor",
       "recoveryFound": "An unsaved draft was found. Restore it?",
       "recoveryRestore": "Restore",
-      "recoveryDismiss": "Discard"
+      "recoveryDismiss": "Discard",
+      "seo": "SEO settings",
+      "metaTitle": "Meta title",
+      "metaDescription": "Meta description",
+      "ogImage": "OG image",
+      "canonical": "Canonical URL",
+      "noindex": "Hide from search engines (noindex)"
     }
   },
   "Clubs": {

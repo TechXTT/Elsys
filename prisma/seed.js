@@ -1286,6 +1286,7 @@ Registration for the first workshop is now open!`,
     date: new Date('2026-03-01'), featuredImage: '/images/news/workshops.svg',
     published: true, status: 'PUBLISHED', colorTag: 'GREEN',
     categoryPageId: newsCategoryPage.id,
+    metaTitle: 'Прием 2026 — SEO заглавие', metaDescription: 'SEO описание за прием 2026.',
   };
   await prisma.newsPost.upsert({
     where: { id_locale: { id: categorizedNews.id, locale: categorizedNews.locale } },

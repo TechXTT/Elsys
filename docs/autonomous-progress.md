@@ -147,3 +147,16 @@ Branch `feat/G3-2-editor-ux` (off Task 12 tip 1abf866). typecheck ✓ lint ✓ b
 - **Image cropper** (`ImageCropper.tsx`) — **DESIGN-PENDING, built functional + flagged**: center cover-crop at a chosen aspect (16:9/4:3/1:1/original) → canvas → re-upload via `uploadMedia` → returns the new URL; wired into `MediaField` (Crop button on a selected image). Full drag-resize crop box + remote-host CORS hardening are follow-ups.
 - **Already shipped, verified:** required titles (Zod + `required`), native date/datetime pickers ("real" pickers), bulk ops (Task 2 `ContentListClient`). Note: news date is date-only (Sweboo parity); content `publishAt` is datetime-local.
 - Test `tests/e2e/editor-ux.spec.ts` (localStorage recovery path; 30s server path exercised by the action unit-style).
+
+---
+
+## Task 14 — SEO residue (R2) — ✅ DONE
+Branch `feat/G2-14-seo` (off Task 13 tip 1cbb850). typecheck ✓ lint ✓ build ✓ e2e seo ✓ (3/3).
+- Additive SEO fields on **Page + NewsPost**: `metaTitle, metaDescription, ogImage, noindex, canonical`. Migration `20260617004206_add_seo_fields`.
+- `lib/site.ts`: `ogImageUrl()` + `applySeo(base, seo, {title, description, fallbackImage})` — merges overrides (title/description/robots noindex/canonical/OG image, with a generated `/og` card fallback).
+- Wired into `generateMetadata` for the **news article** (`/novini/[slug]`) and **dynamic pages** (`[...slug]`).
+- **OG-image route** `app/og/route.tsx` (next/og `ImageResponse`, edge, 1200×630 brand card). Added `og` to the middleware matcher exclusions (locale middleware was 404-ing it).
+- **`/sitemap-news.xml`** route — published posts via `getNewsPosts` (→ `publicWhere({gateDate})`). Main `app/sitemap.ts` made async, now reads published news through `publicWhere` + includes the new content routes.
+- **News SEO UI:** collapsible "SEO настройки" section in the Simple editor (metaTitle/metaDescription/ogImage MediaField/canonical/noindex); persisted by `saveSimpleNews`; loaded on edit; covered by autosave/recovery.
+- **FLAG (Page SEO UI):** schema + metadata wiring done for Page, but surfacing the SEO panel in the **Page editor** (the PageBuilder) is a separate UI effort — deferred; news gets the full UI now.
+- Test `tests/e2e/seo.spec.ts`.

@@ -539,7 +539,13 @@
       "entry": "Опростен редактор",
       "recoveryFound": "Намерена е незапазена чернова. Да я възстановим ли?",
       "recoveryRestore": "Възстанови",
-      "recoveryDismiss": "Откажи"
+      "recoveryDismiss": "Откажи",
+      "seo": "SEO настройки",
+      "metaTitle": "Meta заглавие",
+      "metaDescription": "Meta описание",
+      "ogImage": "OG изображение",
+      "canonical": "Canonical URL",
+      "noindex": "Скрий от търсачки (noindex)"
     }
   },
   "Clubs": {

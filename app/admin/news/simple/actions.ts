@@ -31,6 +31,12 @@ const schema = z.object({
   categoryPageId: z.string().optional().or(z.literal("")),
   featuredImage: z.string().optional().or(z.literal("")),
   gallery: z.string().optional(), // JSON array of image urls
+  // SEO (R2)
+  metaTitle: z.string().optional().or(z.literal("")),
+  metaDescription: z.string().optional().or(z.literal("")),
+  ogImage: z.string().optional().or(z.literal("")),
+  noindex: z.string().optional(), // checkbox "on"
+  canonical: z.string().optional().or(z.literal("")),
 });
 
 /**
@@ -59,6 +65,11 @@ export async function saveSimpleNews(
     categoryPageId: formData.get("categoryPageId") ?? undefined,
     featuredImage: formData.get("featuredImage") ?? undefined,
     gallery: formData.get("gallery") ?? undefined,
+    metaTitle: formData.get("metaTitle") ?? undefined,
+    metaDescription: formData.get("metaDescription") ?? undefined,
+    ogImage: formData.get("ogImage") ?? undefined,
+    noindex: formData.get("noindex") ?? undefined,
+    canonical: formData.get("canonical") ?? undefined,
   });
   if (!parsed.success) {
     const errors: Record<string, string> = {};
@@ -113,6 +124,11 @@ export async function saveSimpleNews(
     data: {
       colorTag: d.colorTag ? (d.colorTag as (typeof COLOR_VALUES)[number]) : null,
       categoryPageId: d.categoryPageId || null,
+      metaTitle: d.metaTitle || null,
+      metaDescription: d.metaDescription || null,
+      ogImage: d.ogImage || null,
+      noindex: d.noindex === "on",
+      canonical: d.canonical || null,
     },
   });
 

@@ -24,6 +24,11 @@ export interface SimpleNewsRecord {
   colorTag?: string;
   categoryPageId?: string;
   published: boolean;
+  metaTitle?: string;
+  metaDescription?: string;
+  ogImage?: string;
+  noindex?: boolean;
+  canonical?: string;
 }
 
 interface Props {
@@ -70,6 +75,11 @@ export function SimpleEditor({ locale, categoryPages, record }: Props) {
       colorTag: String(fd.get("colorTag") ?? "BLUE"),
       categoryPageId: String(fd.get("categoryPageId") ?? ""),
       published: String(fd.get("visibility") ?? "DRAFT") === "PUBLISHED",
+      metaTitle: String(fd.get("metaTitle") ?? ""),
+      metaDescription: String(fd.get("metaDescription") ?? ""),
+      ogImage: String(fd.get("ogImage") ?? ""),
+      noindex: fd.get("noindex") === "on",
+      canonical: String(fd.get("canonical") ?? ""),
     };
   }
 
@@ -236,6 +246,32 @@ export function SimpleEditor({ locale, categoryPages, record }: Props) {
               </button>
             </div>
           </div>
+
+          {/* SEO (R2) — collapsible */}
+          <details className="rounded-[var(--radius-md)] border border-line p-3">
+            <summary className="cursor-pointer text-body-sm font-medium text-ink-heading">{t("seo")}</summary>
+            <div className="mt-3 flex flex-col gap-3">
+              <label className="flex flex-col gap-1 text-body-sm">
+                <span className="text-ink-muted">{t("metaTitle")}</span>
+                <input name="metaTitle" defaultValue={defaults?.metaTitle} className="rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-body-sm text-ink focus:outline-none focus:border-[var(--color-action-primary)]" />
+              </label>
+              <label className="flex flex-col gap-1 text-body-sm">
+                <span className="text-ink-muted">{t("metaDescription")}</span>
+                <textarea name="metaDescription" defaultValue={defaults?.metaDescription} rows={2} className="rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-body-sm text-ink focus:outline-none focus:border-[var(--color-action-primary)]" />
+              </label>
+              <div className="flex flex-col gap-1 text-body-sm">
+                <span className="text-ink-muted">{t("ogImage")}</span>
+                <MediaField name="ogImage" defaultValue={defaults?.ogImage} folder="news" />
+              </div>
+              <label className="flex flex-col gap-1 text-body-sm">
+                <span className="text-ink-muted">{t("canonical")}</span>
+                <input name="canonical" defaultValue={defaults?.canonical} placeholder="https://…" className="rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-body-sm text-ink focus:outline-none focus:border-[var(--color-action-primary)]" />
+              </label>
+              <label className="flex items-center gap-2 text-body-sm text-ink-heading">
+                <input type="checkbox" name="noindex" defaultChecked={defaults?.noindex} /> {t("noindex")}
+              </label>
+            </div>
+          </details>
         </div>
 
         {/* Aside */}
