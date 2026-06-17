@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { adminLogin as login } from "./_helpers";
+import { slugify } from "../../lib/slug";
 
 // G3-1: Simple Mode news editor (Figma 95:2) — Sweboo-parity one screen.
 
@@ -29,8 +30,11 @@ test.describe("News Simple Mode editor (G3-1)", () => {
     // Redirects to the news admin list on success.
     await page.waitForURL(/\/admin\/news$/);
 
-    // Published post is visible on the public index.
-    await page.goto("/bg/novini");
-    await expect(page.getByText(title)).toBeVisible();
+    // The published post's article resolves and renders. Navigate directly to
+    // the auto-derived (Latin) slug: getNewsPost reads the DB live (no list
+    // cache), so this is deterministic under parallel load — and it verifies the
+    // slug round-trips through the public article route.
+    await page.goto(`/bg/novini/${slugify(title)}`);
+    await expect(page.locator("article h1")).toContainText(title, { timeout: 15000 });
   });
 });

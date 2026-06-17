@@ -10,6 +10,11 @@ export default async function AdminNewsPage({ searchParams }: { searchParams?: {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/admin/login");
 
+  // G5-1: TEACHER lands in Simple Mode (the Advanced block builder is for editors+).
+  if ((session.user as { role?: string } | undefined)?.role === "TEACHER") {
+    redirect("/admin/news/simple");
+  }
+
   const selectedLocale = (searchParams?.locale === "bg" || searchParams?.locale === "en") ? (searchParams!.locale as Locale) : defaultLocale;
   const posts = await getNewsPosts(selectedLocale, true);
 

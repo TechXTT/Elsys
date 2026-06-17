@@ -183,7 +183,8 @@
       "settings": "Settings",
       "viewSite": "View Site",
       "signOut": "Sign out",
-      "media": "Media"
+      "media": "Media",
+      "roles": "Roles"
     },
     "stats": {
       "totalNews": "Total News Posts",
@@ -546,6 +547,31 @@
       "ogImage": "OG image",
       "canonical": "Canonical URL",
       "noindex": "Hide from search engines (noindex)"
+    },
+    "roles": {
+      "title": "Roles & permissions",
+      "subtitle": "Permission matrix by role and per-user role assignment.",
+      "permission": "Permission",
+      "user": "User",
+      "roleColumn": "Role",
+      "role": {
+        "USER": "User",
+        "TEACHER": "Teacher",
+        "STUDENT_EDITOR": "Student editor",
+        "STUDENT_ADMIN": "Student admin",
+        "ADMIN": "Administrator"
+      },
+      "perm": {
+        "news:edit": "Edit news",
+        "content:edit": "Edit content",
+        "media:edit": "Media library",
+        "pages:edit": "Edit pages",
+        "nav:edit": "Navigation",
+        "users:manage": "Users",
+        "roles:manage": "Roles",
+        "settings:edit": "Settings",
+        "audit:view": "Audit log"
+      }
     }
   },
   "Clubs": {

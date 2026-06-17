@@ -8,6 +8,7 @@ import { getContentType } from "./registry";
 import { formatZodErrors } from "@/lib/content/validation";
 import { persistSuccessorNote } from "@/lib/content/successor-notes";
 import { revalidatePublicForType } from "./revalidate";
+import { requirePermission } from "@/lib/auth/guard";
 import type { FieldConfig, PublishStatus } from "@/lib/content/shared";
 
 const SUCCESSOR_NOTE_FIELD = "__successorNote";
@@ -46,6 +47,7 @@ export async function createContentRecord(
 ): Promise<ActionResult> {
   const session = await getServerSession(authOptions);
   if (!session?.user) throw new Error("Unauthorized");
+  await requirePermission("content:edit");
 
   const config = getContentType(type);
   if (!config) throw new Error(`Unknown content type: ${type}`);
@@ -88,6 +90,7 @@ export async function updateContentRecord(
 ): Promise<ActionResult> {
   const session = await getServerSession(authOptions);
   if (!session?.user) throw new Error("Unauthorized");
+  await requirePermission("content:edit");
 
   const config = getContentType(type);
   if (!config) throw new Error(`Unknown content type: ${type}`);
@@ -130,6 +133,7 @@ export async function deleteContentRecord(
 ): Promise<{ ok: boolean; error?: string }> {
   const session = await getServerSession(authOptions);
   if (!session?.user) throw new Error("Unauthorized");
+  await requirePermission("content:edit");
 
   const config = getContentType(type);
   if (!config) throw new Error(`Unknown content type: ${type}`);
@@ -159,6 +163,7 @@ export async function bulkSetStatus(
 ): Promise<BulkResult> {
   const session = await getServerSession(authOptions);
   if (!session?.user) throw new Error("Unauthorized");
+  await requirePermission("content:edit");
   const config = getContentType(type);
   if (!config) throw new Error(`Unknown content type: ${type}`);
   if (ids.length === 0) return { ok: true, count: 0 };
@@ -186,6 +191,7 @@ export async function bulkSetStatus(
 export async function bulkDeleteRecords(type: string, ids: string[]): Promise<BulkResult> {
   const session = await getServerSession(authOptions);
   if (!session?.user) throw new Error("Unauthorized");
+  await requirePermission("content:edit");
   const config = getContentType(type);
   if (!config) throw new Error(`Unknown content type: ${type}`);
   if (ids.length === 0) return { ok: true, count: 0 };

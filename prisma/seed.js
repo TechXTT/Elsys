@@ -35,6 +35,16 @@ async function main() {
 
   console.log('Admin user ensured:', { id: user.id, email: user.email });
 
+  // G5-1: a non-admin teacher so the roles UI has someone to reassign + the
+  // TEACHER → Simple Mode default is exercisable. Password-only (no 2FA gate).
+  const teacherHash = await bcrypt.hash('teacher123', 10);
+  const teacher = await prisma.user.upsert({
+    where: { email: 'teacher@elsys.bg' },
+    update: { name: 'Учител Тест', role: 'TEACHER', password: teacherHash },
+    create: { email: 'teacher@elsys.bg', name: 'Учител Тест', role: 'TEACHER', password: teacherHash },
+  });
+  console.log('Teacher user ensured:', { id: teacher.id, email: teacher.email });
+
   // 2FA (G): mandatory for ADMIN. Enroll the bootstrap admin with a KNOWN secret
   // + recovery codes so e2e can compute valid TOTPs and exercise the gated flow.
   await prisma.user.update({

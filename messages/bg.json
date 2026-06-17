@@ -183,7 +183,8 @@
       "settings": "Настройки",
       "viewSite": "Виж сайта",
       "signOut": "Изход",
-      "media": "Медиа"
+      "media": "Медиа",
+      "roles": "Роли"
     },
     "stats": {
       "totalNews": "Общо новини",
@@ -546,6 +547,31 @@
       "ogImage": "OG изображение",
       "canonical": "Canonical URL",
       "noindex": "Скрий от търсачки (noindex)"
+    },
+    "roles": {
+      "title": "Роли и права",
+      "subtitle": "Матрица на правата по роля и присвояване на роли на потребители.",
+      "permission": "Право",
+      "user": "Потребител",
+      "roleColumn": "Роля",
+      "role": {
+        "USER": "Потребител",
+        "TEACHER": "Учител",
+        "STUDENT_EDITOR": "Ученик-редактор",
+        "STUDENT_ADMIN": "Ученик-админ",
+        "ADMIN": "Администратор"
+      },
+      "perm": {
+        "news:edit": "Редакция на новини",
+        "content:edit": "Редакция на съдържание",
+        "media:edit": "Медийна библиотека",
+        "pages:edit": "Редакция на страници",
+        "nav:edit": "Навигация",
+        "users:manage": "Потребители",
+        "roles:manage": "Роли",
+        "settings:edit": "Настройки",
+        "audit:view": "Одит лог"
+      }
     }
   },
   "Clubs": {

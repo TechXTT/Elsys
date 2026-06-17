@@ -160,3 +160,63 @@ Branch `feat/G2-14-seo` (off Task 13 tip 1cbb850). typecheck ✓ lint ✓ build 
 - **News SEO UI:** collapsible "SEO настройки" section in the Simple editor (metaTitle/metaDescription/ogImage MediaField/canonical/noindex); persisted by `saveSimpleNews`; loaded on edit; covered by autosave/recovery.
 - **FLAG (Page SEO UI):** schema + metadata wiring done for Page, but surfacing the SEO panel in the **Page editor** (the PageBuilder) is a separate UI effort — deferred; news gets the full UI now.
 - Test `tests/e2e/seo.spec.ts`.
+
+---
+
+## Task 15 — G5-1 Roles (PLAN M5.1) — ✅ DONE  ⚠️ SECURITY-REVIEW REQUIRED
+Branch `feat/G5-1-roles` (off Task 14 tip f9e0734). typecheck ✓ lint ✓ build ✓ e2e roles ✓ (2/2); full suite green except the pre-existing 2FA shared-account parallel flake (passes 5/5 in isolation — see Task 10 note).
+- Additive Role enum values: `TEACHER, STUDENT_EDITOR, STUDENT_ADMIN` (USER + ADMIN kept). Migration `20260617010032_add_roles`.
+- `lib/auth/permissions.ts` — client-safe permission matrix (`ROLE_PERMISSIONS`, `can`, `defaultEditorMode`). `lib/auth/guard.ts` (server) — `requirePermission` / `requireUserId` / `currentRole`.
+- **Enforced in Server Actions:** content create/update/delete/bulk → `content:edit`; media upload/update/delete → `media:edit`; news Simple save → `news:edit`; role assignment → `roles:manage`.
+- **Users & roles admin UI** `/admin/roles` (ADMIN-gated): read-only permission matrix (role × permission) + per-user role-assignment table; `setUserRole` Server Action writes **AuditLog** (`USER_ROLE_CHANGE`) and guards against self-demotion lockout. Sidebar link + i18n.
+- TEACHER now lands in Simple Mode (`/admin/news` redirects TEACHER → `/admin/news/simple`), closing the Task-12 flag.
+- Seed: a `teacher@elsys.bg` (TEACHER, password `teacher123`) for the roles UI + TEACHER routing.
+
+### ⚠️ SECURITY-REVIEW FLAGS (for the human)
+1. **2FA scope:** mandatory 2FA is still ADMIN-only. STUDENT_ADMIN has near-admin capabilities (users:manage, nav, content) — decide whether STUDENT_ADMIN (and/or TEACHER) must also enrol 2FA.
+2. **Matrix authority:** `ROLE_PERMISSIONS` in `lib/auth/permissions.ts` is the single source of truth — review the exact grants (esp. STUDENT_ADMIN getting `users:manage` but NOT `roles:manage`).
+3. **Enforcement coverage:** Server Actions are gated, but the **deprecated REST routes** under `app/api/admin/**` were NOT re-gated with the new matrix (they predate it and still use their own ADMIN checks). Audit them before relying on roles for REST.
+4. **Self-demotion guard** only blocks the acting admin removing their own ADMIN role; it does not prevent the *last* admin being demoted by another admin — add a "≥1 ADMIN" invariant if desired.
+5. Role changes are audited; consider alerting on `USER_ROLE_CHANGE` in the audit review.
+
+---
+
+## STOP — end of Tasks 1–15. Remainder (G3-3, G5-2/5.3, G5-4) needs human/design/legal per the brief.
+
+---
+
+# Phase G4 — migration scraper/seeder (operator-queued, PLAN M4.1/4.2)
+
+Branched off Task-15 tip `76b4f82`. DEV-DB only, read-only/throttled/cached scrape; imported content = DRAFT, never auto-published; consent never auto-asserted. New deps: **none** (cheerio + node-fetch already present; p-limit avoided via a tiny inline limiter).
+
+## G4-1 — crawler — ✅ DONE
+Branch `feat/G4-1-crawler`. typecheck ✓ (crawler runs cache-only; classify unit-checked).
+- `scripts/import/LEGACY-MAP.md` — audited live URL patterns: news `/novini-i-sybitija/novini/<slug>-<id>`, blog `/blog/<slug>-<id>`, 2-level page tree (`/obuchenie|priem|uchenicheski-jivot/<page>`), item lists `…/<section>/<slug>-<id>`; trailing `-<id>` = `legacyId`. robots.txt disallows only `/admin/`; no sitemap.
+- `scripts/import/lib/http.ts` — cached (`.cache/`, gitignored) + throttled (≤1 req/s) + robots-aware fetch (`fetchPage`/`fetchBinary`), `cacheOnly` mode so `--dry-run` does zero live traffic; inline `pLimit`.
+- `scripts/import/crawl.ts` — BFS from seeds, classifies every content URL (type + legacyId + slug) → `.cache/urls.json`. `--limit`, `--cache-only`. Verified cache-only run + classify.
+- `package.json`: `import:crawl`, `import:all` (runner built in a later sub-phase).
+
+## G4-2 — HTML→markdown/blocks converter — ✅ DONE
+Branch `feat/G4-1-crawler` (stacked). `scripts/import/html-to-blocks.ts`: Sweboo TinyMCE → GFM markdown + collected images + warnings. Unit-checked.
+
+## G4-3 — extractors (news/blog/page) — ✅ DONE
+`scripts/import/extract.ts`: `.single-text > .text` (title `.page-title`) → NewsPost (news/blog; blog→"Блог"; featured=first image; date heuristics, null fallback) / Page (parentSlug from path). Verified on real cached pages.
+
+## G4-4 — runner + dry-run report — ✅ DONE
+`scripts/import/run.ts`: default **--dry-run** reads the cached inventory, extracts all, writes `.cache/import-report.json` (counts, news missing-date, media missing-alt + consent-review, HTML warnings, redirect coverage, unmapped). `--commit` **disabled** (gated) pending the write/media/redirect sub-phases. `scripts/import/README.md` + `docs/patterns/migration.md` document the fixture-seed vs real-import split.
+
+### Live crawl performed (authorized: read-only, throttled ≤1 req/s, cached)
+Crawled ~83 pages → **85 content URLs** (7 news, 12 blog, 11 item, 25 page, 30 other). Dry-run report:
+- **84 extracted, 0 unmapped.** News **19** (7 news + 12 blog) — **all 19 missing a structured date** (Sweboo exposes no parseable publish date → needs a date source or editor entry; FLAGGED). Pages **65**.
+- **Media: 44 referenced, 33 missing alt, 44 flagged for consent review** (consent never auto-asserted).
+- HTML conversion warnings (low): wbr, picture/source, script, nav, link, br, stray `a` — all minor.
+- **Redirect coverage 99%** (84 mapped, 1 uncached). News map `/novini-i-sybitija/novini/<slug>-<id>` → `/novini/<slug>`; pages keep their path.
+
+### ⏳ Remaining G4 sub-phases (NOT built — flagged; commit path is gated)
+1. Additive `legacyId`/`legacyUrl` on NewsPost + Page; DB upsert path (DRAFT, idempotent by legacyId).
+2. Media pipeline: download → dedupe-by-hash → Blob → Media rows (carry alt, flag missing-alt + minors' consent).
+3. `RouteRedirect` model + migration + 404 consumption (R1) + full legacy-URL backfill (incl. dropped-type targets per §2).
+4. Specialized extractors for Document/Club/Team/Partner/Gallery/Project/Award/Leader (currently these legacy pages route to Page/DRAFT for editor reclassification).
+5. M4.4 visual-diff harness — **HARD STOP** per brief (operator will brief separately).
+
+**STOP per brief:** dry-run done + reported; **no `--commit`/non-dry run, no prod, no auto-publish.** Awaiting operator review of the report before proceeding.
