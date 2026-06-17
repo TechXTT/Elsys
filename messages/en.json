@@ -507,6 +507,31 @@
       "pageOf": "{total} records — page {page} of {totalPages}",
       "prev": "Previous",
       "next": "Next"
+    },
+    "simpleEditor": {
+      "back": "News",
+      "newTitle": "New post",
+      "editTitle": "Edit post",
+      "modeLabel": "Editor mode",
+      "simple": "Simple",
+      "advanced": "Advanced",
+      "autosaved": "✓ Autosaved",
+      "title": "Title",
+      "required": "required",
+      "excerpt": "Excerpt",
+      "excerptPlaceholder": "Short intro shown in the news list.",
+      "content": "Content",
+      "gallery": "Gallery",
+      "addImage": "Add image",
+      "removeImage": "Remove",
+      "category": "Category",
+      "noCategory": "— No category —",
+      "date": "Date",
+      "featured": "Featured image",
+      "color": "Color",
+      "publish": "Publish",
+      "saveDraft": "Save draft",
+      "entry": "Simple editor"
     }
   },
   "Clubs": {

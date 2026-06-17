@@ -128,3 +128,13 @@ Branch `feat/G2-11-news-parity` (off Task 10 tip ecb9950). typecheck ✓ lint �
 - **Verified existing:** `getRelatedNews` (related posts) + `colorTag` chip both present (E1/E2) — unchanged.
 - Seed: a category Page "Събития" + a post linked to it; `tests/e2e/news-category.spec.ts` extended to assert the page-derived chip + filter.
 - The category-page **picker UI** lands in Task 12 (Simple Mode editor) per the brief; the REST news editor still sets free-text category (deprecated path, untouched).
+
+---
+
+## Task 12 — G3-1 Editor Simple Mode (Figma 95:2) — ✅ DONE
+Branch `feat/G3-1-simple-editor` (off Task 11 tip 6fd78ad). typecheck ✓ lint ✓ build ✓ e2e news-simple-editor ✓ (2/2).
+- New **Simple Mode** one-screen editor at `/admin/news/simple` (+ `/[id]` edit), matching 95:2: title (required), excerpt, body (curated toolbar), gallery (MediaPicker add/remove), aside = category (parent-Page select from `getNewsCategoryPages`), date, featured image (MediaField), ColorTag picker, Publish / Save draft; Опростен/Разширен toggle (Разширен → existing `/admin/news` block builder); autosave indicator (localStorage).
+- Save via **Server Action** `saveSimpleNews` (no REST) — create/update through `createNewsPost`/`updateNewsPost` + a follow-up update for `colorTag` + `categoryPageId`; AuditLog + `revalidateNews`. Slug auto-derived from title (`lib/slug.ts`, Cyrillic-preserving, uniqueness-checked).
+- Entry point added on `/admin/news` header ("+ Опростен редактор"). i18n `Admin.simpleEditor.*`.
+- **FLAG (TipTap):** §2 locks TipTap, but it is not installed and the news body is stored/rendered as **markdown** end-to-end. Simple Mode reuses the existing `RichTextEditor` (curated toolbar over markdown) to avoid a storage+render migration mid-run. Swapping to TipTap is a dedicated PR (add deps, choose HTML/JSON storage, update the public ReactMarkdown renderer) — flagged, not done.
+- **FLAG (TEACHER default):** "TEACHER lands here" needs the TEACHER role, added in Task 15 (G5-1). For now Simple Mode is reachable by any admin via the toggle/entry; Task 15 wires role-based default + restricts Advanced.

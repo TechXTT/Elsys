@@ -507,6 +507,31 @@
       "pageOf": "{total} записа — страница {page} от {totalPages}",
       "prev": "Предишна",
       "next": "Следваща"
+    },
+    "simpleEditor": {
+      "back": "Новини",
+      "newTitle": "Нова новина",
+      "editTitle": "Редактиране на новина",
+      "modeLabel": "Режим на редактора",
+      "simple": "Опростен",
+      "advanced": "Разширен",
+      "autosaved": "✓ Автозапазено",
+      "title": "Заглавие",
+      "required": "задължително",
+      "excerpt": "Кратко описание",
+      "excerptPlaceholder": "Кратко въведение, което се показва в списъка с новини.",
+      "content": "Съдържание",
+      "gallery": "Галерия",
+      "addImage": "Добави изображение",
+      "removeImage": "Премахни",
+      "category": "Категория",
+      "noCategory": "— Без категория —",
+      "date": "Дата",
+      "featured": "Featured изображение",
+      "color": "Цвят",
+      "publish": "Публикувай",
+      "saveDraft": "Запази чернова",
+      "entry": "Опростен редактор"
     }
   },
   "Clubs": {
