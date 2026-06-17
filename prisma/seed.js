@@ -1271,6 +1271,190 @@ Registration for the first workshop is now open!`,
     create: { ...scheduledNews, authorId: user.id },
   });
   console.log('✓ Seeded 1 scheduled (future-dated) news post');
+
+  // --- News category as parent Page (M2.4) ----------------------------------
+  const newsCategoryPage = await prisma.page.upsert({
+    where: { slug_locale: { slug: 'novini-sabitiya', locale: 'bg' } },
+    update: { title: 'Събития' },
+    create: { slug: 'novini-sabitiya', locale: 'bg', title: 'Събития', kind: 'FOLDER', status: 'PUBLISHED', published: true, visible: false },
+  });
+  const categorizedNews = {
+    id: 'm24-categorized-news', locale: 'bg',
+    title: 'Новина с категория-страница (M2.4)',
+    excerpt: 'Категорията идва от свързаната родителска страница „Събития“.',
+    bodyMarkdown: 'Тази новина е филирана под категория-страница.',
+    date: new Date('2026-03-01'), featuredImage: '/images/news/workshops.svg',
+    published: true, status: 'PUBLISHED', colorTag: 'GREEN',
+    categoryPageId: newsCategoryPage.id,
+  };
+  await prisma.newsPost.upsert({
+    where: { id_locale: { id: categorizedNews.id, locale: categorizedNews.locale } },
+    update: categorizedNews,
+    create: { ...categorizedNews, authorId: user.id },
+  });
+  console.log('✓ Seeded 1 news post categorized by parent Page (M2.4)');
+
+  // --- Media Library (G2-1) -------------------------------------------------
+  // Demonstrates the three states the library surfaces: alt OK, alt missing,
+  // and a minor's photo (consent recorded vs. not). Local SVG URLs so they
+  // render without a real blob upload in dev.
+  const mediaSeed = [
+    {
+      id: 'media-seed-olympiad', folder: 'news', filename: 'olimpiada.jpg',
+      url: '/images/news/workshops.svg', pathname: 'seed/olimpiada.jpg',
+      mimeType: 'image/jpeg', size: 421888, width: 1920, height: 1080,
+      alt: 'Ученици на олимпиада по информатика', isMinorPhoto: true,
+      consentRecordedAt: new Date('2026-06-05'),
+    },
+    {
+      id: 'media-seed-team', folder: 'team', filename: 'ekip-nov.jpg',
+      url: '/images/news/workshops.svg', pathname: 'seed/ekip-nov.jpg',
+      mimeType: 'image/jpeg', size: 318000, width: 1600, height: 900,
+      alt: null, isMinorPhoto: false, consentRecordedAt: null,
+    },
+    {
+      id: 'media-seed-robofest', folder: 'galleries', filename: 'robofest-3.jpg',
+      url: '/images/news/workshops.svg', pathname: 'seed/robofest-3.jpg',
+      mimeType: 'image/jpeg', size: 502000, width: 2048, height: 1365,
+      alt: 'Отбор по роботика на Robofest', isMinorPhoto: true, consentRecordedAt: null,
+    },
+    {
+      id: 'media-seed-partners', folder: 'partners', filename: 'partnyori.png',
+      url: '/images/news/workshops.svg', pathname: 'seed/partnyori.png',
+      mimeType: 'image/png', size: 88000, width: 800, height: 400,
+      alt: 'Лога на партньори', isMinorPhoto: false, consentRecordedAt: null,
+    },
+  ];
+  for (const m of mediaSeed) {
+    await prisma.media.upsert({
+      where: { id: m.id },
+      update: m,
+      create: { ...m, authorId: user.id },
+    });
+  }
+  console.log(`✓ Seeded ${mediaSeed.length} media library assets`);
+
+  // --- Documents (G2-2 type) ------------------------------------------------
+  const documentsSeed = [
+    {
+      slug: 'pravilnik-vatreshen-red', locale: 'bg', title: 'Правилник за вътрешния ред',
+      description: 'Вътрешни правила на училището.', category: 'Правилници',
+      fileUrl: '/files/pravilnik-vatreshen-red.pdf', fileType: 'PDF', fileSize: '1.2 MB',
+      color: 'BLUE', status: 'PUBLISHED', order: 1,
+    },
+    {
+      slug: 'etichen-kodeks', locale: 'bg', title: 'Етичен кодекс',
+      description: 'Етичен кодекс на училищната общност.', category: 'Правилници',
+      fileUrl: '/files/etichen-kodeks.pdf', fileType: 'PDF', fileSize: '640 KB',
+      color: 'TEAL', status: 'PUBLISHED', order: 2,
+    },
+    {
+      slug: 'zayavlenie-priem', locale: 'bg', title: 'Заявление за прием',
+      description: 'Формуляр за кандидатстване.', category: 'Формуляри',
+      fileUrl: '/files/zayavlenie-priem.docx', fileType: 'DOC', fileSize: '88 KB',
+      color: 'GREEN', status: 'PUBLISHED', order: 1,
+    },
+    {
+      slug: 'draft-document', locale: 'bg', title: 'Чернова документ (скрит)',
+      category: 'Формуляри', fileUrl: '/files/draft.pdf', fileType: 'PDF',
+      color: 'GRAY', status: 'DRAFT', order: 9,
+    },
+  ];
+  for (const d of documentsSeed) {
+    await prisma.document.upsert({
+      where: { slug_locale: { slug: d.slug, locale: d.locale } },
+      update: d,
+      create: { ...d, authorId: user.id },
+    });
+  }
+  console.log(`✓ Seeded ${documentsSeed.length} documents`);
+
+  // --- Gallery (G2-2 type) --------------------------------------------------
+  const gallerySeed = [
+    { slug: 'open-doors-2026', locale: 'bg', title: 'Ден на отворените врати 2026', imageUrl: '/images/news/open-doors.svg', alt: 'Ден на отворените врати', album: 'sabitiya', color: 'BLUE', status: 'PUBLISHED', order: 1 },
+    { slug: 'olympiad-medals', locale: 'bg', title: 'Национална олимпиада', imageUrl: '/images/news/olympiad-medals.svg', alt: 'Медали от олимпиада', album: 'olimpiadi', color: 'ORANGE', status: 'PUBLISHED', order: 2 },
+    { slug: 'robotics-lab', locale: 'bg', title: 'Робофест 2026', imageUrl: '/images/news/robotics-lab.svg', alt: 'Робофест', album: 'sabitiya', color: 'TEAL', status: 'PUBLISHED', order: 3 },
+    { slug: 'workshops', locale: 'bg', title: 'Лятна академия', imageUrl: '/images/news/workshops.svg', alt: 'Лятна академия', album: 'ezhednevie', color: 'GREEN', status: 'PUBLISHED', order: 4 },
+    { slug: 'alumni-meetup', locale: 'bg', title: 'Абитуриентски бал', imageUrl: '/images/news/alumni-meetup.svg', alt: 'Абитуриентски бал', album: 'abiturienti', color: 'PURPLE', status: 'PUBLISHED', order: 5 },
+    { slug: 'hidden-gallery-draft', locale: 'bg', title: 'Чернова снимка (скрита)', imageUrl: '/images/news/hackathon-2026.svg', alt: 'скрита', album: 'sabitiya', color: 'GRAY', status: 'DRAFT', order: 9 },
+  ];
+  for (const g of gallerySeed) {
+    await prisma.galleryItem.upsert({
+      where: { slug_locale: { slug: g.slug, locale: g.locale } },
+      update: g,
+      create: { ...g, authorId: user.id },
+    });
+  }
+  console.log(`✓ Seeded ${gallerySeed.length} gallery items`);
+
+  // --- Team members (G2-2 type) ---------------------------------------------
+  const teamSeed = [
+    { slug: 'director', locale: 'bg', name: 'инж. Стефан Бумбалов', role: 'Директор', category: 'Ръководство', email: 'director@elsys-bg.org', color: 'BLUE', status: 'PUBLISHED', order: 1 },
+    { slug: 'deputy-director', locale: 'bg', name: 'Мария Петрова', role: 'Заместник-директор', category: 'Ръководство', email: 'deputy@elsys-bg.org', color: 'TEAL', status: 'PUBLISHED', order: 2 },
+    { slug: 'teacher-informatics', locale: 'bg', name: 'Иван Георгиев', role: 'Преподавател по информатика', category: 'Преподаватели', email: 'igeorgiev@elsys-bg.org', color: 'GREEN', status: 'PUBLISHED', order: 3 },
+    { slug: 'teacher-draft', locale: 'bg', name: 'Скрит преподавател', role: 'Преподавател', category: 'Преподаватели', color: 'GRAY', status: 'DRAFT', order: 9 },
+  ];
+  for (const m of teamSeed) {
+    await prisma.teamMember.upsert({
+      where: { slug_locale: { slug: m.slug, locale: m.locale } },
+      update: m,
+      create: { ...m, authorId: user.id },
+    });
+  }
+  console.log(`✓ Seeded ${teamSeed.length} team members`);
+
+  // --- Partners (G2-2 type) -------------------------------------------------
+  const partnersSeed = [
+    { slug: 'tu-sofia', locale: 'bg', name: 'Технически университет – София', logo: '/images/news/partnership.svg', url: 'https://tu-sofia.bg', category: 'Университети', color: 'BLUE', status: 'PUBLISHED', order: 1 },
+    { slug: 'sap-labs', locale: 'bg', name: 'SAP Labs Bulgaria', logo: '/images/news/partnership.svg', url: 'https://sap.com', category: 'Бизнес', color: 'TEAL', status: 'PUBLISHED', order: 2 },
+    { slug: 'musala-soft', locale: 'bg', name: 'Musala Soft', logo: '/images/news/partnership.svg', url: 'https://musala.com', category: 'Бизнес', color: 'GREEN', status: 'PUBLISHED', order: 3 },
+    { slug: 'hidden-partner', locale: 'bg', name: 'Скрит партньор', logo: '/images/news/partnership.svg', category: 'Бизнес', color: 'GRAY', status: 'DRAFT', order: 9 },
+  ];
+  for (const p of partnersSeed) {
+    await prisma.partner.upsert({
+      where: { slug_locale: { slug: p.slug, locale: p.locale } },
+      update: p,
+      create: { ...p, authorId: user.id },
+    });
+  }
+  console.log(`✓ Seeded ${partnersSeed.length} partners`);
+
+  // --- Projects (G2-2 type) -------------------------------------------------
+  const projectsSeed = [
+    { slug: 'erasmus-digital', locale: 'bg', title: 'Дигитални умения (Еразъм+)', description: 'Международен обмен и обучения по дигитални компетентности.', image: '/images/news/partnership.svg', url: 'https://erasmus-plus.ec.europa.eu', category: 'Еразъм+', color: 'BLUE', status: 'PUBLISHED', order: 1 },
+    { slug: 'green-school', locale: 'bg', title: 'Зелено училище', description: 'Енергийна ефективност и устойчивост в училищната сграда.', image: '/images/news/workshops.svg', category: 'Околна среда', color: 'GREEN', status: 'PUBLISHED', order: 2 },
+    { slug: 'hidden-project', locale: 'bg', title: 'Скрит проект', description: 'Чернова.', category: 'Друго', color: 'GRAY', status: 'DRAFT', order: 9 },
+  ];
+  for (const p of projectsSeed) {
+    await prisma.project.upsert({
+      where: { slug_locale: { slug: p.slug, locale: p.locale } },
+      update: p,
+      create: { ...p, authorId: user.id },
+    });
+  }
+  console.log(`✓ Seeded ${projectsSeed.length} projects`);
+
+  // --- Awards (G2-2 type, D-10 yearly-append) -------------------------------
+  const awardsSeed = [
+    { slug: 'ioi-gold-2025', locale: 'bg', title: 'Златен медал, IOI 2025', description: 'Международна олимпиада по информатика.', image: '/images/news/olympiad-medals.svg', year: 2025, category: 'Олимпиади', color: 'ORANGE', status: 'PUBLISHED', order: 1 },
+    { slug: 'robofest-1st-2024', locale: 'bg', title: 'Първо място, Robofest 2024', description: 'Национално състезание по роботика.', image: '/images/news/robotics-lab.svg', year: 2024, category: 'Роботика', color: 'TEAL', status: 'PUBLISHED', order: 1 },
+    { slug: 'hidden-award', locale: 'bg', title: 'Скрита награда', year: 2023, category: 'Друго', color: 'GRAY', status: 'DRAFT', order: 9 },
+  ];
+  for (const a of awardsSeed) {
+    await prisma.award.upsert({ where: { slug_locale: { slug: a.slug, locale: a.locale } }, update: a, create: { ...a, authorId: user.id } });
+  }
+  console.log(`✓ Seeded ${awardsSeed.length} awards`);
+
+  // --- Leaders / alumni (G2-2 type, D-10 yearly-append) ---------------------
+  const leadersSeed = [
+    { slug: 'alumna-2020', locale: 'bg', name: 'Елена Иванова', role: 'Софтуерен инженер, Google', year: 2020, color: 'BLUE', status: 'PUBLISHED', order: 1 },
+    { slug: 'alumnus-2019', locale: 'bg', name: 'Георги Петров', role: 'Съосновател на стартъп', year: 2019, color: 'GREEN', status: 'PUBLISHED', order: 1 },
+    { slug: 'hidden-leader', locale: 'bg', name: 'Скрит випускник', role: 'Чернова', year: 2018, color: 'GRAY', status: 'DRAFT', order: 9 },
+  ];
+  for (const l of leadersSeed) {
+    await prisma.leader.upsert({ where: { slug_locale: { slug: l.slug, locale: l.locale } }, update: l, create: { ...l, authorId: user.id } });
+  }
+  console.log(`✓ Seeded ${leadersSeed.length} leaders`);
 }
 
 main()

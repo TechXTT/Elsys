@@ -43,6 +43,7 @@ interface NewsRow {
   status?: string;
   category?: string | null;
   colorTag?: import("@prisma/client").ColorTag | null;
+  categoryPage?: { title: string } | null;
   machineTranslated?: boolean;
   author?: { name: string | null } | null;
 }
@@ -60,7 +61,8 @@ function toPostItem(row: NewsRow): PostItem {
     images,
     published: row.published,
     status: row.status ?? undefined,
-    category: row.category ?? undefined,
+    // M2.4: effective category = linked parent Page's title, else free-text.
+    category: row.categoryPage?.title ?? row.category ?? undefined,
     colorTag: row.colorTag ?? undefined,
     machineTranslated: row.machineTranslated ?? false,
   };
@@ -81,7 +83,7 @@ export async function getNewsPosts(locale?: Locale, includeDrafts = false): Prom
           ...(includeDrafts ? {} : publicWhere({ gateDate: true, now })),
         },
         orderBy: { date: "desc" },
-        select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true, category: true, colorTag: true, machineTranslated: true },
+        select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true, category: true, colorTag: true, categoryPage: { select: { title: true } }, machineTranslated: true },
       });
 
       // If locale is not default, also fetch defaults to fill gaps (only when not includeDrafts)
@@ -93,7 +95,7 @@ export async function getNewsPosts(locale?: Locale, includeDrafts = false): Prom
             ...publicWhere({ gateDate: true, now }),
           },
           orderBy: { date: "desc" },
-          select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true, category: true, colorTag: true, machineTranslated: true },
+          select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true, category: true, colorTag: true, categoryPage: { select: { title: true } }, machineTranslated: true },
         });
       }
 
@@ -112,7 +114,7 @@ export async function getNewsPost(slug: string, locale?: Locale, includeDrafts =
   const localesToFetch = loc === defaultLocale ? [loc] : [loc, defaultLocale];
   const rows: NewsRow[] = await (prisma as any).newsPost.findMany({
     where: { id: slug, locale: { in: localesToFetch } },
-    select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true, category: true, colorTag: true, author: { select: { name: true } } },
+    select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true, category: true, colorTag: true, categoryPage: { select: { title: true } }, author: { select: { name: true } } },
   });
   const now = new Date();
   // Public visibility: status PUBLISHED + date not in the future (canonical helper).
@@ -134,6 +136,19 @@ export async function getLatestNews(locale?: Locale, limit = 3): Promise<PostIte
 /** Up to `limit` published posts other than `slug` (cached list) — "related news". */
 export async function getRelatedNews(slug: string, locale?: Locale, limit = 3): Promise<PostItem[]> {
   return (await getNewsPosts(locale)).filter((p) => p.id !== slug).slice(0, limit);
+}
+
+/**
+ * M2.4: candidate parent Pages that can serve as a news category, for the editor
+ * picker. Returns content/folder pages in the locale (id + title), ordered.
+ */
+export async function getNewsCategoryPages(locale?: Locale): Promise<{ id: string; title: string }[]> {
+  const loc = (locale ?? defaultLocale) as string;
+  return (prisma as any).page.findMany({
+    where: { locale: loc, kind: { in: ["PAGE", "FOLDER"] } },
+    select: { id: true, title: true },
+    orderBy: [{ order: "asc" }, { title: "asc" }],
+  });
 }
 
 export async function createNewsPost(input: {

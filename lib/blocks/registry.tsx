@@ -1,4 +1,5 @@
 import React from "react";
+import { z } from "zod";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
@@ -21,12 +22,25 @@ import { ButtonLink } from "@/components/ui/Button";
 import type { Locale } from "@/i18n/config";
 import type { PostItem } from "@/lib/types";
 
-export type BlockContext = { locale?: Locale; news?: PostItem[]; carouselSlides?: CarouselSlide[] };
+export type DocItemLite = { id?: string; title: string; fileUrl: string; fileType?: string; fileSize?: string; category?: string };
+export type ClubLite = { id?: string; slug?: string; title: string; description?: string; color?: ColorTag; coverImage?: string };
+export type TeamMemberLite = { id?: string; name: string; role?: string; photo?: string; email?: string };
+export type PartnerLite = { id?: string; name: string; logo: string; url?: string };
+export type BlockContext = { locale?: Locale; news?: PostItem[]; carouselSlides?: CarouselSlide[]; documents?: DocItemLite[]; clubs?: ClubLite[]; team?: TeamMemberLite[]; partners?: PartnerLite[] };
+
+/** Public data sources a block can declare a dependency on (R4). The page
+ * compiler prefetches the union of all blocks' needs in one Promise.all. */
+export type DataNeed = "news" | "documents" | "clubs" | "team" | "partners" | "carousel";
 
 export type BlockDefinition<P extends Record<string, unknown> = any> = {
   type: string;
   defaults?: Partial<P>;
+  /** R4: Zod schema validating + normalizing props (replaces hand-rolled validators). */
+  schema?: z.ZodTypeAny;
+  /** Legacy hand-rolled validator (retained for back-compat; prefer `schema`). */
   validate?: (props: unknown) => { ok: true; props: P } | { ok: false; errors: string[] };
+  /** R4: declared public-data dependencies, prefetched by the compiler. */
+  needs?: DataNeed[];
   render: (props: P, ctx?: BlockContext) => React.ReactNode;
 };
 
@@ -77,29 +91,23 @@ const gridCols = (n: number) => COLS[Math.min(4, Math.max(1, n || 3))] ?? COLS[3
 
 const HeroBlock: BlockDefinition<{ heading: string; subheading?: string; eyebrow?: string; image?: string; cta?: { label: string; href: string }; secondaryCta?: { label: string; href: string } }> = {
   type: "Hero",
-  validate: (props) => {
-    const p = isRecord(props) ? props : {};
-    const heading = str(p.heading);
-    if (!heading) return { ok: false, errors: ["Hero.heading is required"] } as const;
-    const cta = isRecord(p.cta) && str(p.cta.label) && str(p.cta.href) ? { label: str(p.cta.label), href: str(p.cta.href) } : undefined;
-    const secondaryCta = isRecord(p.secondaryCta) && str(p.secondaryCta.label) && str(p.secondaryCta.href) ? { label: str(p.secondaryCta.label), href: str(p.secondaryCta.href) } : undefined;
-    return { ok: true, props: { heading, subheading: str(p.subheading), eyebrow: str(p.eyebrow), image: str(p.image), cta, secondaryCta } } as const;
+  // R4: required heading enforced by Zod; render guards optional CTAs itself.
+  schema: z.object({ heading: z.string().min(1, "Hero.heading is required") }).passthrough(),
+  render: (p) => {
+    const r = p as Record<string, unknown>;
+    const cta = isRecord(r.cta) && str(r.cta.label) && str(r.cta.href) ? { label: str(r.cta.label), href: str(r.cta.href) } : undefined;
+    const secondaryCta = isRecord(r.secondaryCta) && str(r.secondaryCta.label) && str(r.secondaryCta.href) ? { label: str(r.secondaryCta.label), href: str(r.secondaryCta.href) } : undefined;
+    return (
+      <Band>
+        <Hero heading={str(r.heading)} subheading={str(r.subheading) || undefined} eyebrow={str(r.eyebrow) || undefined} image={str(r.image) || undefined} cta={cta} secondaryCta={secondaryCta} />
+      </Band>
+    );
   },
-  render: (p) => (
-    <Band>
-      <Hero heading={p.heading} subheading={p.subheading} eyebrow={p.eyebrow || undefined} image={p.image || undefined} cta={p.cta} secondaryCta={p.secondaryCta} />
-    </Band>
-  ),
 };
 
 const SectionBlock: BlockDefinition<{ title: string; highlight?: string; description?: string; markdown?: string }> = {
   type: "Section",
-  validate: (props) => {
-    const p = isRecord(props) ? props : {};
-    const title = str(p.title);
-    if (!title) return { ok: false, errors: ["Section.title is required"] } as const;
-    return { ok: true, props: { title, highlight: str(p.highlight), description: str(p.description), markdown: str(p.markdown) } } as const;
-  },
+  schema: z.object({ title: z.string().min(1, "Section.title is required") }).passthrough(),
   render: (p) => (
     <Band className="flex flex-col gap-[var(--spacing-lg)]">
       <SectionHeading as="h2" title={p.title} highlight={p.highlight || undefined} description={p.description || undefined} />
@@ -203,6 +211,7 @@ const MediaGalleryBlock: BlockDefinition<{ title?: string; images?: unknown }> =
 
 const EmbedBlock: BlockDefinition<{ url: string; aspectRatio?: string }> = {
   type: "Embed",
+  schema: z.object({ url: z.string().min(1, "Embed.url is required") }).passthrough(),
   render: (p) => {
     const r = p as Record<string, unknown>;
     const url = str(r.url);
@@ -220,10 +229,7 @@ const EmbedBlock: BlockDefinition<{ url: string; aspectRatio?: string }> = {
 
 const NewsListBlock: BlockDefinition<{ title?: string; description?: string; limit?: number }> = {
   type: "NewsList",
-  validate: (props) => {
-    const p = isRecord(props) ? props : {};
-    return { ok: true, props: { title: str(p.title), description: str(p.description), limit: num(p.limit) } } as const;
-  },
+  needs: ["news"],
   render: (p, ctx) => {
     const locale = (ctx?.locale as Locale) ?? "bg";
     const items = (Array.isArray(ctx?.news) ? ctx!.news : []).slice(0, Math.max(1, Math.min(24, Number(p?.limit) || 6)));
@@ -382,6 +388,7 @@ const GridBlock: BlockDefinition<{ columns?: number; items?: unknown }> = {
 
 const CarouselHeroBlock: BlockDefinition<Record<string, unknown>> = {
   type: "CarouselHero",
+  needs: ["carousel"],
   render: (_, ctx) => <CarouselHero slides={ctx?.carouselSlides ?? []} />,
 };
 
@@ -389,9 +396,20 @@ const CarouselHeroBlock: BlockDefinition<Record<string, unknown>> = {
 
 const TeamGridBlock: BlockDefinition<{ title?: string; items?: unknown }> = {
   type: "TeamGrid",
-  render: (p) => {
+  needs: ["team"],
+  render: (p, ctx) => {
     const r = p as Record<string, unknown>;
-    const items = arr(r.items);
+    // Data-bound (G2-2): prefer real TeamMembers from context; inline fallback.
+    const fromData = Array.isArray(ctx?.team)
+      ? ctx!.team.map((m) => ({ name: m.name, role: m.role, photo: m.photo, email: m.email }))
+      : [];
+    const inline = arr(r.items).map((it) => ({
+      name: str(it.name),
+      role: str(it.role) || undefined,
+      photo: str(it.photo) || undefined,
+      email: str(it.email) || undefined,
+    }));
+    const items = fromData.length > 0 ? fromData : inline;
     return (
       <Band className="flex flex-col gap-[var(--spacing-lg)]">
         {str(r.title) ? <SectionHeading as="h2" title={str(r.title)} /> : null}
@@ -399,10 +417,10 @@ const TeamGridBlock: BlockDefinition<{ title?: string; items?: unknown }> = {
           {items.map((it, i) => (
             <TeamCard
               key={i}
-              name={str(it.name)}
-              role={str(it.role) || undefined}
-              photo={str(it.photo) || undefined}
-              contact={str(it.email) ? { href: `mailto:${str(it.email)}`, label: str(it.email) } : undefined}
+              name={it.name}
+              role={it.role}
+              photo={it.photo}
+              contact={it.email ? { href: `mailto:${it.email}`, label: it.email } : undefined}
             />
           ))}
         </div>
@@ -413,16 +431,22 @@ const TeamGridBlock: BlockDefinition<{ title?: string; items?: unknown }> = {
 
 const PartnerGridBlock: BlockDefinition<{ title?: string; grayscale?: boolean; items?: unknown }> = {
   type: "PartnerGrid",
-  render: (p) => {
+  needs: ["partners"],
+  render: (p, ctx) => {
     const r = p as Record<string, unknown>;
-    const items = arr(r.items);
     const grayscale = r.grayscale !== false;
+    // Data-bound (G2-2): prefer real Partners from context; inline fallback.
+    const fromData = Array.isArray(ctx?.partners)
+      ? ctx!.partners.map((pt) => ({ name: pt.name, logo: pt.logo, href: pt.url }))
+      : [];
+    const inline = arr(r.items).map((it) => ({ name: str(it.name), logo: str(it.logo), href: str(it.href) || undefined }));
+    const items = fromData.length > 0 ? fromData : inline;
     return (
       <Band className="flex flex-col gap-[var(--spacing-lg)]">
         {str(r.title) ? <SectionHeading as="h2" title={str(r.title)} /> : null}
         <div className={`grid items-center gap-[var(--spacing-lg)] ${gridCols(4)}`}>
           {items.map((it, i) => (
-            <PartnerLogo key={i} name={str(it.name)} logo={str(it.logo)} href={str(it.href) || undefined} grayscale={grayscale} />
+            <PartnerLogo key={i} name={it.name} logo={it.logo} href={it.href} grayscale={grayscale} />
           ))}
         </div>
       </Band>
@@ -432,30 +456,39 @@ const PartnerGridBlock: BlockDefinition<{ title?: string; grayscale?: boolean; i
 
 const DocumentListBlock: BlockDefinition<{ title?: string; items?: unknown }> = {
   type: "DocumentList",
-  render: (p) => {
+  needs: ["documents"],
+  render: (p, ctx) => {
     const r = p as Record<string, unknown>;
-    const items = arr(r.items);
+    // Data-bound (G2-2): prefer real Documents from context; fall back to any
+    // inline-authored items so existing block instances keep rendering.
+    const fromData = Array.isArray(ctx?.documents)
+      ? ctx!.documents.map((d) => ({ name: d.title, href: d.fileUrl, fileType: d.fileType, size: d.fileSize }))
+      : [];
+    const inline = arr(r.items).map((it) => ({
+      name: str(it.name),
+      href: str(it.href),
+      fileType: str(it.fileType) || undefined,
+      size: str(it.size) || undefined,
+    }));
+    const items = fromData.length > 0 ? fromData : inline;
     return (
       <Band className="flex flex-col gap-[var(--spacing-lg)]">
         {str(r.title) ? <SectionHeading as="h2" title={str(r.title)} /> : null}
         <div className="flex flex-col gap-[var(--spacing-sm)]">
-          {items.map((it, i) => {
-            const type = str(it.fileType) || "FILE";
-            return (
-              <DocumentRow
-                key={i}
-                name={str(it.name)}
-                href={str(it.href)}
-                fileType={type}
-                size={str(it.size) || undefined}
-                icon={
-                  <span className="text-[9px] flex h-10 w-10 items-center justify-center rounded-[var(--radius-sm)] bg-tag-tint-coral font-bold text-tag-ink-coral">
-                    <FileText size={18} aria-hidden />
-                  </span>
-                }
-              />
-            );
-          })}
+          {items.map((it, i) => (
+            <DocumentRow
+              key={i}
+              name={it.name}
+              href={it.href}
+              fileType={it.fileType || "FILE"}
+              size={it.size || undefined}
+              icon={
+                <span className="text-[9px] flex h-10 w-10 items-center justify-center rounded-[var(--radius-sm)] bg-tag-tint-coral font-bold text-tag-ink-coral">
+                  <FileText size={18} aria-hidden />
+                </span>
+              }
+            />
+          ))}
         </div>
       </Band>
     );
@@ -464,9 +497,27 @@ const DocumentListBlock: BlockDefinition<{ title?: string; items?: unknown }> = 
 
 const ClubGridBlock: BlockDefinition<{ title?: string; items?: unknown }> = {
   type: "ClubGrid",
+  needs: ["clubs"],
   render: (p, ctx) => {
     const r = p as Record<string, unknown>;
-    const items = arr(r.items);
+    // Data-bound (G2-2): prefer real Clubs from context; fall back to inline items.
+    const fromData = Array.isArray(ctx?.clubs)
+      ? ctx!.clubs.map((c) => ({
+          name: c.title,
+          description: c.description,
+          color: (c.color ?? "BLUE") as ColorTag,
+          logo: c.coverImage,
+          href: c.slug ? `/klubove` : undefined,
+        }))
+      : [];
+    const inline = arr(r.items).map((it) => ({
+      name: str(it.name),
+      description: str(it.description) || undefined,
+      color: (str(it.color) || "BLUE") as ColorTag,
+      logo: undefined as string | undefined,
+      href: str(it.href) || undefined,
+    }));
+    const items = fromData.length > 0 ? fromData : inline;
     return (
       <Band className="flex flex-col gap-[var(--spacing-lg)]">
         {str(r.title) ? <SectionHeading as="h2" title={str(r.title)} /> : null}
@@ -474,10 +525,11 @@ const ClubGridBlock: BlockDefinition<{ title?: string; items?: unknown }> = {
           {items.map((it, i) => (
             <ClubCard
               key={i}
-              name={str(it.name)}
-              description={str(it.description) || undefined}
-              color={(str(it.color) || "BLUE") as ColorTag}
-              href={str(it.href) || undefined}
+              name={it.name}
+              description={it.description}
+              color={it.color}
+              logo={it.logo}
+              href={it.href}
               locale={ctx?.locale}
             />
           ))}
@@ -526,8 +578,27 @@ export const blockRegistry: BlockDefinition[] = [
   HeaderAccentBlock,
 ];
 
+// R4: every registry entry has a Zod schema. Presentational blocks that declare
+// none get a permissive passthrough default, so validateBlocks is uniformly
+// schema-driven (no hand-rolled validators remain in the registry).
+const PASSTHROUGH_SCHEMA = z.object({}).passthrough();
+for (const def of blockRegistry) {
+  if (!def.schema && !def.validate) def.schema = PASSTHROUGH_SCHEMA;
+}
+
 export function getBlockDefinition(type: string): BlockDefinition | undefined {
   return blockRegistry.find((d) => d.type === type);
+}
+
+/** R4: union of all data dependencies declared by the given blocks. */
+export function collectBlockNeeds(blocks: unknown): DataNeed[] {
+  const needs = new Set<DataNeed>();
+  if (!Array.isArray(blocks)) return [];
+  for (const b of blocks) {
+    if (!isRecord(b) || typeof b.type !== "string") continue;
+    getBlockDefinition(b.type)?.needs?.forEach((n) => needs.add(n));
+  }
+  return Array.from(needs);
 }
 
 export function validateBlocks(blocks: unknown): { valid: boolean; errors: string[]; normalized: BlockInstance[] } {
@@ -541,7 +612,14 @@ export function validateBlocks(blocks: unknown): { valid: boolean; errors: strin
     }
     const def = getBlockDefinition(raw.type);
     const rawProps = isRecord(raw.props) ? raw.props : {};
-    if (def?.validate) {
+    if (def?.schema) {
+      const res = def.schema.safeParse(rawProps);
+      if (!res.success) {
+        res.error.issues.forEach((e) => errors.push(`Block[${idx}] ${raw.type}: ${e.message}`));
+        return;
+      }
+      normalized.push({ type: raw.type, props: res.data as Record<string, unknown> });
+    } else if (def?.validate) {
       const res = def.validate(rawProps);
       if (!res.ok) {
         res.errors.forEach((e) => errors.push(`Block[${idx}] ${raw.type}: ${e}`));

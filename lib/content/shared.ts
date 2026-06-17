@@ -9,7 +9,8 @@ export type FieldType =
   | "date"
   | "image"
   | "slug"
-  | "richtext";
+  | "richtext"
+  | "colortag";
 
 export type FieldConfig = {
   name: string;
@@ -41,7 +42,44 @@ export type ContentTypeConfig = {
   searchFields?: string[];
   defaultSort?: string;
   schema: z.ZodTypeAny;
+  /** Field rendered as the row/heading title (default "title"). */
+  titleField?: string;
+  /** Read-only prefix shown before the slug input, e.g. "/klubove/". */
+  slugPrefix?: string;
+  /** Field holding a ColorTag value — rendered as a dot badge in the list. */
+  colorField?: string;
+  /** Field holding a PublishStatus value (default "status"); drives badges + bulk ops. */
+  statusField?: string;
+  /** Field holding the public image (for the MediaPicker folder scope). */
+  imageFolder?: string;
+  /** Enable the amber per-record successor note (M5.2). Default true. */
+  enableSuccessorNote?: boolean;
+  /** Enable bulk publish/archive/delete in the list. Default true. */
+  enableBulk?: boolean;
 };
+
+/** ColorTag dropdown/picker options, reused by every colour-bearing type. */
+export const COLOR_TAG_OPTIONS: { value: string; label: string }[] = [
+  { value: "RED", label: "Червено" },
+  { value: "ORANGE", label: "Оранжево" },
+  { value: "YELLOW", label: "Жълто" },
+  { value: "GREEN", label: "Зелено" },
+  { value: "TEAL", label: "Тюркоазено" },
+  { value: "BLUE", label: "Синьо" },
+  { value: "INDIGO", label: "Индиго" },
+  { value: "PURPLE", label: "Лилаво" },
+  { value: "PINK", label: "Розово" },
+  { value: "GRAY", label: "Сиво" },
+];
+
+/** Status dropdown options (Bulgarian labels), reused by every type. */
+export const STATUS_OPTIONS: { value: PublishStatus; label: string }[] = [
+  { value: "PUBLISHED", label: "Публикувано" },
+  { value: "DRAFT", label: "Чернова" },
+  { value: "PREVIEW", label: "Преглед" },
+  { value: "SCHEDULED", label: "Насрочено" },
+  { value: "ARCHIVED", label: "Архивирано" },
+];
 
 // Client-safe projection of a content type: everything except the Zod `schema`,
 // which is a class instance and cannot cross the Server -> Client component

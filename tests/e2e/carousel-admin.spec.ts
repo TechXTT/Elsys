@@ -19,9 +19,10 @@ test.describe("Carousel admin CRUD (Phase 2.1)", () => {
 
     await page.selectOption('select[name="locale"]', "bg");
     await page.fill('input[name="title"]', title);
+    // image fields are MediaField inputs (named, with a manual-URL fallback).
     await page.fill('input[name="imageDesktop"]', "https://via.placeholder.com/1366x564.jpg");
-    await page.selectOption('select[name="status"]', "PUBLISHED");
-    await page.click('button[type="submit"]');
+    // "Запази и публикувай" in the publish aside sets status=PUBLISHED and submits.
+    await page.getByRole("button", { name: "Запази и публикувай" }).click();
 
     // Redirect back to the list, then search for the unique title so it's found
     // regardless of dev-DB accumulation (the list paginates at 20). Hermetic.

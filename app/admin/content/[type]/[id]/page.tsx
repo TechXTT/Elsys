@@ -3,6 +3,7 @@ import "../../types"; // register all content types
 import { getContentType } from "../../registry";
 import { updateContentRecord } from "../../actions";
 import { prisma } from "@/lib/prisma";
+import { getSuccessorNote } from "@/lib/content/successor-notes";
 import { PageHeader } from "@/app/admin/components/PageHeader";
 import { ContentForm } from "../../_components/ContentForm";
 import type { ContentRecord } from "@/lib/content/shared";
@@ -22,26 +23,26 @@ export default async function EditContentPage({ params }: Props) {
     config.modelName.charAt(0).toLowerCase() + config.modelName.slice(1)
   ];
 
-  const record: ContentRecord | null = await model.findUnique({
-    where: { id: params.id },
-  });
+  const record: ContentRecord | null = await model.findUnique({ where: { id: params.id } });
   if (!record) notFound();
 
+  const successorNote =
+    config.enableSuccessorNote !== false ? await getSuccessorNote(config.modelName, params.id) : null;
+
   const action = updateContentRecord.bind(null, params.type, params.id);
+  const title = String(record[config.titleField ?? "title"] ?? config.labelSingular);
 
   return (
     <div>
       <PageHeader
-        title={`Редактиране — ${config.labelSingular}`}
+        title={`Редактиране: ${title}`}
         breadcrumbs={[
           { label: "Съдържание" },
           { label: config.labelPlural, href: `/admin/content/${params.type}` },
           { label: "Редактиране" },
         ]}
       />
-      <div className="max-w-2xl rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800">
-        <ContentForm config={clientConfig} record={record} action={action} />
-      </div>
+      <ContentForm config={clientConfig} record={record} action={action} successorNote={successorNote} />
     </div>
   );
 }
