@@ -38,3 +38,5 @@ node_modules/
 
 # Claude Code local settings (machine-specific override)
 .claude/settings.local.json
+# G4 migration scrape cache (never committed)
+scripts/import/.cache/

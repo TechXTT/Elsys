@@ -19,7 +19,9 @@
     "pages:scrape": "tsx scripts/scrape-static-pages.ts",
     "pages:seed-json": "tsx scripts/seed-static-pages-from-json.ts",
     "pages:drop-json": "tsx scripts/drop-static-pages-from-json.ts",
-    "i18n:backfill-en": "tsx scripts/backfill-en.ts"
+    "i18n:backfill-en": "tsx scripts/backfill-en.ts",
+    "import:crawl": "tsx scripts/import/crawl.ts",
+    "import:all": "tsx scripts/import/run.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

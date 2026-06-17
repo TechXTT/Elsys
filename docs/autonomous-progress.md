@@ -181,5 +181,17 @@ Branch `feat/G5-1-roles` (off Task 14 tip f9e0734). typecheck ✓ lint ✓ build
 
 ---
 
-## STOP — end of Tasks 1–15. Remainder (G3-3, G4 import run, G5-2/5.3, G5-4) needs human/design/legal per the brief.
-(Then the operator queued **Phase G4 — migration scraper/seeder**; starting that next.)
+## STOP — end of Tasks 1–15. Remainder (G3-3, G5-2/5.3, G5-4) needs human/design/legal per the brief.
+
+---
+
+# Phase G4 — migration scraper/seeder (operator-queued, PLAN M4.1/4.2)
+
+Branched off Task-15 tip `76b4f82`. DEV-DB only, read-only/throttled/cached scrape; imported content = DRAFT, never auto-published; consent never auto-asserted. New deps: **none** (cheerio + node-fetch already present; p-limit avoided via a tiny inline limiter).
+
+## G4-1 — crawler — ✅ DONE
+Branch `feat/G4-1-crawler`. typecheck ✓ (crawler runs cache-only; classify unit-checked).
+- `scripts/import/LEGACY-MAP.md` — audited live URL patterns: news `/novini-i-sybitija/novini/<slug>-<id>`, blog `/blog/<slug>-<id>`, 2-level page tree (`/obuchenie|priem|uchenicheski-jivot/<page>`), item lists `…/<section>/<slug>-<id>`; trailing `-<id>` = `legacyId`. robots.txt disallows only `/admin/`; no sitemap.
+- `scripts/import/lib/http.ts` — cached (`.cache/`, gitignored) + throttled (≤1 req/s) + robots-aware fetch (`fetchPage`/`fetchBinary`), `cacheOnly` mode so `--dry-run` does zero live traffic; inline `pLimit`.
+- `scripts/import/crawl.ts` — BFS from seeds, classifies every content URL (type + legacyId + slug) → `.cache/urls.json`. `--limit`, `--cache-only`. Verified cache-only run + classify.
+- `package.json`: `import:crawl`, `import:all` (runner built in a later sub-phase).
