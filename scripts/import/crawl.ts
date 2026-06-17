@@ -47,7 +47,7 @@ function extractLinks(html: string): string[] {
   const $ = cheerio.load(html);
   const out: string[] = [];
   $("a[href]").each((_, a) => {
-    let href = $(a).attr("href") ?? "";
+    const href = $(a).attr("href") ?? "";
     if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) return;
     try {
       const u = new URL(href, ORIGIN);

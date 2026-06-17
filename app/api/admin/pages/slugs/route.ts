@@ -1,4 +1,5 @@
 import fs from "fs";
+import { apiGuard } from "@/lib/auth/api-guard";
 import path from "path";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -38,6 +39,7 @@ function walkIndexJsonFiles(locale: string): string[] {
 }
 
 export async function GET() {
+  const __g = await apiGuard("pages:edit"); if (__g instanceof NextResponse) return __g;
   try {
     const session = (await getServerSession(authOptions as any)) as any;
     if (!session || session?.user?.role !== "ADMIN") {

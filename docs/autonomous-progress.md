@@ -220,3 +220,14 @@ Crawled ~83 pages → **85 content URLs** (7 news, 12 blog, 11 item, 25 page, 30
 5. M4.4 visual-diff harness — **HARD STOP** per brief (operator will brief separately).
 
 **STOP per brief:** dry-run done + reported; **no `--commit`/non-dry run, no prod, no auto-publish.** Awaiting operator review of the report before proceeding.
+
+---
+
+# Post-review continuation (operator approved dry-run) — Parts A/B/C
+
+## Part A — security hardening — ✅ DONE
+Branch `feat/G5-sec-hardening` (off G4-4 tip 95ad1ff). typecheck ✓ lint ✓ build ✓ e2e roles 3/3 + two-factor 5/5.
+- **2FA scope:** middleware mandatory-2FA gate now covers **ADMIN + STUDENT_ADMIN** (both bounced to `/admin/security` until enrolled); TEACHER/STUDENT_EDITOR ungated.
+- **All admin API routes gated:** new `lib/auth/api-guard.ts` (`apiGuard(permission)`); applied to every `app/api/admin/**` handler via the matrix (news→news:edit, pages→pages:edit, navigation→nav:edit, users/reset-password→users:manage, admins/register→roles:manage/ADMIN-only, dashboard→audit:view, me→auth-only). **`2fa/precheck` intentionally ungated** (pre-login, no session) — it broke login when gated; reverted + commented.
+- **Last-admin invariant:** `wouldRemoveLastAdmin()` in `lib/auth/guard.ts` blocks demoting/deleting the final ADMIN (friendly BG `LAST_ADMIN_ERROR`) in `setUserRole` + admins/[id] PATCH/DELETE + users/[id] PATCH/DELETE, each AuditLogging the blocked attempt (`*_BLOCKED`). e2e covers the bootstrap-admin demotion guard.
+- Clears Task-15 security-review flags #1 (2FA scope), #3 (ungated REST), #4 (last-admin). Flag #2 (matrix grants) is a human policy review, unchanged.

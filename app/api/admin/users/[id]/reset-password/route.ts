@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiGuard } from "@/lib/auth/api-guard";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -21,6 +22,7 @@ function generatePassword(len = 14) {
 }
 
 export async function POST(_req: Request, { params }: { params: { id: string } }) {
+  const __g = await apiGuard("users:manage"); if (__g instanceof NextResponse) return __g;
   const auth = await requireAdmin();
   if (!auth.ok) return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
 

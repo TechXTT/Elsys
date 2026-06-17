@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/audit";
-import { requirePermission } from "@/lib/auth/guard";
+import { requirePermission, wouldRemoveLastAdmin, LAST_ADMIN_ERROR } from "@/lib/auth/guard";
 import { ROLES, type AppRole } from "@/lib/auth/permissions";
 
 // G5-1: assign a role to a user. Gated by `roles:manage` (ADMIN only per the
@@ -18,6 +18,18 @@ export async function setUserRole(userId: string, role: string): Promise<{ ok: b
   // Guardrail: do not let an admin strip their own ADMIN role (avoids lockout).
   if (actorId === userId && existing.role === "ADMIN" && role !== "ADMIN") {
     return { ok: false, error: "Не можете да премахнете собствената си администраторска роля." };
+  }
+
+  // Last-admin invariant: never demote the final remaining ADMIN.
+  if (existing.role === "ADMIN" && role !== "ADMIN" && (await wouldRemoveLastAdmin(userId))) {
+    await recordAudit({
+      userId: actorId,
+      action: "USER_ROLE_CHANGE_BLOCKED",
+      entity: "User",
+      entityId: userId,
+      details: { reason: "last-admin", attemptedRole: role },
+    });
+    return { ok: false, error: LAST_ADMIN_ERROR };
   }
 
   await prisma.user.update({ where: { id: userId }, data: { role: role as AppRole } });

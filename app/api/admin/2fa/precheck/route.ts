@@ -13,6 +13,7 @@ import { isLockedOut } from "@/lib/totp";
  * + bootstrap logic.
  */
 export async function POST(req: Request) {
+  // Intentionally NO auth guard: this is a pre-login precheck (no session yet).
   let email = "";
   let password = "";
   try {

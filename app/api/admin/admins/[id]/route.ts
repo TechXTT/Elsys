@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { apiGuard } from "@/lib/auth/api-guard";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/audit";
+import { wouldRemoveLastAdmin, LAST_ADMIN_ERROR } from "@/lib/auth/guard";
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
@@ -15,6 +17,7 @@ async function requireAdmin() {
 }
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+  const __g = await apiGuard("roles:manage"); if (__g instanceof NextResponse) return __g;
   const auth = await requireAdmin();
   if (!auth.ok) return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
 
@@ -25,6 +28,12 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const data: any = {};
   if (body.role) data.role = body.role;
   if (body.name !== undefined) data.name = body.name;
+
+  // Last-admin invariant: never demote the final remaining ADMIN.
+  if (body.role && body.role !== "ADMIN" && (await wouldRemoveLastAdmin(id))) {
+    await recordAudit({ req: request, userId: auth.me.id, action: "ADMIN_UPDATE_BLOCKED", entity: "User", entityId: id, details: { reason: "last-admin" } }).catch(() => {});
+    return NextResponse.json({ error: LAST_ADMIN_ERROR }, { status: 409 });
+  }
 
   const user = await prisma.user.update({ where: { id }, data: data as any });
 
@@ -43,11 +52,18 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 }
 
 export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
+  const __g = await apiGuard("roles:manage"); if (__g instanceof NextResponse) return __g;
   const auth = await requireAdmin();
   if (!auth.ok) return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
 
   const id = params.id;
   if (auth.me.id === id) return NextResponse.json({ error: "Cannot delete yourself" }, { status: 400 });
+
+  // Last-admin invariant: never delete the final remaining ADMIN.
+  if (await wouldRemoveLastAdmin(id)) {
+    await recordAudit({ req: _request, userId: auth.me.id, action: "ADMIN_DELETE_BLOCKED", entity: "User", entityId: id, details: { reason: "last-admin" } }).catch(() => {});
+    return NextResponse.json({ error: LAST_ADMIN_ERROR }, { status: 409 });
+  }
 
   await prisma.user.delete({ where: { id } });
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiGuard } from "@/lib/auth/api-guard";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -6,6 +7,7 @@ import bcrypt from "bcryptjs";
 import { recordAudit } from "@/lib/audit";
 
 export async function GET() {
+  const __g = await apiGuard(); if (__g instanceof NextResponse) return __g;
   try {
     const session = await getServerSession(authOptions);
     if (!session || !(session.user as any)?.id) {
@@ -31,6 +33,7 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request) {
+  const __g = await apiGuard(); if (__g instanceof NextResponse) return __g;
   try {
     const session = await getServerSession(authOptions);
     if (!session || !(session.user as any)?.id) {

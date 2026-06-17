@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { apiGuard } from "@/lib/auth/api-guard";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { wouldRemoveLastAdmin, LAST_ADMIN_ERROR } from "@/lib/auth/guard";
 import { recordAudit } from "@/lib/audit";
 
 async function requireAdmin() {
@@ -15,6 +17,7 @@ async function requireAdmin() {
 }
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
+  const __g = await apiGuard("users:manage"); if (__g instanceof NextResponse) return __g;
   const auth = await requireAdmin();
   if (!auth.ok) return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
 
@@ -36,6 +39,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 }
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+  const __g = await apiGuard("users:manage"); if (__g instanceof NextResponse) return __g;
   const auth = await requireAdmin();
   if (!auth.ok) return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
 
@@ -56,6 +60,12 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (body.gradeLevel !== undefined) data.gradeLevel = body.gradeLevel;
   if (body.gradeClass !== undefined) data.gradeClass = body.gradeClass;
   if (body.role) data.role = body.role;
+
+  // Last-admin invariant: never demote the final remaining ADMIN.
+  if (body.role && body.role !== "ADMIN" && (await wouldRemoveLastAdmin(params.id))) {
+    await recordAudit({ req, userId: auth.me.id, action: "USER_UPDATE_BLOCKED", entity: "User", entityId: params.id, details: { reason: "last-admin" } }).catch(() => {});
+    return NextResponse.json({ error: LAST_ADMIN_ERROR }, { status: 409 });
+  }
 
   // Keep the legacy `name` in sync when first/last provided
   if ("firstName" in (body ?? {}) || "lastName" in (body ?? {})) {
@@ -82,8 +92,15 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 }
 
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+  const __g = await apiGuard("users:manage"); if (__g instanceof NextResponse) return __g;
   const auth = await requireAdmin();
   if (!auth.ok) return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
+
+  // Last-admin invariant: never delete the final remaining ADMIN.
+  if (await wouldRemoveLastAdmin(params.id)) {
+    await recordAudit({ req: _req, userId: auth.me.id, action: "USER_DELETE_BLOCKED", entity: "User", entityId: params.id, details: { reason: "last-admin" } }).catch(() => {});
+    return NextResponse.json({ error: LAST_ADMIN_ERROR }, { status: 409 });
+  }
 
   await prisma.user.delete({ where: { id: params.id } });
 

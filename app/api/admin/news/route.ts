@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiGuard } from "@/lib/auth/api-guard";
 import { getServerSession } from "next-auth";
 import { put } from "@vercel/blob";
 import path from "path";
@@ -11,6 +12,7 @@ import type { PostItem } from "@/lib/types";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
+  const __g = await apiGuard("news:edit"); if (__g instanceof NextResponse) return __g;
   const session = await getServerSession(authOptions);
   if (!session) {
     try {
@@ -77,6 +79,7 @@ function ensureUniqueImageName(name: string, used: Set<string>): string {
 }
 
 export async function POST(req: Request) {
+  const __g = await apiGuard("news:edit"); if (__g instanceof NextResponse) return __g;
   const session = await getServerSession(authOptions);
   if (!session) {
     try {

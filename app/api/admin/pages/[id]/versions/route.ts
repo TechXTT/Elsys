@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiGuard } from "@/lib/auth/api-guard";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -16,6 +17,7 @@ function ensureAdmin(session: any): asserts session is { user: { id: string; rol
 }
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
+  const __g = await apiGuard("pages:edit"); if (__g instanceof NextResponse) return __g;
   try {
     const session = await getServerSession(authOptions);
     ensureAdmin(session);
@@ -34,6 +36,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 
 // Restore to a previous version by cloning it as a new published snapshot and pointing currentVersionId
 export async function POST(req: Request, { params }: { params: { id: string } }) {
+  const __g = await apiGuard("pages:edit"); if (__g instanceof NextResponse) return __g;
   try {
     const session = await getServerSession(authOptions);
     ensureAdmin(session);

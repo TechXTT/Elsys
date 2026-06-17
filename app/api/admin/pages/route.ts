@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiGuard } from "@/lib/auth/api-guard";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -17,6 +18,7 @@ function ensureAdmin(session: any): asserts session is { user: { id: string; rol
 }
 
 export async function GET(req: Request) {
+  const __g = await apiGuard("pages:edit"); if (__g instanceof NextResponse) return __g;
   try {
     const session = await getServerSession(authOptions);
     ensureAdmin(session);
@@ -46,6 +48,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const __g = await apiGuard("pages:edit"); if (__g instanceof NextResponse) return __g;
   try {
     const session = await getServerSession(authOptions);
     ensureAdmin(session);
