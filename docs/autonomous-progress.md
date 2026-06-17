@@ -255,4 +255,11 @@ Branch `feat/G4-2-import-commit` (off Part B tip 36667be). typecheck ✓ lint �
 - **News dates:** 5 recovered from the index, **14 flagged "дата липсва"** (1970 sentinel, DRAFT).
 - e2e stayed green (87/87) — imported DRAFT content is invisible to public tests; the fixture seed is unchanged.
 
-## HARD STOP (per brief): no prod import, no auto-publish, M4.4 visual-diff harness NOT built (awaiting separate brief).
+---
+
+# Final feature batch (operator-queued, stacked off G4 tip 975dcee)
+
+## Task 1 — G3-3 inline <Editable> (Figma 110:3) — ✅ DONE
+Branch `feat/G3-3-inline-edit`. typecheck ✓ lint ✓ build ✓ e2e 2/2.
+- Admin-only inline block editing on public pages: `renderBlocks(..., edit)` wraps editable text blocks (Hero/Section/Markdown) with `components/admin/InlineEditableBlock.tsx` — dashed outline + "Редактирай" → right drawer (Заглавие/Съдържание) → `inlineUpdatePageBlock` Server Action (pages:edit gated, AuditLog, invalidate page cache + revalidate both locales). `[...slug]` passes `edit` only when `can(role,"pages:edit")`.
+- Field mapping by type (Hero→heading/subheading, Section→title/markdown, Markdown→markdown). `Admin.inlineEdit.*` i18n. e2e: anon sees no affordance; admin edits + persists + reverts.

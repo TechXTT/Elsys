@@ -581,6 +581,17 @@
       "ogImage": "OG image",
       "canonical": "Canonical URL",
       "noindex": "Hide from search engines (noindex)"
+    },
+    "inlineEdit": {
+      "blockLabel": "Editable block",
+      "edit": "Edit",
+      "drawerTitle": "Edit block",
+      "hint": "Changes save directly to the page and preview immediately.",
+      "title": "Title",
+      "content": "Content",
+      "save": "Save",
+      "saving": "Saving…",
+      "cancel": "Cancel"
     }
   },
   "Clubs": {
