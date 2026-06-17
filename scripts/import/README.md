@@ -53,6 +53,14 @@ Writes `.cache/parity-report.json` + a per-type summary. It's a **report**, not 
 gate — review flagged rows. (Imported content is DRAFT/not public, so it compares
 against the stored body the page renders from.)
 
+## TODO — imported content is markdown, not blocks
+Imported pages store their content in `Page.bodyMarkdown`, so the admin **block
+builder canvas is empty** for them (it reads `Page.blocks`). If blocks should be
+the source of truth for migrated pages, that's a separate **markdown→blocks
+conversion** task (parse the imported markdown into the block schema). Until then,
+imported pages are edited via the builder's **Content** tab (markdown), and the
+public route renders the markdown. Not addressed in `fix/import-page-hierarchy`.
+
 ## Seeder split
 `pnpm prisma:seed` stays a **deterministic fixture seed** (used by tests/CI) and
 must never depend on the network. The real import is these separate scripts.

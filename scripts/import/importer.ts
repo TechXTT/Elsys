@@ -125,6 +125,53 @@ export async function upsertPage(
   return { ok: true, slug, mediaImported: mig.imported, missingAlt: mig.missingAlt };
 }
 
+export interface LinkParentsResult { linked: number; alreadyLinked: number; orphans: string[] }
+
+// Second pass: link Page.parentId from the hierarchical slug (`parent/leaf`).
+// upsertPage() stores the full path in `slug` but never sets parentId, so the
+// admin nav tree renders flat. The slug is the source of truth; we only fill a
+// NULL parentId so a re-run is idempotent and can never clobber a parent an
+// admin set by hand in the nav manager. Runs after all rows exist, so multi-
+// level nesting and parents-imported-after-children both resolve.
+export async function linkPageParents(
+  prisma: PrismaClient,
+  opts: { log?: (msg: string) => void } = {}
+): Promise<LinkParentsResult> {
+  const log = opts.log ?? (() => {});
+  const pages = await prisma.page.findMany({
+    where: { locale: IMPORT_LOCALE },
+    select: { id: true, slug: true, parentId: true },
+  });
+  const idBySlug = new Map<string, string>();
+  for (const p of pages) idBySlug.set(p.slug, p.id);
+
+  // Nested pages (slug has a "/"), slug-sorted for deterministic sibling order.
+  const nested = pages.filter((p) => p.slug.includes("/"));
+  const groups = new Map<string, string[]>();
+  for (const p of nested) {
+    const parentSlug = p.slug.slice(0, p.slug.lastIndexOf("/"));
+    if (!groups.has(parentSlug)) groups.set(parentSlug, []);
+    groups.get(parentSlug)!.push(p.slug);
+  }
+  const orderBySlug = new Map<string, number>();
+  for (const slugs of groups.values()) {
+    slugs.sort((a, b) => a.localeCompare(b));
+    slugs.forEach((s, i) => orderBySlug.set(s, i));
+  }
+
+  const result: LinkParentsResult = { linked: 0, alreadyLinked: 0, orphans: [] };
+  for (const p of nested) {
+    const parentSlug = p.slug.slice(0, p.slug.lastIndexOf("/"));
+    const parentId = idBySlug.get(parentSlug) ?? null;
+    if (!parentId) { result.orphans.push(p.slug); log(`  orphan (no parent "${parentSlug}"): ${p.slug}`); continue; }
+    if (p.parentId) { result.alreadyLinked++; continue; } // never clobber an existing parent
+    await prisma.page.update({ where: { id: p.id }, data: { parentId, order: orderBySlug.get(p.slug) ?? 0 } });
+    result.linked++;
+    log(`  linked ${p.slug} → ${parentSlug} (order ${orderBySlug.get(p.slug) ?? 0})`);
+  }
+  return result;
+}
+
 /** Upsert a legacy→new redirect (idempotent by fromPath). */
 export async function persistRedirect(
   prisma: PrismaClient,

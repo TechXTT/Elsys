@@ -5,7 +5,7 @@ import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { fetchPage } from "./lib/http";
 import { extract, type Extracted } from "./extract";
-import { upsertNews, upsertPage, persistRedirect } from "./importer";
+import { upsertNews, upsertPage, persistRedirect, linkPageParents } from "./importer";
 import { getNewsDatesFromIndex } from "./news-dates";
 import type { LegacyUrl } from "./crawl";
 
@@ -31,7 +31,7 @@ interface Report {
   htmlWarnings: Record<string, number>;
   redirects: { coveragePct: number; mapped: number; unmapped: string[]; sample: { from: string; to: string }[] };
   unmappedUrls: string[];
-  committed: { news: number; pages: number; mediaImported: number; redirects: number };
+  committed: { news: number; pages: number; mediaImported: number; redirects: number; parentsLinked: number };
 }
 
 function targetPath(e: Extracted): string {
@@ -81,7 +81,7 @@ async function main() {
     htmlWarnings: {},
     redirects: { coveragePct: 0, mapped: 0, unmapped: [], sample: [] },
     unmappedUrls: [],
-    committed: { news: 0, pages: 0, mediaImported: 0, redirects: 0 },
+    committed: { news: 0, pages: 0, mediaImported: 0, redirects: 0, parentsLinked: 0 },
   };
 
   for (const u of urls) {
@@ -133,6 +133,12 @@ async function main() {
       await persistRedirect(prisma, d.from, d.to, null, { dryRun: false });
       report.committed.redirects++;
     }
+
+    // Second pass: link Page.parentId from hierarchical slugs so the admin nav
+    // tree nests (idempotent; only fills NULL parents — see linkPageParents).
+    const linked = await linkPageParents(prisma);
+    report.committed.parentsLinked = linked.linked;
+    console.log(`Linked page parents: ${linked.linked} (already: ${linked.alreadyLinked}, orphans: ${linked.orphans.length})`);
   }
 
   const totalRedirectCandidates = report.redirects.mapped + report.redirects.unmapped.length;

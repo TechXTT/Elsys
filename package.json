@@ -23,6 +23,7 @@
     "import:crawl": "tsx scripts/import/crawl.ts",
     "import:all": "tsx scripts/import/run.ts",
     "import:parity": "tsx scripts/import/parity.ts",
+    "import:link-parents": "tsx scripts/backfill-page-parents.ts",
     "test:visual": "node scripts/run-visual.mjs"
   },
   "dependencies": {
