@@ -308,4 +308,19 @@ Branch `feat/M5-5-muted-contrast` (off final-batch tip 5cbbfa9). typecheck ✓ l
 - **axe tightened to strict** (removed the marginal ≥4.3 allowance) — now fails on *any* serious/critical incl. color-contrast < 4.5; passes 9/9. The previously-flagged muted-on-tint spots (home CTA-area, dashboard cards) now clear AA.
 - Hardened `publish-status.spec` to verify visibility via the **article page** (DB-live, pagination-proof) instead of the `/novini` index — removes a dev-DB-pollution flake (accumulated published test posts crowding page 1). Now deterministic.
 
-## ALL WORK COMPLETE. HARD STOP honored: no M4.4 visual-diff harness, no prod import, no auto-publish.
+## M4.4 — Visual + migration QA harness — ✅ DONE
+Branch `feat/M4-4-visual-qa` (off `feat/M5-5-muted-contrast` tip). typecheck ✓ lint ✓ build ✓ **axe 9/9 strict** unchanged. New dev deps: **pixelmatch + pngjs** (+ `@types/pngjs`) — pure-JS PNG diff, no native build, used only by the separate visual suite (§2: free-tier/dev tooling; §7: justified, dev-only).
+
+**Step 0 — token-integrity sweep.** Confirmed `tokens.json` is the single source for semantic text colour. Removed the `--color-text-muted` override that `app/globals.css` redefined *after* importing the generated `styles/tokens.css` (a local redefinition silently shadowed the token); now only `tokens.css` ships the value (light `#52606d`, dark `#9aa5b1`). Fixed one more bypass: the admin Dashboard date used a raw `text-slate-600 dark:text-slate-400` where its sibling subtitle already used `var(--color-text-muted)` → switched to the token. The remaining ~590 `slate-*/gray-*` utilities are admin-chrome surface styling (not shadowing a generated semantic token) — a separate, larger refactor, intentionally left raw. axe re-ran **9/9** (no contrast regressions).
+
+**Step 1 — visual-regression harness (new-vs-own-baseline; NOT legacy).** Custom pixelmatch/pngjs comparator, kept a **separate suite** so flaky pixel diffs never gate the main build/CI:
+- `tests/visual/_compare.ts` — `compareToBaseline()`; baselines in `tests/visual/__baselines__/`, diff images in `tests/visual/.diffs/` (gitignored); `MAX_DIFF_RATIO=0.002`, `pixelmatch threshold 0.1`; dimension mismatch ⇒ regression.
+- `tests/visual/visual.spec.ts` — 11 public pages (Home, /novini, an article, /priem, /za-uchilishteto, /kontakti, /galeria, /klubove, /dokumenti, /search, 404) + 3 admin (Dashboard, News Manager, Editor) × light/dark × desktop(1280)/mobile(390) = **56 shots**. Volatile regions masked: `time`, `[data-ui=news-card]`, `[data-ui=carousel]`, `[data-ui=volatile-time]` (admin relative-times + current date), `.text-caption`.
+- `playwright.visual.config.ts` (own config, workers:1) + `scripts/run-visual.mjs`.
+- **Usage:** `pnpm test:visual` diffs vs baseline (emits `.diffs/*.png` on regression); `pnpm test:visual --update` refreshes baselines. Baselines committed; verify pass 56/56 match.
+
+**Step 2 — migration content-parity check** (`pnpm import:parity`, `scripts/import/parity.ts`). Cache-only (never re-hits live): independently re-parses each cached legacy page (so it catches what the importer dropped) and asserts the imported DB row kept the key headings + a representative paragraph and has a comparable link count. Report → `scripts/import/.cache/parity-report.json`. **Result: 30 checked — 23 ok, 7 gaps** (news 6/7, blog 11/12, item 6/11). The 7 gaps are genuine review candidates: legacy "item"-style pages (e.g. inspiration-talks, ekskurzii) store body content outside the `.single-text` container the importer reads, so link counts diverge (0→7, 1→4, 41→64) and the representative paragraph isn't found. Surfaced for human review, **not auto-fixed** (DRAFT content; no live re-scrape).
+
+Literal legacy-vs-new pixel diff intentionally **not** done (the redesign differs from the legacy site by design).
+
+## ALL BUILD WORK COMPLETE. HARD STOP honored: dev DB only, no push/merge, no prod import, no auto-publish.
