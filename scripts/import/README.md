@@ -42,6 +42,17 @@ dry-run and re-runs do **zero** live traffic. Re-crawl only to refresh.
   list pages, so specialized extractors would be guesswork. `extract.ts` dispatch
   is ready to add them once a real source layout is identified.
 
+## Content-parity QA (M4.4)
+```bash
+pnpm import:parity   # cache-only; legacy cached HTML vs imported DB rows
+```
+Independently re-parses each cached legacy page (not the import pipeline, so it
+catches content the importer dropped) and checks the imported row kept the key
+headings + a representative paragraph, and that link counts are comparable.
+Writes `.cache/parity-report.json` + a per-type summary. It's a **report**, not a
+gate — review flagged rows. (Imported content is DRAFT/not public, so it compares
+against the stored body the page renders from.)
+
 ## Seeder split
 `pnpm prisma:seed` stays a **deterministic fixture seed** (used by tests/CI) and
 must never depend on the network. The real import is these separate scripts.

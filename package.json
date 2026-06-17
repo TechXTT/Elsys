@@ -21,7 +21,9 @@
     "pages:drop-json": "tsx scripts/drop-static-pages-from-json.ts",
     "i18n:backfill-en": "tsx scripts/backfill-en.ts",
     "import:crawl": "tsx scripts/import/crawl.ts",
-    "import:all": "tsx scripts/import/run.ts"
+    "import:all": "tsx scripts/import/run.ts",
+    "import:parity": "tsx scripts/import/parity.ts",
+    "test:visual": "node scripts/run-visual.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
@@ -61,6 +63,7 @@
     "@tailwindcss/typography": "^0.5.15",
     "@types/jsdom": "^27.0.0",
     "@types/node": "^20.12.12",
+    "@types/pngjs": "^6.0.5",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^18.2.79",
     "@types/react-dom": "^18.3.7",
@@ -71,6 +74,8 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^16.4.0",
+    "pixelmatch": "^7.2.0",
+    "pngjs": "^7.0.0",
     "postcss": "^8.4.38",
     "prisma": "6.18.0",
     "tailwindcss": "^3.4.4",

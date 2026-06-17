@@ -13,7 +13,8 @@
 	--color-surface: #ffffff;
 	--color-border: #e2e8f0;
 	--color-text: #0b1f36;
-	--color-text-muted: #52606d; /* M5.5: gray/700 — clears WCAG AA 4.5:1 on subtle/tinted bg (was #5b708d ≈ 4.44) */
+	/* --color-text-muted is owned by styles/tokens.css (design/tokens.json) — do
+	   NOT redefine here; a local override silently shadows the token (M4.4). */
 	--color-brand: #134f82;
 	--color-brand-accent: #1e6fb1;
 	/* Radius scale is canonical in styles/tokens.css (--radius-sm/md/lg/none/full).
@@ -34,7 +35,7 @@
 	--color-surface: #0f172a;
 	--color-border: #1f2a44; /* muted border */
 	--color-text: #eef2ff; /* light indigo-50 */
-	--color-text-muted: #94a3b8; /* slate-400 */
+	/* --color-text-muted: owned by styles/tokens.css ([data-theme="dark"]). */
 }
 
 html { font-feature-settings: "ss01"; }
