@@ -13,7 +13,7 @@
 	--color-surface: #ffffff;
 	--color-border: #e2e8f0;
 	--color-text: #0b1f36;
-	--color-text-muted: #5b708d;
+	--color-text-muted: #52606d; /* M5.5: gray/700 — clears WCAG AA 4.5:1 on subtle/tinted bg (was #5b708d ≈ 4.44) */
 	--color-brand: #134f82;
 	--color-brand-accent: #1e6fb1;
 	/* Radius scale is canonical in styles/tokens.css (--radius-sm/md/lg/none/full).

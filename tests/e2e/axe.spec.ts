@@ -6,31 +6,18 @@ import { adminLogin as login } from "./_helpers";
 // requirement — we fail on serious/critical WCAG 2.0/2.1 A/AA violations.
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
-// A color-contrast node is "marginal" when its ratio is within ~0.2 of the 4.5:1
-// AA threshold (>= 4.3). These come from the design-system muted-ink token on
-// subtle/tinted backgrounds — a token-shade design decision logged for the
-// designer (M5.5), not a code bug. We still FAIL on any real low-contrast
-// (< 4.3) and on every other serious/critical violation.
-const MARGINAL_CONTRAST = 4.3;
-
-function isMarginalContrast(node: { any?: { id: string; data?: { contrastRatio?: number } }[] }): boolean {
-  const ratios = (node.any ?? []).filter((c) => c.id === "color-contrast").map((c) => c.data?.contrastRatio ?? 0);
-  return ratios.length > 0 && ratios.every((r) => r >= MARGINAL_CONTRAST);
-}
-
+// Strict AA (M5.5): the muted-ink token was darkened to gray/700 so no marginal
+// allowance remains — we fail on every serious/critical WCAG A/AA violation,
+// including any color-contrast under 4.5:1.
 async function scan(page: import("@playwright/test").Page) {
   const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
-  const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
-  const blocking = serious
-    .map((v) => (v.id === "color-contrast" ? { ...v, nodes: v.nodes.filter((n) => !isMarginalContrast(n)) } : v))
-    .filter((v) => v.nodes.length > 0);
-  const logged = serious.filter((v) => v.id === "color-contrast" && v.nodes.some(isMarginalContrast));
-  if (logged.length) {
-    console.log("AXE marginal color-contrast (design-token follow-up, allowed):",
-      logged.flatMap((v) => v.nodes.filter(isMarginalContrast).map((n) => n.target)).slice(0, 6));
-  }
+  const blocking = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
   if (blocking.length) {
-    console.log("AXE blocking:", JSON.stringify(blocking.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.slice(0, 3).map((n) => n.target) })), null, 2));
+    console.log("AXE blocking:", JSON.stringify(blocking.map((v) => ({
+      id: v.id,
+      impact: v.impact,
+      nodes: v.nodes.slice(0, 4).map((n) => ({ target: n.target, summary: n.failureSummary?.split("\n").slice(0, 2).join(" ") })),
+    })), null, 2));
   }
   return blocking;
 }

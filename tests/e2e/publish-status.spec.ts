@@ -42,19 +42,22 @@ test.describe("publish status (M0.4 / R3)", () => {
       expect(res.ok()).toBeTruthy();
     };
 
-    // Future date → hidden from /bg/novini.
+    // Verify via the article page (getNewsPost reads the DB live) so the result
+    // is deterministic regardless of how many other posts crowd the paginated
+    // /novini index. Future date → article 404s (isPublic gates a future date).
+    const ARTICLE = "/bg/novini/m04-scheduled-news";
     await setDate("2099-01-01");
     await expect(async () => {
-      await page.goto("/bg/novini");
-      await expect(page.getByText(TITLE)).toHaveCount(0);
+      const res = await page.goto(ARTICLE);
+      expect(res?.status()).toBe(404);
     }).toPass({ timeout: 15_000 });
 
-    // Date passes → visible. Use a recent past date so the post sorts onto the
-    // first /novini page (the index paginates at 6/page — E1).
+    // Date passes → the article renders.
     await setDate("2026-06-10");
     await expect(async () => {
-      await page.goto("/bg/novini");
-      await expect(page.getByText(TITLE)).toBeVisible();
+      const res = await page.goto(ARTICLE);
+      expect(res?.status()).toBe(200);
+      await expect(page.locator("article h1")).toContainText(TITLE);
     }).toPass({ timeout: 15_000 });
 
     // Restore the future date so the fixture is reusable.

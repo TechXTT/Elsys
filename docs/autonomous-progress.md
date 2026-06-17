@@ -301,4 +301,11 @@ Branch `feat/M5-5-axe`. typecheck ✓ lint ✓ build ✓ **axe 9/9** + full suit
 
 ---
 
-## Final batch complete (tasks 1–7). HARD STOP honored: no M4.4 visual-diff harness, no prod import, no auto-publish.
+## AA token fix (muted contrast) — ✅ DONE
+Branch `feat/M5-5-muted-contrast` (off final-batch tip 5cbbfa9). typecheck ✓ lint ✓ build ✓ **axe 9/9 strict** + full suite **104/104**.
+- `design/tokens.json` `color.text.muted` light → `gray.700` (#52606D; dark stays gray/400); `pnpm tokens:generate` regenerated `app/styles/tokens.css`.
+- **Root cause found:** the app's consumed value is hardcoded in `app/globals.css` (the generated `tokens.css` was being overridden in the cascade). Synced `app/globals.css --color-text-muted` light → `#52606d` too. Also bumped one raw `text-slate-500` on the admin dashboard → `slate-600`.
+- **axe tightened to strict** (removed the marginal ≥4.3 allowance) — now fails on *any* serious/critical incl. color-contrast < 4.5; passes 9/9. The previously-flagged muted-on-tint spots (home CTA-area, dashboard cards) now clear AA.
+- Hardened `publish-status.spec` to verify visibility via the **article page** (DB-live, pagination-proof) instead of the `/novini` index — removes a dev-DB-pollution flake (accumulated published test posts crowding page 1). Now deterministic.
+
+## ALL WORK COMPLETE. HARD STOP honored: no M4.4 visual-diff harness, no prod import, no auto-publish.
