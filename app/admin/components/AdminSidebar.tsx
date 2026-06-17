@@ -20,10 +20,11 @@ import {
   Image as ImageIcon,
   ShieldCheck,
   KeyRound,
+  LifeBuoy,
 } from "lucide-react";
 import { AdminLocaleSwitcher } from "./AdminLocaleSwitcher";
 
-type NavLinkKey = "dashboard" | "news" | "content" | "media" | "pages" | "users" | "roles" | "audit" | "security" | "settings";
+type NavLinkKey = "dashboard" | "news" | "content" | "media" | "pages" | "users" | "roles" | "audit" | "security" | "settings" | "help";
 
 type NavLink = {
   href: string;
@@ -42,6 +43,7 @@ const navLinks: NavLink[] = [
   { href: "/admin/roles", labelKey: "roles", icon: KeyRound, adminOnly: true },
   { href: "/admin/audit", labelKey: "audit", icon: ClipboardList, adminOnly: true },
   { href: "/admin/security", labelKey: "security", icon: ShieldCheck },
+  { href: "/admin/help", labelKey: "help", icon: LifeBuoy },
   { href: "/admin/settings", labelKey: "settings", icon: Settings },
 ];
 

@@ -263,3 +263,9 @@ Branch `feat/G4-2-import-commit` (off Part B tip 36667be). typecheck ✓ lint �
 Branch `feat/G3-3-inline-edit`. typecheck ✓ lint ✓ build ✓ e2e 2/2.
 - Admin-only inline block editing on public pages: `renderBlocks(..., edit)` wraps editable text blocks (Hero/Section/Markdown) with `components/admin/InlineEditableBlock.tsx` — dashed outline + "Редактирай" → right drawer (Заглавие/Съдържание) → `inlineUpdatePageBlock` Server Action (pages:edit gated, AuditLog, invalidate page cache + revalidate both locales). `[...slug]` passes `edit` only when `can(role,"pages:edit")`.
 - Field mapping by type (Hero→heading/subheading, Section→title/markdown, Markdown→markdown). `Admin.inlineEdit.*` i18n. e2e: anon sees no affordance; admin edits + persists + reverts.
+
+## Task 2 — G5-2 /admin/help (Figma 107:2) — ✅ DONE
+Branch `feat/G5-2-help`. typecheck ✓ lint ✓ build ✓ e2e 2/2.
+- `HelpArticle` model (additive, migration `20260617075720_add_help_article`) + 6 seeded runbooks as **DRAFT** (publish-a-news, change-academic-year, restore-deleted, season-handover, media-upload, manage-menu) — editable by the school via the content framework (`help` type registered, `enableSuccessorNote:false`).
+- `/admin/help` help-center (tour launcher banner + runbook card grid) + `/admin/help/[slug]` markdown article view with an "Edit" link to the framework editor + DRAFT note. `lib/help.ts` reads. Sidebar "Помощ" link; `Admin.help.*` i18n (Bulgarian).
+- Onboarding-tour **launcher** ships (links to the first runbook); interactive coachmarks flagged as a follow-up per brief.

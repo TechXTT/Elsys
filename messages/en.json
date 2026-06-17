@@ -184,7 +184,8 @@
       "viewSite": "View Site",
       "signOut": "Sign out",
       "media": "Media",
-      "roles": "Roles"
+      "roles": "Roles",
+      "help": "Help"
     },
     "stats": {
       "totalNews": "Total News Posts",
@@ -592,6 +593,19 @@
       "save": "Save",
       "saving": "Saving…",
       "cancel": "Cancel"
+    },
+    "help": {
+      "title": "Help & runbooks",
+      "subtitle": "New administrator? Start here — the system explains itself.",
+      "tourTitle": "🎓 Tour for new administrators",
+      "tourSubtitle": "A 10-minute interactive tour: publishing, pages, media, handover.",
+      "tourStart": "Start the tour",
+      "runbooks": "Runbooks",
+      "open": "Open",
+      "empty": "No help articles yet.",
+      "editArticle": "Edit",
+      "draftNote": "Draft — the school can refine it.",
+      "backToHelp": "Back to help"
     }
   },
   "Clubs": {
