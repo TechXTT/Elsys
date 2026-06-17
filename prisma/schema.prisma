@@ -168,6 +168,13 @@ model Page {
   /// badge + review filter; cleared to false on any editor save/publish of the row (J).
   machineTranslated Boolean @default(false)
 
+  // SEO (R2): optional overrides; fall back to title/excerpt when unset.
+  metaTitle       String?
+  metaDescription String?
+  ogImage         String?
+  noindex         Boolean @default(false)
+  canonical       String?
+
   // Navigation hierarchy & presentation (merged from NavigationItem)
   parentId     String?
   parent       Page?    @relation("PageHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
@@ -237,6 +244,13 @@ model NewsPost {
   category      String?
   /// Optional colour for the category chip; maps to the Badge palette via colorTagToBadge(). E2.
   colorTag      ColorTag?
+
+  // SEO (R2): optional overrides; fall back to title/excerpt/featuredImage when unset.
+  metaTitle       String?
+  metaDescription String?
+  ogImage         String?
+  noindex         Boolean @default(false)
+  canonical       String?
 
   /// M2.4 taxonomy: the news category is a parent Page (Sweboo parity). When set,
   /// its title is the effective category label. Falls back to free-text `category`.
@@ -618,6 +632,20 @@ model Document {
 
   @@unique([slug, locale])
   @@index([locale, status, order])
+}
+
+/// Editor server-side draft (G3-2). Autosaved every ~30s per (user, key) so an
+/// in-progress edit survives a crash or device switch; cleared on publish/save.
+model Draft {
+  id        String   @id @default(cuid())
+  userId    String
+  /// Editor scope key, e.g. "news:simple:new" or "news:simple:<slug>".
+  key       String
+  data      Json
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@unique([userId, key])
 }
 
 /// Per-record successor note (M5.2 / G2-2). Generic: keyed by (entity, entityId)

@@ -14,8 +14,9 @@ import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { Badge, colorTagToBadge } from "@/components/ui/Badge";
 import { locales, type Locale } from "@/i18n/config";
 import { getNewsPost, getNewsPosts, getRelatedNews } from "@/lib/news";
+import { prisma } from "@/lib/prisma";
 import { isRemoteSrc } from "@/lib/image";
-import { absoluteUrl, alternatesFor } from "@/lib/site";
+import { absoluteUrl, alternatesFor, applySeo } from "@/lib/site";
 import type { PostItem } from "@/lib/types";
 
 export const revalidate = 300; // ISR; unknown slugs render on demand (fallback) then cache.
@@ -86,17 +87,24 @@ export async function generateMetadata({ params }: { params: { locale: Locale; s
   const data = await getNewsPost(params.slug, params.locale);
   if (!data) return {};
   const { post } = data;
-  return {
+  // SEO overrides (R2): stored on the post; fall back to title/excerpt/featured.
+  const seo = await prisma.newsPost
+    .findUnique({
+      where: { id_locale: { id: post.id, locale: params.locale } },
+      select: { metaTitle: true, metaDescription: true, ogImage: true, noindex: true, canonical: true },
+    })
+    .catch(() => null);
+  const base: Metadata = {
     title: post.title,
     description: post.excerpt,
     alternates: alternatesFor(params.locale, `/novini/${post.id}`),
-    openGraph: {
-      title: post.title,
-      description: post.excerpt,
-      type: "article",
-      images: post.image ? [{ url: absoluteUrl(post.image) }] : undefined,
-    },
+    openGraph: { type: "article" },
   };
+  return applySeo(base, seo, {
+    title: post.title,
+    description: post.excerpt,
+    fallbackImage: post.image ? absoluteUrl(post.image) : undefined,
+  });
 }
 
 export default async function NewsArticle({ params }: { params: { locale: Locale; slug: string } }) {

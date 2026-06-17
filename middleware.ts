@@ -64,7 +64,7 @@ export const config = {
   matcher: [
     "/",
     "/(bg|en)/:path*",
-    "/((?!api|_next|.*\\..*|admin).*)",
+    "/((?!api|_next|og|.*\\..*|admin).*)",
     "/admin/:path*",
   ],
 };

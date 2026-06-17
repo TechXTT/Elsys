@@ -15,7 +15,7 @@ import { collectBlockNeeds, type BlockContext } from "@/lib/blocks/registry";
 import { loadBlockData } from "@/lib/cms/block-data";
 import { resolveAlias } from "@/lib/routes";
 import { isPublic } from "@/lib/content/shared";
-import { alternatesFor } from "@/lib/site";
+import { alternatesFor, applySeo } from "@/lib/site";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 
 // Render a resolved Page: one <h1> (the page title) in a container, then its
@@ -141,7 +141,7 @@ export async function generateMetadata({ params }: { params: { locale: Locale; s
     (prisma as any).page
       .findUnique({
         where: { slug_locale: { slug: joined, locale: loc } },
-        select: { title: true, excerpt: true, published: true, status: true },
+        select: { title: true, excerpt: true, published: true, status: true, metaTitle: true, metaDescription: true, ogImage: true, noindex: true, canonical: true },
       })
       .catch(() => null);
 
@@ -151,11 +151,13 @@ export async function generateMetadata({ params }: { params: { locale: Locale; s
   }
   if (!page || !isPublic(page)) return { alternates: alternatesFor(params.locale, `/${joined}`) };
 
-  return {
+  // SEO overrides (R2) fall back to the page title/excerpt.
+  const base: Metadata = {
     title: page.title,
     description: page.excerpt || undefined,
     alternates: alternatesFor(params.locale, `/${joined}`),
   };
+  return applySeo(base, page, { title: page.title, description: page.excerpt || undefined });
 }
 
 export default async function DynamicPage({ params }: { params: { locale: Locale; slug?: string[] } }) {

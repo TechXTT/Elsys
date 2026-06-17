@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { ImagePlus, X } from "lucide-react";
+import { ImagePlus, X, Crop } from "lucide-react";
 import { MediaPicker } from "./MediaPicker";
+import { ImageCropper } from "./ImageCropper";
 
 interface Props {
   name: string;
@@ -26,6 +27,7 @@ export function MediaField({ name, defaultValue, required, folder, altName, defa
   const [url, setUrl] = useState(defaultValue ?? "");
   const [alt, setAlt] = useState(defaultAlt ?? "");
   const [open, setOpen] = useState(false);
+  const [cropOpen, setCropOpen] = useState(false);
 
   return (
     <div className="flex flex-col gap-2">
@@ -36,6 +38,15 @@ export function MediaField({ name, defaultValue, required, folder, altName, defa
           {/* admin preview, remote blob — plain img avoids next/image host config */}
           <img src={url} alt="" className="h-16 w-24 rounded object-cover" />
           <span className="min-w-0 flex-1 truncate text-body-sm text-ink-muted">{url}</span>
+          <button
+            type="button"
+            onClick={() => setCropOpen(true)}
+            aria-label={t("crop")}
+            title={t("crop")}
+            className="rounded p-1 text-ink-muted hover:bg-[var(--color-bg-subtle)]"
+          >
+            <Crop className="h-4 w-4" />
+          </button>
           <button
             type="button"
             onClick={() => { setUrl(""); setAlt(""); }}
@@ -73,6 +84,15 @@ export function MediaField({ name, defaultValue, required, folder, altName, defa
         defaultFolder={folder}
         onSelect={(r) => { setUrl(r.url); setAlt(r.alt); }}
       />
+      {url && (
+        <ImageCropper
+          open={cropOpen}
+          imageUrl={url}
+          folder={folder}
+          onClose={() => setCropOpen(false)}
+          onCropped={(u) => setUrl(u)}
+        />
+      )}
     </div>
   );
 }
