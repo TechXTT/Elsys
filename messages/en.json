@@ -185,7 +185,8 @@
       "signOut": "Sign out",
       "media": "Media",
       "roles": "Roles",
-      "help": "Help"
+      "help": "Help",
+      "handover": "Handover"
     },
     "stats": {
       "totalNews": "Total News Posts",
@@ -606,6 +607,53 @@
       "editArticle": "Edit",
       "draftNote": "Draft — the school can refine it.",
       "backToHelp": "Back to help"
+    },
+    "handover": {
+      "title": "Access handover",
+      "progress": "Season {season} · {done} of {total} steps done",
+      "done": "Done",
+      "continue": "Continue",
+      "start": "Start",
+      "receivesAccess": "Receives access",
+      "successor": "Successor",
+      "noSuccessor": "No successor available",
+      "successorNote": "Note for the successor",
+      "notePlaceholder": "Partner-account passwords are in…",
+      "seasonSummary": "Season summary",
+      "twoFactorWarning": "Complete 2FA before handover.",
+      "complete": "Complete handover",
+      "saving": "Saving…",
+      "completed": "Handover recorded in the audit log.",
+      "steps": {
+        "addAdmin": {
+          "title": "Add the new administrator",
+          "desc": "Admin-capable accounts: {count}."
+        },
+        "assignRole": {
+          "title": "Assign a role",
+          "desc": "Give the new account a role."
+        },
+        "enforce2fa": {
+          "title": "Enforce 2FA on the new account",
+          "desc": "All admins must have 2FA."
+        },
+        "reviewNotes": {
+          "title": "Review successor notes",
+          "desc": "{count} internal notes to review."
+        },
+        "exportAudit": {
+          "title": "Export the audit log",
+          "desc": "Archive of the season’s actions."
+        },
+        "deactivateLeavers": {
+          "title": "Deactivate leaving accounts",
+          "desc": "Review and deactivate graduating admins."
+        },
+        "seasonSummary": {
+          "title": "Write the season summary",
+          "desc": "What happened and what is next."
+        }
+      }
     }
   },
   "Clubs": {

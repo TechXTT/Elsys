@@ -269,3 +269,8 @@ Branch `feat/G5-2-help`. typecheck ✓ lint ✓ build ✓ e2e 2/2.
 - `HelpArticle` model (additive, migration `20260617075720_add_help_article`) + 6 seeded runbooks as **DRAFT** (publish-a-news, change-academic-year, restore-deleted, season-handover, media-upload, manage-menu) — editable by the school via the content framework (`help` type registered, `enableSuccessorNote:false`).
 - `/admin/help` help-center (tour launcher banner + runbook card grid) + `/admin/help/[slug]` markdown article view with an "Edit" link to the framework editor + DRAFT note. `lib/help.ts` reads. Sidebar "Помощ" link; `Admin.help.*` i18n (Bulgarian).
 - Onboarding-tour **launcher** ships (links to the first runbook); interactive coachmarks flagged as a follow-up per brief.
+
+## Task 3 — G5-3 /admin/handover (Figma 108:2) — ✅ DONE
+Branch `feat/G5-3-handover`. typecheck ✓ lint ✓ build ✓ e2e 2/2.
+- ADMIN-only (`roles:manage`) succession checklist wired to **real state** (`lib/handover.ts`): add admin (admin-capable count), assign role, enforce 2FA (all admins enrolled?), review successor notes (count), export audit log, deactivate leavers, season summary — each step's done/pending derived from the DB, with action links.
+- Aside: successor select (admin-capable users), note + season-summary fields, a 2FA warning, and **Завърши предаването** → `completeHandover` Server Action that **AuditLogs** `HANDOVER_COMPLETE` (season, progress, note, summary). New `/api/admin/audit/export` JSON download (audit:view) for the season archive. Sidebar "Предаване" link (ADMIN). `Admin.handover.*` i18n.

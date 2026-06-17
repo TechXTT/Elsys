@@ -21,10 +21,11 @@ import {
   ShieldCheck,
   KeyRound,
   LifeBuoy,
+  Repeat,
 } from "lucide-react";
 import { AdminLocaleSwitcher } from "./AdminLocaleSwitcher";
 
-type NavLinkKey = "dashboard" | "news" | "content" | "media" | "pages" | "users" | "roles" | "audit" | "security" | "settings" | "help";
+type NavLinkKey = "dashboard" | "news" | "content" | "media" | "pages" | "users" | "roles" | "audit" | "security" | "settings" | "help" | "handover";
 
 type NavLink = {
   href: string;
@@ -41,6 +42,7 @@ const navLinks: NavLink[] = [
   { href: "/admin/navigation", labelKey: "pages", icon: FileText, adminOnly: true },
   { href: "/admin/users", labelKey: "users", icon: Users, adminOnly: true },
   { href: "/admin/roles", labelKey: "roles", icon: KeyRound, adminOnly: true },
+  { href: "/admin/handover", labelKey: "handover", icon: Repeat, adminOnly: true },
   { href: "/admin/audit", labelKey: "audit", icon: ClipboardList, adminOnly: true },
   { href: "/admin/security", labelKey: "security", icon: ShieldCheck },
   { href: "/admin/help", labelKey: "help", icon: LifeBuoy },
