@@ -253,7 +253,7 @@ function BuilderLayout({
     <div className="flex flex-1 overflow-hidden">
       {/* Left Panel - Block Palette */}
       {showLeftPanel && (
-        <div className="flex w-96 flex-shrink-0 flex-col border-r border-[var(--color-border-default)] bg-[var(--color-bg-surface)]">
+        <div className="flex w-72 flex-shrink-0 flex-col border-r border-[var(--color-border-default)] bg-[var(--color-bg-surface)] xl:w-80">
           <div className="border-b border-[var(--color-border-default)] p-3">
             <h3 className="text-body-sm flex items-center gap-2 font-semibold text-[var(--color-text-heading)]">
               <Layers className="h-4 w-4 text-[var(--color-text-link)]" />
@@ -265,7 +265,7 @@ function BuilderLayout({
       )}
 
       {/* Main Canvas */}
-      <div className="flex-1 overflow-auto bg-[var(--color-bg-subtle)]">
+      <div className="min-w-0 flex-1 overflow-auto bg-[var(--color-bg-subtle)]">
         <div
           className="mx-auto h-full transition-all duration-300"
           style={{
@@ -287,7 +287,7 @@ function BuilderLayout({
 
       {/* Right Panel - Properties */}
       {showRightPanel && (
-        <div className="w-[28rem] flex-shrink-0 border-l border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+        <div className="w-80 flex-shrink-0 overflow-y-auto border-l border-slate-200 bg-white xl:w-96 dark:border-slate-700 dark:bg-slate-900">
           <PropertyPanel />
         </div>
       )}
