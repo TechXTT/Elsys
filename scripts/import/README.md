@@ -23,15 +23,24 @@ dry-run and re-runs do **zero** live traffic. Re-crawl only to refresh.
 3. `html-to-blocks.ts` — TinyMCE HTML → GFM markdown + referenced images + warnings.
 4. `run.ts` — orchestrates the dry-run + writes `.cache/import-report.json`.
 
-## Status (what's built vs. pending)
+## Status (what's built)
 - ✅ Crawler, HTML→markdown converter, news/blog/page extractors, dry-run + report.
-- ⏳ **Pending sub-phases (commit path):** DB upsert (DRAFT, by `legacyId`), media
-  pipeline (download → dedupe-by-hash → Blob → Media rows, carry alt, flag
-  missing-alt + minors' consent), `RouteRedirect` model + 404 consumption +
-  backfill, specialized extractors for Document/Club/Team/Partner/Gallery/
-  Project/Award/Leader (currently routed to **Page/DRAFT** for editor
-  reclassification). `--commit` is intentionally disabled until these land and a
-  human has reviewed the dry-run report.
+- ✅ **Commit path (`--commit`):** idempotent upsert of News/Blog → NewsPost and
+  the page tree → Page (DRAFT, never auto-published), keyed by natural slug +
+  carrying `legacyId`/`legacyUrl`. Best-effort news dates from the index
+  (`<time>`); missing → 1970 sentinel + "дата липсва" flag (never fabricated).
+- ✅ **Media pipeline:** download → dedupe by content hash → Blob → Media row,
+  carries legacy alt (flags missing); body markdown rewritten to Blob URLs.
+  Consent is **never auto-asserted** (isMinorPhoto=false, consentRecordedAt=null,
+  every image flagged for human review).
+- ✅ **RouteRedirect:** model + 404 consumption in `[...slug]` (R1) + backfill of
+  every legacy URL → new canonical (+ dropped-type targets, e.g. Calendar → /novini).
+- **DEV-DB only:** `--commit` refuses a URL that looks like production.
+- ⏳ **Not present on the live site as cleanly-typed pages** → routed to Page/DRAFT
+  for editor reclassification: Club/Team/Partner/Gallery/Project/Award/Leader.
+  The legacy public site exposes these as ordinary content pages, not uniform
+  list pages, so specialized extractors would be guesswork. `extract.ts` dispatch
+  is ready to add them once a real source layout is identified.
 
 ## Seeder split
 `pnpm prisma:seed` stays a **deterministic fixture seed** (used by tests/CI) and

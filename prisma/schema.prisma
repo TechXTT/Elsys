@@ -178,6 +178,10 @@ model Page {
   noindex         Boolean @default(false)
   canonical       String?
 
+  // Migration provenance (G4): legacy source id + URL for idempotent import.
+  legacyId        Int?
+  legacyUrl       String?
+
   // Navigation hierarchy & presentation (merged from NavigationItem)
   parentId     String?
   parent       Page?    @relation("PageHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
@@ -259,6 +263,10 @@ model NewsPost {
   /// its title is the effective category label. Falls back to free-text `category`.
   categoryPageId String?
   categoryPage   Page?   @relation("NewsCategory", fields: [categoryPageId], references: [id], onDelete: SetNull)
+
+  // Migration provenance (G4): legacy source id + URL for idempotent import.
+  legacyId      Int?
+  legacyUrl     String?
 
   authorId      String?
   author        User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -391,6 +399,7 @@ model Club {
   publishAt       DateTime?
   unpublishAt     DateTime?
   legacyId        Int?
+  legacyUrl    String?
 
   authorId        String?
   author          User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -455,6 +464,7 @@ model Award {
   order       Int           @default(0)
   publishAt   DateTime?
   legacyId    Int?
+  legacyUrl    String?
 
   authorId    String?
   author      User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -484,6 +494,7 @@ model Leader {
   order       Int           @default(0)
   publishAt   DateTime?
   legacyId    Int?
+  legacyUrl    String?
 
   authorId    String?
   author      User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -512,6 +523,7 @@ model Project {
   order       Int           @default(0)
   publishAt   DateTime?
   legacyId    Int?
+  legacyUrl    String?
 
   authorId    String?
   author      User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -539,6 +551,7 @@ model Partner {
   order       Int           @default(0)
   publishAt   DateTime?
   legacyId    Int?
+  legacyUrl    String?
 
   authorId    String?
   author      User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -567,6 +580,7 @@ model TeamMember {
   order       Int           @default(0)
   publishAt   DateTime?
   legacyId    Int?
+  legacyUrl    String?
 
   authorId    String?
   author      User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -594,6 +608,7 @@ model GalleryItem {
   order       Int           @default(0)
   publishAt   DateTime?
   legacyId    Int?
+  legacyUrl    String?
 
   authorId    String?
   author      User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -626,6 +641,7 @@ model Document {
   order       Int           @default(0)
   publishAt   DateTime?
   legacyId    Int?
+  legacyUrl    String?
 
   authorId    String?
   author      User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -668,6 +684,24 @@ model SuccessorNote {
   @@unique([entity, entityId])
 }
 
+/// Legacy → new URL redirect (R1 / G4 M4.2). Consumed on 404 by the public
+/// resolver so old elsys-bg.org links keep working after migration. `fromPath`
+/// is the locale-relative path (e.g. "/novini-i-sybitija/novini/x-920").
+model RouteRedirect {
+  id        String   @id @default(cuid())
+  /// Source path to match (no origin; may include the locale prefix or not).
+  fromPath  String   @unique
+  /// Destination path (locale-relative, e.g. "/novini/x").
+  toPath    String
+  /// HTTP status (308 permanent by default).
+  status    Int      @default(308)
+  /// Provenance: which legacy id this redirect was backfilled from.
+  legacyId  Int?
+  createdAt DateTime @default(now())
+
+  @@index([fromPath])
+}
+
 /// Hero carousel slides — rendered as CarouselHero block (§4.3 #1)
 model Carousel {
   id           String        @id @default(cuid())
@@ -684,6 +718,7 @@ model Carousel {
   publishAt    DateTime?
   unpublishAt  DateTime?
   legacyId     Int?
+  legacyUrl    String?
 
   authorId     String?
   author       User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
