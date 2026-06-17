@@ -97,7 +97,8 @@
     "rightsReserved": "© {year} TUES at TU-Sofia. All rights reserved.",
     "privacy": "Privacy",
     "cookies": "Cookies",
-    "accessibility": "Accessibility"
+    "accessibility": "Accessibility",
+    "manageCookies": "Cookies"
   },
   "Home": {
     "newsTitle": "News & events",
@@ -771,5 +772,21 @@
     "intro": "Notable TUES alumni over the years.",
     "empty": "No alumni published yet.",
     "classOf": "Class of {year}"
+  },
+  "Consent": {
+    "title": "Cookies",
+    "bannerText": "We use only strictly necessary cookies to run the site. With your consent we also add anonymous statistics to improve it.",
+    "policyLink": "See the Cookie Policy.",
+    "settings": "Settings",
+    "necessaryOnly": "Necessary only",
+    "acceptAll": "Accept all",
+    "prefsTitle": "Cookie settings",
+    "close": "Close",
+    "necessary": "Necessary",
+    "alwaysOn": "always on",
+    "necessaryDesc": "Session, language, theme, spam protection (Turnstile). The site does not work without them.",
+    "analytics": "Analytics",
+    "analyticsDesc": "Anonymous visit statistics (Vercel Analytics). No identity tracking.",
+    "save": "Save choices"
   }
 }

@@ -274,3 +274,10 @@ Branch `feat/G5-2-help`. typecheck ✓ lint ✓ build ✓ e2e 2/2.
 Branch `feat/G5-3-handover`. typecheck ✓ lint ✓ build ✓ e2e 2/2.
 - ADMIN-only (`roles:manage`) succession checklist wired to **real state** (`lib/handover.ts`): add admin (admin-capable count), assign role, enforce 2FA (all admins enrolled?), review successor notes (count), export audit log, deactivate leavers, season summary — each step's done/pending derived from the DB, with action links.
 - Aside: successor select (admin-capable users), note + season-summary fields, a 2FA warning, and **Завърши предаването** → `completeHandover` Server Action that **AuditLogs** `HANDOVER_COMPLETE` (season, progress, note, summary). New `/api/admin/audit/export` JSON download (audit:view) for the season archive. Sidebar "Предаване" link (ADMIN). `Admin.handover.*` i18n.
+
+## Task 4 — G5-4 GDPR consent + retention (Figma 106:2/106:13) — ✅ DONE
+Branch `feat/G5-4-gdpr`. typecheck ✓ lint ✓ build ✓ e2e 2/2. New dep: **@vercel/analytics** (the §2 locked analytics choice, previously missing) — flagged.
+- `CookieConsent` (banner + preferences modal): necessary always-on, analytics opt-in; choice persisted to a first-party `cookie-consent` cookie (`lib/consent.ts`) + live `consentchange` event. Reopen from the footer ("Бисквитки").
+- `ConsentedAnalytics` mounts Vercel `<Analytics/>` **only** when analytics consent is granted (reacts live). Both mounted in the locale layout.
+- **IP minimization:** `lib/ip.ts#anonymizeIp` (zero IPv4 host octet / truncate IPv6) applied to the **audit log** ip; contact-form **rate-limit key** now a one-way SHA-256 hash of the IP. Raw IP never written down.
+- **Contact form** stays email-only (no PII at rest) — documented in `docs/gdpr-retention.md` (retention posture, templated for the DPO). `Consent.*` i18n.
