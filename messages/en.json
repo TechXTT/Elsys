@@ -97,7 +97,8 @@
     "rightsReserved": "© {year} TUES at TU-Sofia. All rights reserved.",
     "privacy": "Privacy",
     "cookies": "Cookies",
-    "accessibility": "Accessibility"
+    "accessibility": "Accessibility",
+    "manageCookies": "Cookies"
   },
   "Home": {
     "newsTitle": "News & events",
@@ -184,7 +185,9 @@
       "viewSite": "View Site",
       "signOut": "Sign out",
       "media": "Media",
-      "roles": "Roles"
+      "roles": "Roles",
+      "help": "Help",
+      "handover": "Handover"
     },
     "stats": {
       "totalNews": "Total News Posts",
@@ -547,7 +550,8 @@
       "metaDescription": "Meta description",
       "ogImage": "OG image",
       "canonical": "Canonical URL",
-      "noindex": "Hide from search engines (noindex)"
+      "noindex": "Hide from search engines (noindex)",
+      "dateMissing": "date missing"
     },
     "roles": {
       "title": "Roles & permissions",
@@ -581,6 +585,77 @@
       "ogImage": "OG image",
       "canonical": "Canonical URL",
       "noindex": "Hide from search engines (noindex)"
+    },
+    "inlineEdit": {
+      "blockLabel": "Editable block",
+      "edit": "Edit",
+      "drawerTitle": "Edit block",
+      "hint": "Changes save directly to the page and preview immediately.",
+      "title": "Title",
+      "content": "Content",
+      "save": "Save",
+      "saving": "Saving…",
+      "cancel": "Cancel"
+    },
+    "help": {
+      "title": "Help & runbooks",
+      "subtitle": "New administrator? Start here — the system explains itself.",
+      "tourTitle": "🎓 Tour for new administrators",
+      "tourSubtitle": "A 10-minute interactive tour: publishing, pages, media, handover.",
+      "tourStart": "Start the tour",
+      "runbooks": "Runbooks",
+      "open": "Open",
+      "empty": "No help articles yet.",
+      "editArticle": "Edit",
+      "draftNote": "Draft — the school can refine it.",
+      "backToHelp": "Back to help"
+    },
+    "handover": {
+      "title": "Access handover",
+      "progress": "Season {season} · {done} of {total} steps done",
+      "done": "Done",
+      "continue": "Continue",
+      "start": "Start",
+      "receivesAccess": "Receives access",
+      "successor": "Successor",
+      "noSuccessor": "No successor available",
+      "successorNote": "Note for the successor",
+      "notePlaceholder": "Partner-account passwords are in…",
+      "seasonSummary": "Season summary",
+      "twoFactorWarning": "Complete 2FA before handover.",
+      "complete": "Complete handover",
+      "saving": "Saving…",
+      "completed": "Handover recorded in the audit log.",
+      "steps": {
+        "addAdmin": {
+          "title": "Add the new administrator",
+          "desc": "Admin-capable accounts: {count}."
+        },
+        "assignRole": {
+          "title": "Assign a role",
+          "desc": "Give the new account a role."
+        },
+        "enforce2fa": {
+          "title": "Enforce 2FA on the new account",
+          "desc": "All admins must have 2FA."
+        },
+        "reviewNotes": {
+          "title": "Review successor notes",
+          "desc": "{count} internal notes to review."
+        },
+        "exportAudit": {
+          "title": "Export the audit log",
+          "desc": "Archive of the season’s actions."
+        },
+        "deactivateLeavers": {
+          "title": "Deactivate leaving accounts",
+          "desc": "Review and deactivate graduating admins."
+        },
+        "seasonSummary": {
+          "title": "Write the season summary",
+          "desc": "What happened and what is next."
+        }
+      }
     }
   },
   "Clubs": {
@@ -698,5 +773,21 @@
     "intro": "Notable TUES alumni over the years.",
     "empty": "No alumni published yet.",
     "classOf": "Class of {year}"
+  },
+  "Consent": {
+    "title": "Cookies",
+    "bannerText": "We use only strictly necessary cookies to run the site. With your consent we also add anonymous statistics to improve it.",
+    "policyLink": "See the Cookie Policy.",
+    "settings": "Settings",
+    "necessaryOnly": "Necessary only",
+    "acceptAll": "Accept all",
+    "prefsTitle": "Cookie settings",
+    "close": "Close",
+    "necessary": "Necessary",
+    "alwaysOn": "always on",
+    "necessaryDesc": "Session, language, theme, spam protection (Turnstile). The site does not work without them.",
+    "analytics": "Analytics",
+    "analyticsDesc": "Anonymous visit statistics (Vercel Analytics). No identity tracking.",
+    "save": "Save choices"
   }
 }

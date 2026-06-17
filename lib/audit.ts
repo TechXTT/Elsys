@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { anonymizeIp } from "./ip";
 
 function getClientIp(headers: Headers): string | undefined {
   const xff = headers.get("x-forwarded-for") || headers.get("x-real-ip");
@@ -19,7 +20,8 @@ export async function recordAudit(params: {
   details?: unknown;
 }): Promise<void> {
   try {
-    const ip = params.ip ?? (params.req ? getClientIp(params.req.headers) : undefined);
+    // GDPR: store an anonymized IP only (host portion dropped), never the raw IP.
+    const ip = anonymizeIp(params.ip ?? (params.req ? getClientIp(params.req.headers) : undefined));
     const userAgent = params.userAgent ?? params.req?.headers.get("user-agent") ?? undefined;
     await (prisma as any).auditLog.create({
       data: {

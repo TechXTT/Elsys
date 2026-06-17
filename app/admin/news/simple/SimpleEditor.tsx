@@ -285,7 +285,10 @@ export function SimpleEditor({ locale, categoryPages, record }: Props) {
           </label>
 
           <label className="mb-4 flex flex-col gap-1 text-body-sm">
-            <span className="text-ink-heading">{t("date")}</span>
+            <span className="text-ink-heading">
+              {t("date")}
+              {isEdit && !record?.date && <span className="ml-2 text-[var(--color-status-warning-text)]">{t("dateMissing")}</span>}
+            </span>
             <input type="date" name="date" defaultValue={defaults?.date ?? new Date().toISOString().slice(0, 10)} required className="rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-body-sm text-ink focus:outline-none focus:border-[var(--color-action-primary)]" />
           </label>
 

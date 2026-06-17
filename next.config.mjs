@@ -17,6 +17,9 @@ const nextConfig = {
       // Projects canonical route is /evroproekti (aligns nav + legacy). 308.
       { source: "/:locale(bg|en)/proekti", destination: "/:locale/evroproekti", permanent: true },
       { source: "/:locale(bg|en)/proekti/:slug*", destination: "/:locale/evroproekti/:slug*", permanent: true },
+      // M1.3 R5: legacy /blog folds into news (imported as NewsPost). 308.
+      { source: "/:locale(bg|en)/blog", destination: "/:locale/novini", permanent: true },
+      { source: "/:locale(bg|en)/blog/:slug*", destination: "/:locale/novini/:slug*", permanent: true },
     ];
   },
 };

@@ -42,7 +42,8 @@ export default async function EditSimpleNewsPage({
     title: row.title,
     excerpt: row.excerpt ?? undefined,
     markdown: row.bodyMarkdown ?? "",
-    date: row.date ? new Date(row.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+    // Empty (not today) when the imported post has no recoverable date — surfaces "дата липсва".
+    date: row.date ? new Date(row.date).toISOString().slice(0, 10) : "",
     featuredImage: row.featuredImage ?? undefined,
     gallery,
     colorTag: row.colorTag ?? undefined,

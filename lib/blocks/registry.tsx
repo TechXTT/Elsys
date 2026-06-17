@@ -227,15 +227,24 @@ const EmbedBlock: BlockDefinition<{ url: string; aspectRatio?: string }> = {
   },
 };
 
-const NewsListBlock: BlockDefinition<{ title?: string; description?: string; limit?: number }> = {
+const NewsListBlock: BlockDefinition<{ title?: string; description?: string; limit?: number; moreHref?: string; moreLabel?: string }> = {
   type: "NewsList",
   needs: ["news"],
   render: (p, ctx) => {
     const locale = (ctx?.locale as Locale) ?? "bg";
+    const r = p as Record<string, unknown>;
     const items = (Array.isArray(ctx?.news) ? ctx!.news : []).slice(0, Math.max(1, Math.min(24, Number(p?.limit) || 6)));
+    const moreHref = str(r.moreHref);
     return (
       <Band className="flex flex-col gap-[var(--spacing-lg)]">
-        <SectionHeading as="h2" title={p?.title || "Новини"} description={p?.description || undefined} />
+        <div className="flex flex-wrap items-end justify-between gap-[var(--spacing-md)]">
+          <SectionHeading as="h2" title={p?.title || "Новини"} description={p?.description || undefined} />
+          {moreHref ? (
+            <a href={`/${locale}${moreHref.startsWith("/") ? "" : "/"}${moreHref}`} className="text-body-sm font-semibold text-ink-link no-underline hover:underline">
+              {str(r.moreLabel) || "Всички"}
+            </a>
+          ) : null}
+        </div>
         {items.length === 0 ? (
           <p className="text-body text-ink-muted">—</p>
         ) : (
@@ -307,7 +316,7 @@ const CTABlock: BlockDefinition<{ title: string; description?: string; primaryBu
       <Band>
         <div className="flex flex-col items-center gap-[var(--spacing-md)] rounded-[var(--radius-lg)] bg-brand-tint px-[var(--spacing-lg)] py-[var(--spacing-2xl)] text-center">
           <SectionHeading as="h2" align="center" title={str(r.title)} />
-          {str(r.description) ? <p className="text-body-lg max-w-2xl text-ink-muted">{str(r.description)}</p> : null}
+          {str(r.description) ? <p className="text-body-lg max-w-2xl text-ink">{str(r.description)}</p> : null}
           <div className="flex flex-wrap justify-center gap-[var(--spacing-sm)]">
             {primary && str(primary.label) && str(primary.href) ? (
               <ButtonLink variant="primary" size="lg" {...hrefProps(str(primary.href))}>{str(primary.label)}</ButtonLink>

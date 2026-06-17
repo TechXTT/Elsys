@@ -36,7 +36,7 @@ interface NewsRow {
   bodyMarkdown: string;
   blocks: unknown[] | null;
   useBlocks: boolean;
-  date: Date;
+  date: Date | null;
   images: ImageMeta[] | null;
   featuredImage: string | null;
   published: boolean;
@@ -82,7 +82,7 @@ export async function getNewsPosts(locale?: Locale, includeDrafts = false): Prom
           // Public reads: status PUBLISHED + date <= now (scheduling stays date-encoded).
           ...(includeDrafts ? {} : publicWhere({ gateDate: true, now })),
         },
-        orderBy: { date: "desc" },
+        orderBy: { date: { sort: "desc", nulls: "last" } },
         select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true, category: true, colorTag: true, categoryPage: { select: { title: true } }, machineTranslated: true },
       });
 
@@ -94,7 +94,7 @@ export async function getNewsPosts(locale?: Locale, includeDrafts = false): Prom
             locale: defaultLocale,
             ...publicWhere({ gateDate: true, now }),
           },
-          orderBy: { date: "desc" },
+          orderBy: { date: { sort: "desc", nulls: "last" } },
           select: { id: true, locale: true, title: true, excerpt: true, bodyMarkdown: true, blocks: true, useBlocks: true, date: true, images: true, featuredImage: true, published: true, status: true, category: true, colorTag: true, categoryPage: { select: { title: true } }, machineTranslated: true },
         });
       }
@@ -102,7 +102,7 @@ export async function getNewsPosts(locale?: Locale, includeDrafts = false): Prom
       // Merge: primary locale takes precedence, fallback fills gaps
       const seenIds = new Set(primaryRows.map(r => r.id));
       const effective = [...primaryRows, ...fallbackRows.filter(r => !seenIds.has(r.id))];
-      effective.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      effective.sort((a, b) => (b.date ? new Date(b.date).getTime() : 0) - (a.date ? new Date(a.date).getTime() : 0));
 
       return effective.map(toPostItem);
     },

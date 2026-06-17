@@ -83,6 +83,7 @@ export function MediaLibraryClient({ items, counts }: Props) {
             ref={fileInputRef}
             type="file"
             multiple
+            aria-label={t("upload")}
             className="sr-only"
             onChange={(e) => doUpload(e.target.files)}
           />

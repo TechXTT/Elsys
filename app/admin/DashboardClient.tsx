@@ -240,7 +240,7 @@ export function DashboardClient() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
             <Calendar className="mr-1.5 inline-block h-4 w-4" />
             {new Date().toLocaleDateString("en-US", {
               weekday: "long",

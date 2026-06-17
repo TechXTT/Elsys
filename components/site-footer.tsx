@@ -86,6 +86,15 @@ export function SiteFooter() {
                 {t(policy.key)}
               </Link>
             ))}
+            {/* G5-4: reopen the cookie preferences modal. */}
+            <button
+              type="button"
+              data-ui="manage-cookies"
+              onClick={() => window.dispatchEvent(new Event("open-cookie-prefs"))}
+              className={cn(linkCls, "cursor-pointer")}
+            >
+              {t("manageCookies")}
+            </button>
           </div>
         </div>
       </div>

@@ -16,6 +16,9 @@ import { loadBlockData } from "@/lib/cms/block-data";
 import { resolveAlias } from "@/lib/routes";
 import { resolveRedirect } from "@/lib/redirects";
 import { permanentRedirect, redirect as nextRedirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { can } from "@/lib/auth/permissions";
 import { isPublic } from "@/lib/content/shared";
 import { alternatesFor, applySeo } from "@/lib/site";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
@@ -26,6 +29,7 @@ function PageContent({
   page,
   locale,
   blockData,
+  editable,
   comingSoon,
   homeLabel,
   breadcrumbLabel,
@@ -34,6 +38,7 @@ function PageContent({
   page: any;
   locale: Locale;
   blockData?: Partial<BlockContext>;
+  editable?: { pageId: string };
   comingSoon: string;
   homeLabel: string;
   breadcrumbLabel: string;
@@ -59,7 +64,7 @@ function PageContent({
         </div>
       </div>
       {blocks.length > 0 ? (
-        renderBlocks(blocks as any, { locale, ...blockData })
+        renderBlocks(blocks as any, { locale, ...blockData }, editable)
       ) : page.bodyMarkdown ? (
         <div className="container-page py-[var(--spacing-2xl)] text-body flex flex-col gap-[var(--spacing-md)] text-ink [&_a]:text-ink-link [&_a]:underline [&_h2]:text-h3 [&_h2]:text-ink-heading [&_h3]:text-h4 [&_h3]:text-ink-heading [&_ol]:list-decimal [&_ol]:pl-[var(--spacing-lg)] [&_ul]:list-disc [&_ul]:pl-[var(--spacing-lg)]">
           <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{page.bodyMarkdown}</ReactMarkdown>
@@ -205,11 +210,17 @@ export default async function DynamicPage({ params }: { params: { locale: Locale
   // R4: prefetch every public data source the page's blocks declare via `needs`.
   const blockData = await loadBlockData(collectBlockNeeds(page.blocks), locale);
 
+  // G3-3: editors get inline block editing on the live page.
+  const session = await getServerSession(authOptions);
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  const editable = can(role, "pages:edit") ? { pageId: page.id as string } : undefined;
+
   return (
     <PageContent
       page={page}
       locale={locale}
       blockData={blockData}
+      editable={editable}
       comingSoon={tCommon("comingSoon")}
       homeLabel={tCommon("home")}
       breadcrumbLabel={tCommon("breadcrumb")}

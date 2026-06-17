@@ -58,10 +58,12 @@ export function LanguageSwitcher({ tone = "surface" }: { tone?: Tone }) {
   };
 
   const labels: Record<Locale, string> = { bg: t("bg"), en: t("en") };
-  const activeText = tone === "brand" ? "text-[var(--color-text-on-brand)]" : "text-[var(--color-text-heading)]";
+  // AA: distinguish active via underline, not opacity (opacity dilutes the
+  // on-brand text below the 4.5:1 contrast threshold). M5.5.
+  const activeText = tone === "brand" ? "text-[var(--color-text-on-brand)] underline underline-offset-4" : "text-[var(--color-text-heading)] underline underline-offset-4";
   const inactiveText =
     tone === "brand"
-      ? "text-[var(--color-text-on-brand)] opacity-70 hover:opacity-100"
+      ? "text-[var(--color-text-on-brand)] hover:underline"
       : "text-[var(--color-text-muted)] hover:text-[var(--color-text-heading)]";
   const separator = tone === "brand" ? "text-[var(--color-text-on-brand)] opacity-50" : "text-[var(--color-text-muted)]";
 

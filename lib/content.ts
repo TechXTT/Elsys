@@ -3,7 +3,7 @@ import path from "path";
 
 import { defaultLocale, type Locale } from "@/i18n/config";
 
-import { HomeContent, PostItem } from "./types";
+import { PostItem } from "./types";
 
 const contentDir = path.join(process.cwd(), "content");
 
@@ -44,21 +44,11 @@ export function loadJson<T>(relPath: string, locale?: Locale): T | null {
   }
 }
 
-export function loadHome(locale?: Locale): HomeContent | null {
-  return loadJson<HomeContent>("home.json", locale);
-}
-
 export function loadNewsJson(locale?: Locale): PostItem[] {
   const primary = loadJson<PostItem[]>(newsIndexRelPath, locale);
   if (Array.isArray(primary)) return primary;
   const fallback = loadJson<PostItem[]>(newsFallbackRelPath, locale);
   if (Array.isArray(fallback)) return fallback;
-  return [];
-}
-
-export function loadBlogJson(locale?: Locale): PostItem[] {
-  const data = loadJson<PostItem[]>("events/example-event.json", locale);
-  if (Array.isArray(data)) return data;
   return [];
 }
 

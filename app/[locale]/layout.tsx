@@ -9,6 +9,8 @@ import { getNavigationTree } from "@/lib/navigation-build";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { SkipLink } from "@/components/ui/SkipLink";
+import { CookieConsent } from "@/components/CookieConsent";
+import { ConsentedAnalytics } from "@/components/ConsentedAnalytics";
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -46,6 +48,8 @@ export default async function LocaleLayout({
         {children}
       </main>
       <SiteFooter />
+      <CookieConsent />
+      <ConsentedAnalytics />
     </NextIntlClientProvider>
   );
 }

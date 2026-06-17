@@ -10,7 +10,6 @@ export const revalidate = 300;
 const routes = [
   "",
   "/novini",
-  "/blog",
   "/za-uchilishteto",
   "/priem",
   "/klubove",

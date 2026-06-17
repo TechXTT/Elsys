@@ -9,3 +9,4 @@ import "./partner";
 import "./project";
 import "./award";
 import "./leader";
+import "./help";

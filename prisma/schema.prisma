@@ -48,6 +48,7 @@ model User {
   projects        Project[]
   awards          Award[]
   leaders         Leader[]
+  helpArticles    HelpArticle[]
 
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -231,8 +232,9 @@ model NewsPost {
   blocks        Json?
   /// Whether the post uses block editor (true) or markdown (false)
   useBlocks     Boolean  @default(false)
-  /// Publish date
-  date          DateTime
+  /// Publish date. Nullable: imported posts with no recoverable date land as
+  /// DRAFT with date=null ("дата липсва") rather than a fabricated value (G4-3).
+  date          DateTime?
   /// Array of images: [{ name, url, size }]
   images        Json?
   /// Featured image URL (card cover)
@@ -682,6 +684,30 @@ model SuccessorNote {
   updatedAt   DateTime @updatedAt
 
   @@unique([entity, entityId])
+}
+
+/// Admin help-center runbook (G5-2). Seeded as editable DRAFTs the school can
+/// refine. Rendered at /admin/help (+ /admin/help/[slug]); editable via the
+/// content framework at /admin/content/help.
+model HelpArticle {
+  id        String        @id @default(cuid())
+  slug      String        @unique
+  title     String
+  summary   String?
+  /// Markdown body.
+  body      String
+  /// lucide icon name (or emoji) for the card.
+  icon      String?
+  order     Int           @default(0)
+  status    PublishStatus @default(DRAFT)
+
+  authorId  String?
+  author    User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([status, order])
 }
 
 /// Legacy → new URL redirect (R1 / G4 M4.2). Consumed on 404 by the public

@@ -255,4 +255,57 @@ Branch `feat/G4-2-import-commit` (off Part B tip 36667be). typecheck ✓ lint �
 - **News dates:** 5 recovered from the index, **14 flagged "дата липсва"** (1970 sentinel, DRAFT).
 - e2e stayed green (87/87) — imported DRAFT content is invisible to public tests; the fixture seed is unchanged.
 
-## HARD STOP (per brief): no prod import, no auto-publish, M4.4 visual-diff harness NOT built (awaiting separate brief).
+---
+
+# Final feature batch (operator-queued, stacked off G4 tip 975dcee)
+
+## Task 1 — G3-3 inline <Editable> (Figma 110:3) — ✅ DONE
+Branch `feat/G3-3-inline-edit`. typecheck ✓ lint ✓ build ✓ e2e 2/2.
+- Admin-only inline block editing on public pages: `renderBlocks(..., edit)` wraps editable text blocks (Hero/Section/Markdown) with `components/admin/InlineEditableBlock.tsx` — dashed outline + "Редактирай" → right drawer (Заглавие/Съдържание) → `inlineUpdatePageBlock` Server Action (pages:edit gated, AuditLog, invalidate page cache + revalidate both locales). `[...slug]` passes `edit` only when `can(role,"pages:edit")`.
+- Field mapping by type (Hero→heading/subheading, Section→title/markdown, Markdown→markdown). `Admin.inlineEdit.*` i18n. e2e: anon sees no affordance; admin edits + persists + reverts.
+
+## Task 2 — G5-2 /admin/help (Figma 107:2) — ✅ DONE
+Branch `feat/G5-2-help`. typecheck ✓ lint ✓ build ✓ e2e 2/2.
+- `HelpArticle` model (additive, migration `20260617075720_add_help_article`) + 6 seeded runbooks as **DRAFT** (publish-a-news, change-academic-year, restore-deleted, season-handover, media-upload, manage-menu) — editable by the school via the content framework (`help` type registered, `enableSuccessorNote:false`).
+- `/admin/help` help-center (tour launcher banner + runbook card grid) + `/admin/help/[slug]` markdown article view with an "Edit" link to the framework editor + DRAFT note. `lib/help.ts` reads. Sidebar "Помощ" link; `Admin.help.*` i18n (Bulgarian).
+- Onboarding-tour **launcher** ships (links to the first runbook); interactive coachmarks flagged as a follow-up per brief.
+
+## Task 3 — G5-3 /admin/handover (Figma 108:2) — ✅ DONE
+Branch `feat/G5-3-handover`. typecheck ✓ lint ✓ build ✓ e2e 2/2.
+- ADMIN-only (`roles:manage`) succession checklist wired to **real state** (`lib/handover.ts`): add admin (admin-capable count), assign role, enforce 2FA (all admins enrolled?), review successor notes (count), export audit log, deactivate leavers, season summary — each step's done/pending derived from the DB, with action links.
+- Aside: successor select (admin-capable users), note + season-summary fields, a 2FA warning, and **Завърши предаването** → `completeHandover` Server Action that **AuditLogs** `HANDOVER_COMPLETE` (season, progress, note, summary). New `/api/admin/audit/export` JSON download (audit:view) for the season archive. Sidebar "Предаване" link (ADMIN). `Admin.handover.*` i18n.
+
+## Task 4 — G5-4 GDPR consent + retention (Figma 106:2/106:13) — ✅ DONE
+Branch `feat/G5-4-gdpr`. typecheck ✓ lint ✓ build ✓ e2e 2/2. New dep: **@vercel/analytics** (the §2 locked analytics choice, previously missing) — flagged.
+- `CookieConsent` (banner + preferences modal): necessary always-on, analytics opt-in; choice persisted to a first-party `cookie-consent` cookie (`lib/consent.ts`) + live `consentchange` event. Reopen from the footer ("Бисквитки").
+- `ConsentedAnalytics` mounts Vercel `<Analytics/>` **only** when analytics consent is granted (reacts live). Both mounted in the locale layout.
+- **IP minimization:** `lib/ip.ts#anonymizeIp` (zero IPv4 host octet / truncate IPv6) applied to the **audit log** ip; contact-form **rate-limit key** now a one-way SHA-256 hash of the IP. Raw IP never written down.
+- **Contact form** stays email-only (no PII at rest) — documented in `docs/gdpr-retention.md` (retention posture, templated for the DPO). `Consent.*` i18n.
+
+## Task 5 — M1.3 Homepage R5 (DB-driven) — ✅ DONE
+Branch `feat/M1-3-home-r5`. typecheck ✓ lint ✓ build ✓ e2e home-flagship + cms-pages + novini 4/4.
+- Homepage is now **one DB source of truth**: a seeded CMS `home` Page (bg+en) composed of blocks (CarouselHero, NewsList w/ new `moreHref`/`moreLabel` "all news" link, Stats, Features, ClubGrid, Testimonials, CTA). `app/[locale]/page.tsx` renders the compiled blocks (JSON-LD still emitted as metadata); the minimal Hero fallback only fires if the home page is missing.
+- **Deleted the static fallbacks:** `loadHome` + `loadBlogJson` removed from `lib/content.ts`; `content/{bg,en}/home.json` deleted; the static CLUBS_PREVIEW/numbers/tracks/testimonials sections gone.
+- `/blog` folded into news: deleted the `/blog` pages, added **308** `/blog(/*)` → `/novini` redirects, dropped `/blog` from the sitemap.
+
+## Task 6 — G4-3 undated-news cleanup — ✅ DONE
+Branch `feat/G4-3-cleanup`. typecheck ✓ lint ✓ build ✓ e2e 8/8 (publish-status/novini/home).
+- `NewsPost.date` made **nullable** (migration `20260617084759_news_date_nullable`); importer now writes `date=null` (DRAFT) for undated posts instead of the 1970 sentinel — never fabricated. `getNewsPosts` orders `date desc nulls last`; `isPublic` already null-safe.
+- Backfilled the 14 existing sentinel rows to `date=null`. Simple editor shows a **"дата липсва"** hint + an empty (required) date field for imported dateless posts, so an editor must set a real date before publishing.
+
+## Task 7 — M5.5 axe accessibility — ✅ DONE
+Branch `feat/M5-5-axe`. typecheck ✓ lint ✓ build ✓ **axe 9/9** + full suite **104/104**. New dev dep: **@axe-core/playwright**.
+- `tests/e2e/axe.spec.ts` scans 7 key public pages + admin (login, dashboard, media, help) for WCAG 2.0/2.1 A/AA; fails on serious/critical.
+- **Fixed (real AA bugs):** site-header subtitle + language switcher used `opacity-70/80` on on-brand text (3.8–4.49:1) → full on-brand colour, active distinguished by underline; admin sidebar muted text + `AdminLocaleSwitcher` on the navy sidebar (1.52:1) → `onDark` light variant + slate-300; carousel inactive-slide CTAs `tabIndex=-1` (focusable-not-tabbable); pagination disabled prev/next `<span>` given `role="link"` (aria-prohibited-attr); media dropzone file input got an `aria-label`; home CTA description → full ink.
+- **Logged design-token follow-up (allowed):** a few muted-ink texts on subtle/tinted backgrounds sit at 4.34–4.44:1 (just under 4.5) — the muted-ink token shade is a **designer decision**, not a code bug. The spec logs these (ratio ≥ 4.3) and still **fails on any real low-contrast (< 4.3)** + all other serious/critical. Flag for the designer: nudge `--color-text-muted` ~3% darker to clear AA on tints.
+
+---
+
+## AA token fix (muted contrast) — ✅ DONE
+Branch `feat/M5-5-muted-contrast` (off final-batch tip 5cbbfa9). typecheck ✓ lint ✓ build ✓ **axe 9/9 strict** + full suite **104/104**.
+- `design/tokens.json` `color.text.muted` light → `gray.700` (#52606D; dark stays gray/400); `pnpm tokens:generate` regenerated `app/styles/tokens.css`.
+- **Root cause found:** the app's consumed value is hardcoded in `app/globals.css` (the generated `tokens.css` was being overridden in the cascade). Synced `app/globals.css --color-text-muted` light → `#52606d` too. Also bumped one raw `text-slate-500` on the admin dashboard → `slate-600`.
+- **axe tightened to strict** (removed the marginal ≥4.3 allowance) — now fails on *any* serious/critical incl. color-contrast < 4.5; passes 9/9. The previously-flagged muted-on-tint spots (home CTA-area, dashboard cards) now clear AA.
+- Hardened `publish-status.spec` to verify visibility via the **article page** (DB-live, pagination-proof) instead of the `/novini` index — removes a dev-DB-pollution flake (accumulated published test posts crowding page 1). Now deterministic.
+
+## ALL WORK COMPLETE. HARD STOP honored: no M4.4 visual-diff harness, no prod import, no auto-publish.

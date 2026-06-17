@@ -36,7 +36,9 @@ async function underRateLimit(ip: string): Promise<boolean> {
   const redis = getRedisClient();
   if (!redis) return true; // no Redis → skip limiting in dev
   try {
-    const key = `contact:rl:${ip}`;
+    // GDPR: key on a one-way hash of the IP, never the raw IP at rest.
+    const { createHash } = await import("node:crypto");
+    const key = `contact:rl:${createHash("sha256").update(ip).digest("hex").slice(0, 24)}`;
     const n = await redis.incr(key);
     if (n === 1) await redis.expire(key, RATE_WINDOW_S);
     return n <= RATE_LIMIT;

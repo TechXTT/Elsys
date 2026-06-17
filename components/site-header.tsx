@@ -134,7 +134,8 @@ export function SiteHeader({ initialNav }: { initialNav?: UiNavNode[] }) {
   }, [drawerOpen, closeDrawer]);
 
   const logoColor = onBrand ? "text-[var(--color-text-on-brand)]" : "text-[var(--color-text-heading)]";
-  const tagColor = onBrand ? "text-[var(--color-text-on-brand)] opacity-80" : "text-[var(--color-text-muted)]";
+  // AA (M5.5): full on-brand text — opacity-80 dropped below 4.5:1 on the header.
+  const tagColor = onBrand ? "text-[var(--color-text-on-brand)]" : "text-[var(--color-text-muted)]";
   const navLinkColor = onBrand ? "text-[var(--color-text-on-brand)]" : "text-[var(--color-text-body)]";
   const iconColor = onBrand ? "text-[var(--color-text-on-brand)]" : "text-[var(--color-text-body)]";
 

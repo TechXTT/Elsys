@@ -1022,6 +1022,57 @@ Registration for the first workshop is now open!`,
   }
   console.log(`✓ Seeded ${contentPages.length} block-composed content pages (About, Admissions)`);
 
+  // --- Homepage as DB blocks (M1.3 R5) — single source of truth ---------------
+  const homeBlocksBg = [
+    { type: 'CarouselHero', props: {} },
+    { type: 'NewsList', props: { title: 'Последни новини', limit: 3, moreHref: '/novini', moreLabel: 'Всички новини' } },
+    { type: 'Stats', props: { items: [
+      { value: '1000+', label: 'Алумни' }, { value: '35+', label: 'Години опит' },
+      { value: '50+', label: 'Партньори' }, { value: '95%', label: 'Реализация' },
+    ] } },
+    { type: 'Features', props: { title: 'Специалности', items: [
+      { title: 'Системно програмиране', description: 'Дълбоки основи в компютърните системи.' },
+      { title: 'Изкуствен интелект', description: 'Модерни алгоритми и машинно обучение.' },
+      { title: 'Компютърни мрежи', description: 'Мрежова администрация и сигурност.' },
+    ] } },
+    { type: 'ClubGrid', props: { title: 'Клубове' } },
+    { type: 'Testimonials', props: { title: 'Истории на ученици', items: [
+      { quote: 'Проектните предмети ме научиха да работя в екип.', author: 'Мария', role: '11 клас, ИИ' },
+      { quote: 'Стажът ми стана първа работа. Общността е богатство.', author: 'Иван', role: "Випуск '22" },
+      { quote: 'Клубовете правят училището втори дом.', author: 'Никола', role: '10 клас, Мрежи' },
+    ] } },
+    { type: 'CTA', props: { title: 'Готови ли сте за ТУЕС?', description: 'Запознайте се с приема и кандидатствайте.', primaryButton: { label: 'Кандидатствай сега', href: '/priem' } } },
+  ];
+  const homeBlocksEn = [
+    { type: 'CarouselHero', props: {} },
+    { type: 'NewsList', props: { title: 'Latest news', limit: 3, moreHref: '/novini', moreLabel: 'All news' } },
+    { type: 'Stats', props: { items: [
+      { value: '1000+', label: 'Alumni' }, { value: '35+', label: 'Years' },
+      { value: '50+', label: 'Partners' }, { value: '95%', label: 'Placement' },
+    ] } },
+    { type: 'Features', props: { title: 'Specialties', items: [
+      { title: 'Systems programming', description: 'Deep foundations in computer systems.' },
+      { title: 'Artificial intelligence', description: 'Modern algorithms and machine learning.' },
+      { title: 'Computer networks', description: 'Network administration and security.' },
+    ] } },
+    { type: 'ClubGrid', props: { title: 'Clubs' } },
+    { type: 'Testimonials', props: { title: 'Student stories', items: [
+      { quote: 'Project courses taught me to work in a team.', author: 'Maria', role: 'Grade 11, AI' },
+      { quote: 'My internship became my first job.', author: 'Ivan', role: "Class of '22" },
+      { quote: 'Clubs make the school a second home.', author: 'Nikola', role: 'Grade 10, Networks' },
+    ] } },
+    { type: 'CTA', props: { title: 'Ready for TUES?', description: 'Explore admissions and apply.', primaryButton: { label: 'Apply now', href: '/priem' } } },
+  ];
+  for (const [locale, blocks, title] of [['bg', homeBlocksBg, 'Начало'], ['en', homeBlocksEn, 'Home']]) {
+    const data = { title, blocks, kind: 'PAGE', published: true, status: 'PUBLISHED', groupId: 'home' };
+    await prisma.page.upsert({
+      where: { slug_locale: { slug: 'home', locale } },
+      update: data,
+      create: { slug: 'home', locale, ...data, authorId: user.id },
+    });
+  }
+  console.log('✓ Seeded homepage as DB blocks (bg + en) — M1.3 R5');
+
   // ---------------------------------------------------------------------------
   // H: footer-linked legal pages (/poveritelnost, /biskvitki, /dostapnost).
   // EU public-sector compliance pages. These are STRUCTURAL TEMPLATES, not legal
@@ -1466,6 +1517,36 @@ Registration for the first workshop is now open!`,
     await prisma.leader.upsert({ where: { slug_locale: { slug: l.slug, locale: l.locale } }, update: l, create: { ...l, authorId: user.id } });
   }
   console.log(`✓ Seeded ${leadersSeed.length} leaders`);
+
+  // --- Help runbooks (G5-2) — editable DRAFTs for the school to refine --------
+  const helpSeed = [
+    { slug: 'publish-a-news', order: 1, icon: 'Newspaper', title: 'Как да публикувам новина',
+      summary: 'Заглавие, корица, категория, дата — за 5 минути.',
+      body: '## Публикуване на новина\n\n1. Отворете **Новини → Опростен редактор**.\n2. Въведете **заглавие** (задължително) и кратко описание.\n3. Напишете текста с лентата за форматиране; добавете снимки в **Галерия**.\n4. В дясната лента изберете **категория**, **дата** и **featured изображение**.\n5. Натиснете **Публикувай** (или **Запази чернова**, за да продължите по-късно).\n\n> Автозапазването пази черновата на всеки няколко секунди.' },
+    { slug: 'change-academic-year', order: 2, icon: 'CalendarDays', title: 'Смяна на учебната година',
+      summary: 'Какво се обновява в началото на всяка година.',
+      body: '## Смяна на учебната година\n\n- Обновете **прием** страниците (срокове, балообразуване).\n- Добавете новия **випуск** в раздел Випуски.\n- Архивирайте отминалите събития (Статус → Архивирано).\n- Проверете менюто и началната страница за стари дати.' },
+    { slug: 'restore-deleted', order: 3, icon: 'Undo2', title: 'Възстановяване на изтрито',
+      summary: 'Намери и върни изтрито съдържание от историята.',
+      body: '## Възстановяване\n\nСтраниците и новините пазят **история на версиите**. Отворете записа → **История** → изберете версия → **Възстанови**. За напълно изтрити записи се свържете с администратор — действията се пазят в **Одит лога**.' },
+    { slug: 'season-handover', order: 4, icon: 'KeyRound', title: 'Предаване в края на сезона',
+      summary: 'Чеклист за предаване на достъпа на следващия екип.',
+      body: '## Предаване\n\nИзползвайте **Предаване** (/admin/handover): добавете новия администратор, задайте роля, изисквайте 2FA, прегледайте бележките за наследници, експортирайте Одит лога и деактивирайте напускащите.' },
+    { slug: 'media-upload', order: 5, icon: 'Image', title: 'Качване в Медийната библиотека',
+      summary: 'Алт-текст, папки и съгласие за снимки на ученици.',
+      body: '## Медийна библиотека\n\n1. **Медиа → Качи файлове** (или плъзнете).\n2. Попълнете **алт-текст** (задължителен за достъпност).\n3. За снимки на ученици отбележете **Снимка на ученик** и запишете **съгласие**.\n4. Подредете по папки за лесно намиране.' },
+    { slug: 'manage-menu', order: 6, icon: 'Menu', title: 'Управление на менюто',
+      summary: 'Подредба и видимост на навигацията.',
+      body: '## Меню\n\nОтворете **Страници/Навигация**, за да подредите елементите (drag), да скриете/покажете и да зададете роли за достъп. Промените се отразяват и в двата езика.' },
+  ];
+  for (const h of helpSeed) {
+    await prisma.helpArticle.upsert({
+      where: { slug: h.slug },
+      update: { title: h.title, summary: h.summary, body: h.body, icon: h.icon, order: h.order },
+      create: { ...h, status: 'DRAFT', authorId: user.id },
+    });
+  }
+  console.log(`✓ Seeded ${helpSeed.length} help runbooks (DRAFT)`);
 }
 
 main()

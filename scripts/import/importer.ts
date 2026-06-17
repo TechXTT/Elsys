@@ -66,7 +66,7 @@ export async function upsertNews(
   const slug = slugify(e.slug) || `post-${e.legacyId}`;
   const iso = dateMap.get(e.legacyId) ?? null;
   const missingDate = !iso;
-  const date = iso ? new Date(iso) : new Date(0); // sentinel for "дата липсва" (DRAFT)
+  const date = iso ? new Date(iso) : null; // null = "дата липсва" (DRAFT; never fabricated)
 
   const mig = await migrateImages(prisma, e.images, e.markdown, e.featuredImage, "news", userId, !!opts.dryRun);
 
