@@ -426,7 +426,8 @@
       "prev": "← Previous",
       "next": "Next →",
       "required": "Required",
-      "selectPlaceholder": "— Select —"
+      "selectPlaceholder": "— Select —",
+      "recordCount": "{count, plural, one {# record} other {# records}}"
     },
     "media": {
       "title": "Media Library",
@@ -656,6 +657,30 @@
           "desc": "What happened and what is next."
         }
       }
+    },
+    "settings": {
+      "title": "Settings",
+      "subtitle": "Update your profile and change your password.",
+      "loading": "Loading…",
+      "profile": "Profile",
+      "email": "Email",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "grade": "Grade (8–12)",
+      "classLabel": "Class",
+      "save": "Save",
+      "profileSaved": "Profile updated successfully.",
+      "changePassword": "Change password",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm new password",
+      "updatePassword": "Update password",
+      "passwordChanged": "Password changed successfully.",
+      "errLoad": "Failed to load profile.",
+      "errSave": "Failed to save profile.",
+      "errChange": "Failed to change password.",
+      "errEnterPw": "Please enter current and new password.",
+      "errMismatch": "New passwords do not match."
     }
   },
   "Clubs": {
