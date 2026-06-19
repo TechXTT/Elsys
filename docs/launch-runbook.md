@@ -17,6 +17,7 @@ The Figma design and the buildable code scope are **complete**. What follows is 
 - **~590 raw `slate-*`/`gray-*` admin-chrome utilities** — tokenization refactor (own branch).
 - **Typed extractors** (Club/Team/Partner/Gallery/Project/Award/Leader) — only if a structured legacy source surfaces; otherwise editor reclassification stands.
 - **TipTap migration** — markdown editor works today; swap is a storage/render migration if richer editing is wanted.
+- **Per-type content CRUD sub-page labels** — `fix/admin-en-locale` localized the content-hub card titles via `Admin.content.typeLabels.<type>`, but the per-type CRUD sub-pages (`/admin/content/<type>` — list/form headers, columns) still read the raw `labelPlural`/`labelSingular`/field labels from each `app/admin/content/types/*.ts` config (hardcoded BG). Localizing those is a content-type-framework i18n pass (own branch): give each type config i18n keys and resolve in `ContentList`/the type CRUD shell.
 
 ## 3. Pre-launch QA
 - [ ] **Lighthouse ≥95/95/95** on Home + a content page + an article (PLAN M1 exit).

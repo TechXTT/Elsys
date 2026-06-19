@@ -427,7 +427,22 @@
       "next": "Следваща →",
       "required": "Задължително поле",
       "selectPlaceholder": "— Избери —",
-      "recordCount": "{count, plural, one {# запис} other {# записа}}"
+      "recordCount": "{count, plural, one {# запис} other {# записа}}",
+      "description": "Управление на всички типове съдържание.",
+      "empty": "Няма регистрирани типове",
+      "emptyDesc": "Типовете съдържание се регистрират в app/admin/content/registry.ts.",
+      "typeLabels": {
+        "carousel": "Карусел",
+        "award": "Награди",
+        "club": "Клубове",
+        "document": "Документи",
+        "gallery": "Галерии",
+        "leader": "Випуски",
+        "help": "Помощни статии",
+        "partner": "Партньори",
+        "project": "Проекти",
+        "team": "Екип"
+      }
     },
     "media": {
       "title": "Медийна библиотека",

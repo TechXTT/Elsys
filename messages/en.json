@@ -427,7 +427,22 @@
       "next": "Next →",
       "required": "Required",
       "selectPlaceholder": "— Select —",
-      "recordCount": "{count, plural, one {# record} other {# records}}"
+      "recordCount": "{count, plural, one {# record} other {# records}}",
+      "description": "Manage all content types.",
+      "empty": "No registered types",
+      "emptyDesc": "Content types are registered in app/admin/content/registry.ts.",
+      "typeLabels": {
+        "carousel": "Carousel",
+        "award": "Awards",
+        "club": "Clubs",
+        "document": "Documents",
+        "gallery": "Galleries",
+        "leader": "Alumni",
+        "help": "Help articles",
+        "partner": "Partners",
+        "project": "Projects",
+        "team": "Team"
+      }
     },
     "media": {
       "title": "Media Library",
