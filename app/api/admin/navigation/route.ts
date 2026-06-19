@@ -79,10 +79,12 @@ export async function GET(req: Request) {
     // create-version action.
     const all = await fetchNavPageRows();
     const groups = new Map<string, any[]>();
+    const groupByPageId = new Map<string, string>(); // page id -> its group id
     for (const p of all) {
       const gid = p.groupId ?? p.id; // fallback during transition
       if (!groups.has(gid)) groups.set(gid, []);
       groups.get(gid)!.push(p);
+      groupByPageId.set(p.id, gid);
     }
     // Build nodes using primary locale page per group (prefer 'bg', else any)
     const nodesById = new Map<string, any>();
@@ -123,8 +125,16 @@ export async function GET(req: Request) {
       primaryByGroup.set(gid, node);
     }
     for (const node of nodesById.values()) {
-      const primaryParent = node.parentId ? nodesById.get(node.parentId) : null;
-      if (primaryParent) primaryParent.children.push(node); else nodes.push(node);
+      // Resolve the parent by its GROUP, not a raw page id. A virtual child's
+      // primary is the fallback-locale row, so node.parentId is THAT locale's
+      // parent id — which won't match a parent node keyed by a different locale's
+      // id (the bug: EN children orphaning to root under a real EN parent). The
+      // groupId-merge unifies bg+en of a page, so the parent's group always
+      // resolves to whichever node represents that parent in this locale.
+      const parentGid = node.parentId ? groupByPageId.get(node.parentId) : null;
+      const parentNode = parentGid ? primaryByGroup.get(parentGid) : null;
+      if (parentNode && parentNode !== node) parentNode.children.push(node);
+      else nodes.push(node);
     }
     sortTree(nodes);
     return NextResponse.json({ items: nodes });
