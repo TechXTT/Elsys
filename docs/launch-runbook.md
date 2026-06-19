@@ -17,6 +17,7 @@ The Figma design and the buildable code scope are **complete**. What follows is 
 - **~590 raw `slate-*`/`gray-*` admin-chrome utilities** — tokenization refactor (own branch).
 - **Typed extractors** (Club/Team/Partner/Gallery/Project/Award/Leader) — only if a structured legacy source surfaces; otherwise editor reclassification stands.
 - **TipTap migration** — markdown editor works today; swap is a storage/render migration if richer editing is wanted.
+- **Dedicated e2e database (test isolation)** — e2e currently writes to the shared dev DB; a `globalTeardown` now purges the markers after each run (mitigation), but the durable fix is a separate test DB. Exact change: add a `TEST_DATABASE_URL` (a second free-tier Prisma Postgres/Neon branch), point the Playwright `webServer` env + a Prisma client override at it (or run `prisma migrate deploy` + `prisma db seed` against it in a `globalSetup`), so tests never touch dev/prod data. Until then, keep `tests/global-teardown.ts`.
 
 ## 3. Pre-launch QA
 - [ ] **Lighthouse ≥95/95/95** on Home + a content page + an article (PLAN M1 exit).

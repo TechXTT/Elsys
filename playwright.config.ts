@@ -4,6 +4,11 @@ const isCI = !!process.env.CI;
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  // Purge e2e-marker rows (Test Slide/Club E2E <ts>, Опростена новина <ts>) after
+  // the run so they stop accumulating in the shared dev DB and crowding the
+  // homepage. Ideal isolation (a dedicated test DB) is tracked in the launch
+  // runbook §2; this teardown is the immediate, low-risk mitigation.
+  globalTeardown: "./tests/global-teardown.ts",
   timeout: 30_000,
   retries: isCI ? 2 : 0,
   reporter: isCI ? "github" : "list",
