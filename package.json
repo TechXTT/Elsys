@@ -27,6 +27,7 @@
     "nav:merge-groups": "tsx scripts/backfill-nav-groupids.ts",
     "prune:coverage-stubs": "tsx scripts/prune-coverage-stubs.ts",
     "prune:published-en-stubs": "tsx scripts/prune-published-en-stubs.ts",
+    "purge:ghosts": "tsx scripts/purge-ghost-pages.ts",
     "test:visual": "node scripts/run-visual.mjs"
   },
   "dependencies": {
