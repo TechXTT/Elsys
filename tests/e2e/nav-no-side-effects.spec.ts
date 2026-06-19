@@ -41,4 +41,29 @@ test.describe("admin nav GET is side-effect-free", () => {
       expect(bad, `[${locale}] ghost/junk slugs present: ${bad.join(", ")}`).toHaveLength(0);
     });
   }
+
+  // Cross-locale nesting parity: the EN projection must MIRROR the bg tree shape.
+  // (Earlier the projection attached virtual children by raw page id, so EN
+  // children orphaned to root under a real EN parent — 67 EN roots vs 18 bg.)
+  test("EN tree shape mirrors bg (root count + per-parent child counts)", async ({ page }) => {
+    await adminLogin(page);
+    const shape = async (locale: string) => {
+      const res = await page.request.get(`/api/admin/navigation?locale=${locale}`);
+      expect(res.ok()).toBeTruthy();
+      const items = (await res.json()).items ?? [];
+      // Stable cross-locale key = the bg slug of each group (groupId-merged).
+      const childCountByKey: Record<string, number> = {};
+      const walk = (ns: any[]) => { for (const n of ns) { const key = n.slugByLocale?.bg ?? n.slug; childCountByKey[key] = (n.children ?? []).length; walk(n.children ?? []); } };
+      walk(items);
+      return { roots: items.length, childCountByKey };
+    };
+    const bg = await shape("bg");
+    const en = await shape("en");
+
+    expect(en.roots, `EN root count must equal bg (${bg.roots})`).toBe(bg.roots);
+    expect(Object.keys(en.childCountByKey).sort(), "same set of nodes in both locales").toEqual(Object.keys(bg.childCountByKey).sort());
+    for (const key of Object.keys(bg.childCountByKey)) {
+      expect(en.childCountByKey[key], `child count for "${key}" must match bg`).toBe(bg.childCountByKey[key]);
+    }
+  });
 });
