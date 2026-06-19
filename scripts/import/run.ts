@@ -5,7 +5,7 @@ import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { fetchPage } from "./lib/http";
 import { extract, type Extracted } from "./extract";
-import { upsertNews, upsertPage, persistRedirect, linkPageParents } from "./importer";
+import { upsertNews, upsertPage, persistRedirect, linkPageParents, normalizeOrphanSlugs, pruneJunkOrphans } from "./importer";
 import { getNewsDatesFromIndex } from "./news-dates";
 import type { LegacyUrl } from "./crawl";
 
@@ -134,11 +134,14 @@ async function main() {
       report.committed.redirects++;
     }
 
-    // Second pass: link Page.parentId from hierarchical slugs so the admin nav
-    // tree nests (idempotent; only fills NULL parents — see linkPageParents).
+    // Post-passes (idempotent): normalize aliased root slugs onto canonical
+    // sections, prune empty crawl-junk orphans, then link Page.parentId from the
+    // hierarchical slug so the admin nav tree nests.
+    const norm = await normalizeOrphanSlugs(prisma);
+    const prune = await pruneJunkOrphans(prisma);
     const linked = await linkPageParents(prisma);
     report.committed.parentsLinked = linked.linked;
-    console.log(`Linked page parents: ${linked.linked} (already: ${linked.alreadyLinked}, orphans: ${linked.orphans.length})`);
+    console.log(`Slug normalize: renamed ${norm.renamed} (+${norm.redirects} redirects); pruned ${prune.deleted.length} junk; linked ${linked.linked} parents (orphans: ${linked.orphans.length}).`);
   }
 
   const totalRedirectCandidates = report.redirects.mapped + report.redirects.unmapped.length;
