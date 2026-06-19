@@ -36,7 +36,7 @@ test.describe("Page builder layout fits beside the admin sidebar", () => {
         const m = await page.evaluate(() => {
           const inner = window.innerWidth;
           let maxRight = 0;
-          let offenders: string[] = [];
+          const offenders: string[] = [];
           for (const el of Array.from(document.body.querySelectorAll("*"))) {
             const r = el.getBoundingClientRect();
             if (r.width === 0 || r.height === 0) continue;
