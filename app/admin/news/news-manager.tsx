@@ -983,14 +983,17 @@ function NewsManagerInner({
                         {tne("manager.imgCount", { count: images.length })}
                       </span>
                     </div>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleImageChange}
-                      className="w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-brand-700 dark:text-slate-300"
-                    />
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700">
+                      {tne("manager.chooseFiles")}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImageChange}
+                        className="sr-only"
+                      />
+                    </label>
                     <p className="text-xs text-slate-500 dark:text-slate-400">{tne("manager.imagesHelpBlocks")}</p>
 
                     {images.length > 0 && (
@@ -1341,14 +1344,17 @@ function NewsManagerInner({
                     {tne("manager.imgCount", { count: images.length })}
                   </span>
                 </div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageChange}
-                  className="w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-brand-700 dark:text-slate-300"
-                />
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700">
+                  {tne("manager.chooseFiles")}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageChange}
+                    className="sr-only"
+                  />
+                </label>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   {tne("manager.imagesHelpMarkdown")}
                 </p>
@@ -1598,17 +1604,17 @@ function NewsManagerInner({
                 <div className="border-b border-slate-200 p-4 dark:border-slate-700">
                   <div className="mb-3 flex items-center justify-between">
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-                      Preview
+                      {tne("manager.preview")}
                     </h3>
                 <div className="flex flex-wrap gap-2 text-xs text-slate-500">
                   <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 dark:border-slate-700 dark:bg-slate-800">
-                    {wordCount} words
+                    {tne("manager.words", { count: wordCount })}
                   </span>
                   <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 dark:border-slate-700 dark:bg-slate-800">
-                    ~{readingMinutes} min
+                    {tne("manager.minRead", { count: readingMinutes })}
                   </span>
                   <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 dark:border-slate-700 dark:bg-slate-800">
-                    {images.length} img
+                    {tne("manager.imgShort", { count: images.length })}
                   </span>
                 </div>
               </div>

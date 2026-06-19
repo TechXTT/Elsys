@@ -4,6 +4,10 @@ const isCI = !!process.env.CI;
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  // Clean e2e-marker rows (Test Slide/Club E2E <ts>, Опростена новина <ts>) after
+  // the run so they don't accumulate in the shared dev DB. The seeded 2099
+  // "Насрочена новина (M0.4)" fixture is never matched.
+  globalTeardown: "./tests/global-teardown.ts",
   timeout: 30_000,
   retries: isCI ? 2 : 0,
   reporter: isCI ? "github" : "list",

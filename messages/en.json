@@ -831,9 +831,11 @@
           "medium": "Medium",
           "large": "Large",
           "full": "Full"
-        }
-      },
-      "dict": {}
+        },
+        "imgShort": "{count, plural, one {# img} other {# imgs}}",
+        "pageDescription": "Create and edit posts for the “News” section. Provide title, slug, excerpt and Markdown content; optionally upload multiple images, choose their display size, mark a featured (card) image and reference their filenames in Markdown using <code>![alt](file-name)</code>. The live preview updates in real time.",
+        "chooseFiles": "Choose files"
+      }
     }
   },
   "Clubs": {
