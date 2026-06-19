@@ -10,41 +10,94 @@ export interface SearchResult {
   snippet: string;
 }
 
-interface NewsRow { id: string; title: string; snippet: string | null }
-interface PageRow { slug: string; title: string; snippet: string | null }
+interface Row { id?: string; slug?: string; title: string; excerpt: string | null; bodyMarkdown: string | null; blocks: unknown }
+
+// Block props that hold human-readable prose. We pull ONLY these — never href /
+// src / size / name etc. — so snippets can't leak block JSON or PDF-metadata
+// blobs ({"href":…,"size":"320 KB"}).
+const PROSE_KEYS = new Set([
+  "markdown", "text", "title", "heading", "subtitle", "content", "body",
+  "caption", "quote", "description", "intro", "lead", "label",
+]);
+
+/** Walk a block tree (any depth) and collect strings under prose keys only. */
+function extractBlockText(blocks: unknown): string {
+  let root = blocks;
+  if (typeof root === "string") { try { root = JSON.parse(root); } catch { return ""; } }
+  const out: string[] = [];
+  const walk = (v: unknown) => {
+    if (v == null) return;
+    if (Array.isArray(v)) { v.forEach(walk); return; }
+    if (typeof v === "object") {
+      for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+        if (typeof val === "string") { if (PROSE_KEYS.has(k)) out.push(val); }
+        else walk(val);
+      }
+    }
+  };
+  walk(root);
+  return out.join(" ");
+}
+
+/** Light markdown → plain text (drop images/links/syntax). */
+function stripMarkdown(s: string | null): string {
+  return (s ?? "")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")      // images
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")    // links → label
+    .replace(/[#>*_`~|]/g, " ")                  // syntax
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Build a plain-prose snippet, windowed around the first query term. */
+function buildSnippet(query: string, row: Row): string {
+  const clean = [row.excerpt, stripMarkdown(row.bodyMarkdown), stripMarkdown(extractBlockText(row.blocks))]
+    .map((x) => (x ?? "").trim())
+    .filter(Boolean)
+    .join("  ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!clean) return "";
+
+  const lc = clean.toLowerCase();
+  let idx = -1;
+  for (const term of query.toLowerCase().split(/\s+/).filter((t) => t.length > 1)) {
+    const i = lc.indexOf(term);
+    if (i >= 0 && (idx < 0 || i < idx)) idx = i;
+  }
+  // The search page already wraps the snippet as “…{snippet}…”, so return the
+  // windowed slice without its own ellipses (trim a dangling partial word).
+  const start = idx > 40 ? idx - 40 : 0;
+  let snip = clean.slice(start, start + 220);
+  if (start + 220 < clean.length) snip = snip.replace(/\s+\S*$/, "");
+  return snip.trim();
+}
 
 /**
  * On-the-fly Postgres full-text search across published news posts + pages.
- * Uses to_tsvector/websearch_to_tsquery with the 'simple' config (no stemming —
- * works for Cyrillic) and ts_headline for a plain snippet. Page block content
- * (JSON) is searched by casting blocks::text.
+ * Matching uses to_tsvector/websearch_to_tsquery ('simple' config — works for
+ * Cyrillic). Page block content (JSON) stays in the MATCH tsvector so result
+ * counts are unchanged, but the displayed snippet is built in JS from extracted
+ * prose (no JSON / PDF-metadata in excerpts).
  *
- * PERF TODO: this computes tsvectors per query. The upgrade is a stored
- * `tsvector` column + GIN index on NewsPost/Page (a schema change — deferred).
+ * PERF TODO: computes tsvectors per query. Upgrade = stored tsvector + GIN index
+ * (schema change — deferred).
  */
 export async function searchContent(locale: Locale, q: string): Promise<SearchResult[]> {
   const query = q.trim();
   if (!query) return [];
 
-  // Default StartSel/StopSel (<b>…</b>) markers are stripped in clip() — empty
-  // values confuse ts_headline's comma-separated option parser.
-  const headlineOpts = "MaxWords=26,MinWords=8,MaxFragments=1,ShortWord=2";
-
   const [news, pages] = await Promise.all([
-    prisma.$queryRaw<NewsRow[]>`
-      SELECT id, title,
-        ts_headline('simple', coalesce(excerpt,'') || ' ' || coalesce("bodyMarkdown",''),
-          websearch_to_tsquery('simple', ${query}), ${headlineOpts}) AS snippet
+    prisma.$queryRaw<Row[]>`
+      SELECT id, title, excerpt, "bodyMarkdown", blocks
       FROM "NewsPost"
       WHERE locale = ${locale} AND status::text = 'PUBLISHED' AND date <= now()
         AND to_tsvector('simple', coalesce(title,'') || ' ' || coalesce(excerpt,'') || ' ' || coalesce("bodyMarkdown",''))
             @@ websearch_to_tsquery('simple', ${query})
       ORDER BY date DESC
       LIMIT 20`,
-    prisma.$queryRaw<PageRow[]>`
-      SELECT slug, title,
-        ts_headline('simple', coalesce(excerpt,'') || ' ' || coalesce("bodyMarkdown",'') || ' ' || coalesce(blocks::text,''),
-          websearch_to_tsquery('simple', ${query}), ${headlineOpts}) AS snippet
+    prisma.$queryRaw<Row[]>`
+      SELECT slug, title, excerpt, "bodyMarkdown", blocks
       FROM "Page"
       WHERE locale = ${locale} AND status::text = 'PUBLISHED' AND kind::text <> 'ROUTE'
         AND to_tsvector('simple', coalesce(title,'') || ' ' || coalesce(excerpt,'') || ' ' || coalesce("bodyMarkdown",'') || ' ' || coalesce(blocks::text,''))
@@ -52,12 +105,8 @@ export async function searchContent(locale: Locale, q: string): Promise<SearchRe
       LIMIT 20`,
   ]);
 
-  // Strip ts_headline's <b> match markers + collapse whitespace.
-  const clip = (s: string | null) => (s ?? "").replace(/<\/?b>/g, "").trim().replace(/\s+/g, " ").slice(0, 220);
-
-  const results: SearchResult[] = [
-    ...news.map((r) => ({ type: "news" as const, title: r.title, href: `/novini/${r.id}`, snippet: clip(r.snippet) })),
-    ...pages.map((r) => ({ type: "page" as const, title: r.title, href: `/${r.slug}`, snippet: clip(r.snippet) })),
+  return [
+    ...news.map((r) => ({ type: "news" as const, title: r.title, href: `/novini/${r.id}`, snippet: buildSnippet(query, r) })),
+    ...pages.map((r) => ({ type: "page" as const, title: r.title, href: `/${r.slug}`, snippet: buildSnippet(query, r) })),
   ];
-  return results;
 }
