@@ -9,6 +9,10 @@ import { prisma } from "@/lib/prisma";
 export default async function ContentIndexPage() {
   const types = getAllContentTypes();
   const t = await getTranslations("Admin.content");
+  const tNav = await getTranslations("Admin.nav");
+  // Localized content-type label (card title), falling back to the config label.
+  const typeLabel = (ct: { type: string; labelPlural: string }) =>
+    t.has(`typeLabels.${ct.type}`) ? t(`typeLabels.${ct.type}`) : ct.labelPlural;
 
   // Per-type record count (the card used to show the field count). Best-effort —
   // a type whose modelName isn't a queryable Prisma model falls back to 0.
@@ -23,15 +27,15 @@ export default async function ContentIndexPage() {
   return (
     <div>
       <PageHeader
-        title="Съдържание"
-        description="Управление на всички типове съдържание."
-        breadcrumbs={[{ label: "Съдържание" }]}
+        title={tNav("content")}
+        description={t("description")}
+        breadcrumbs={[{ label: tNav("content") }]}
       />
 
       {types.length === 0 ? (
         <EmptyState
-          title="Няма регистрирани типове"
-          description="Типовете съдържание се регистрират в app/admin/content/registry.ts."
+          title={t("empty")}
+          description={t("emptyDesc")}
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -42,7 +46,7 @@ export default async function ContentIndexPage() {
               className="group rounded-xl border border-slate-200 bg-white p-5 shadow-subtle transition hover:border-brand-400/70 hover:shadow-md dark:border-slate-700 dark:bg-slate-800"
             >
               <p className="font-semibold text-slate-900 group-hover:text-brand-600 dark:text-slate-100 dark:group-hover:text-brand-400">
-                {ct.labelPlural}
+                {typeLabel(ct)}
               </p>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 {t("recordCount", { count: counts[i] })}
