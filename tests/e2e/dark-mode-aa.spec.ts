@@ -21,10 +21,26 @@ function ratio(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-async function enableDark(page: Page) {
+// Activate dark mode the way the app does, then wait for the override to apply.
+// Setting the persisted theme (localStorage "elsys-theme") BEFORE load is the key:
+// the ThemeToggle mount effect reads it and KEEPS dark, instead of resetting
+// data-theme to system (light) — which previously raced a post-load attribute set
+// and made the spec read the light token. The waitForFunction blocks until the
+// [data-theme="dark"] override is actually live (on-action no longer the light
+// #FFFFFF), so styles are never read before dark applies.
+async function gotoDark(page: Page, url: string) {
+  await page.addInitScript(() => {
+    try { window.localStorage.setItem("elsys-theme", "dark"); } catch { /* noop */ }
+  });
+  await page.goto(url);
   await page.evaluate(() => {
     document.documentElement.classList.add("dark");
     document.documentElement.dataset.theme = "dark";
+  });
+  await page.waitForFunction(() => {
+    const v = getComputedStyle(document.documentElement)
+      .getPropertyValue("--color-text-on-action").trim().toUpperCase();
+    return v !== "" && v !== "#FFFFFF";
   });
 }
 
@@ -50,8 +66,7 @@ const KEYS = [
 
 test.describe("I — dark-mode AA", () => {
   test("public home resolves the dark token deltas and key pairings pass AA", async ({ page }) => {
-    await page.goto("/bg");
-    await enableDark(page);
+    await gotoDark(page, "/bg");
     const t = await tokens(page, KEYS);
 
     // The Task-I token deltas are live in dark mode.
@@ -66,8 +81,7 @@ test.describe("I — dark-mode AA", () => {
   });
 
   test("a rendered filled action button has an AA-contrasting label in dark", async ({ page }) => {
-    await page.goto("/bg");
-    await enableDark(page);
+    await gotoDark(page, "/bg");
     // Pick the first button actually filled with an opaque background (the
     // primary/action variant) — ghost/secondary buttons are transparent.
     const pair = await page.evaluate(() => {
@@ -89,8 +103,7 @@ test.describe("I — dark-mode AA", () => {
   });
 
   test("admin login resolves dark tokens (admin internals are themed)", async ({ page }) => {
-    await page.goto("/admin/login");
-    await enableDark(page);
+    await gotoDark(page, "/admin/login");
     const t = await tokens(page, ["--color-action-primary", "--color-text-on-action", "--color-border-default"]);
     expect(t["--color-action-primary"].toUpperCase()).toBe("#5AACE9");
     expect(ratio(t["--color-text-on-action"], t["--color-action-primary"])).toBeGreaterThanOrEqual(4.5);
