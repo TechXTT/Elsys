@@ -25,6 +25,7 @@
     "import:parity": "tsx scripts/import/parity.ts",
     "import:link-parents": "tsx scripts/backfill-page-parents.ts",
     "nav:merge-groups": "tsx scripts/backfill-nav-groupids.ts",
+    "prune:coverage-stubs": "tsx scripts/prune-coverage-stubs.ts",
     "test:visual": "node scripts/run-visual.mjs"
   },
   "dependencies": {
