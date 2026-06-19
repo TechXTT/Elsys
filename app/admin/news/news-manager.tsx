@@ -36,13 +36,6 @@ type Status =
   | { type: "success"; message: string }
   | { type: "error"; message: string };
 
-const imageSizeLabels: Record<ImageSize, string> = {
-  small: "Small",
-  medium: "Medium",
-  large: "Large",
-  full: "Full",
-};
-
 const imageSizeOptions: ImageSize[] = ["small", "medium", "large", "full"];
 
 interface Props {
@@ -136,6 +129,8 @@ function NewsManagerInner({
   } = form;
 
   const tn = useTranslations("Admin.news");
+  const tne = useTranslations("Admin.newsEditor");
+  const ts = useTranslations("Admin.simpleEditor");
   const [locale, setLocale] = useState(currentLocale);
   const [status, setStatus] = useState<Status>({ type: "idle" });
   const [posts, setPosts] = useState<PostItem[]>(incomingPosts ?? []);
@@ -726,7 +721,7 @@ function NewsManagerInner({
         });
         setStatus({
           type: "success",
-          message: "Post created successfully in both languages",
+          message: tne("manager.createdBothLangs"),
         });
         return;
       }
@@ -816,12 +811,12 @@ function NewsManagerInner({
       console.error("News create client error", error);
       setStatus({
         type: "error",
-        message: isEditing ? "Error during update" : "An error occurred during submission",
+        message: isEditing ? tne("manager.errorUpdate") : tne("manager.errorSubmit"),
       });
     }
   }
 
-  const previewTitle = title.trim() || (isEditing ? "Editing title" : "Untitled draft");
+  const previewTitle = title.trim() || (isEditing ? tne("manager.editingTitle") : tne("manager.untitledDraft"));
   const previewDateLabel = formatDateLabel(date);
   const previewExcerpt = excerpt.trim();
 
@@ -859,9 +854,9 @@ function NewsManagerInner({
                   {isEditing && (
                     <div className="flex flex-col gap-3 rounded-lg border border-brand-200 bg-brand-50/80 px-4 py-3 text-sm text-brand-800 dark:border-brand-500/40 dark:bg-brand-500/10 dark:text-brand-100 md:flex-row md:items-center md:justify-between">
                       <div>
-                        <p className="font-medium">Editing: /novini/{editingId}</p>
+                        <p className="font-medium">{tne("manager.editingPath", { id: editingId ?? "" })}</p>
                         <p className="text-xs text-brand-700/80 dark:text-brand-100/80">
-                          Changes will replace the current data.
+                          {tne("manager.changesReplace")}
                         </p>
                       </div>
                     </div>
@@ -875,9 +870,9 @@ function NewsManagerInner({
                           <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                         </svg>
                         <div className="flex-1">
-                          <p className="font-medium">Both languages required</p>
+                          <p className="font-medium">{tne("manager.bothLanguagesRequired")}</p>
                           <p className="text-xs text-amber-700/80 dark:text-amber-100/80">
-                            Please switch to {otherLocale.toUpperCase()} and add content before saving. Use the language toggle in the toolbar.
+                            {tne("manager.bothLanguagesSwitch", { locale: otherLocale.toUpperCase() })}
                           </p>
                         </div>
                       </div>
@@ -886,8 +881,7 @@ function NewsManagerInner({
 
                   {/* Title */}
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                      Title <span className="text-red-500">*</span>
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-200">{ts("title")} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -895,29 +889,26 @@ function NewsManagerInner({
                       onChange={(e) => handleTitleChange(e.target.value)}
                       required
                       className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-                      placeholder="Enter post title"
+                      placeholder={tne("manager.titlePlaceholder")}
                     />
                   </div>
 
                   {/* Status, Slug & Date Row */}
                   <div className="grid gap-4 sm:grid-cols-3">
                     <div className="space-y-1.5">
-                      <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                        Status
-                      </label>
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-200">{tne("manager.status")}</label>
                       <select
                         value={published ? "published" : "draft"}
                         onChange={(e) => setField("published", e.target.value === "published")}
                         className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                       >
-                        <option value="draft">Draft</option>
-                        <option value="published">Published</option>
+                        <option value="draft">{tn("filter_draft")}</option>
+                        <option value="published">{tn("filter_published")}</option>
                       </select>
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                        Slug <span className="text-red-500">*</span>
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-200">{tne("manager.slug")} <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -926,14 +917,12 @@ function NewsManagerInner({
                         onBlur={() => setField("slugTouched", true)}
                         required
                         className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-                        placeholder="example-post-slug"
+                        placeholder={tne("manager.slugPlaceholder")}
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                        Date
-                      </label>
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-200">{ts("date")}</label>
                       <input
                         type="date"
                         value={date}
@@ -945,29 +934,25 @@ function NewsManagerInner({
 
                   {/* Excerpt */}
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                      Excerpt
-                    </label>
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-200">{ts("excerpt")}</label>
                     <textarea
                       value={excerpt}
                       onChange={(e) => setField("excerpt", e.target.value)}
                       rows={2}
                       className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-                      placeholder="Enter a short summary"
+                      placeholder={tne("manager.excerptPlaceholder")}
                     />
                   </div>
 
                   {/* Featured Image (Block Mode) */}
                   {images.length > 0 && (
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                        Featured Image (Title Card)
-                      </label>
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-200">{tne("manager.featuredImage")}</label>
                       {featuredPreviewSrc && (
                         <div className="relative inline-block">
                           <img
                             src={featuredPreviewSrc}
-                            alt="Featured"
+                            alt={tne("manager.featuredAlt")}
                             className="h-24 w-full rounded-lg border border-slate-200 object-cover dark:border-slate-700"
                           />
                           <div className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-xs text-white">
@@ -986,20 +971,16 @@ function NewsManagerInner({
                           </option>
                         ))}
                       </select>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Cover image for the news card.
-                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{tne("manager.featuredHelpCard")}</p>
                     </div>
                   )}
 
                   {/* Images (Block Mode Upload/Manage) */}
                   <div className="space-y-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800/50">
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                        Images
-                      </label>
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-200">{tne("manager.images")}</label>
                       <span className="text-xs text-slate-500 dark:text-slate-400">
-                        {images.length} image{images.length !== 1 ? "s" : ""}
+                        {tne("manager.imgCount", { count: images.length })}
                       </span>
                     </div>
                     <input
@@ -1010,9 +991,7 @@ function NewsManagerInner({
                       onChange={handleImageChange}
                       className="w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-brand-700 dark:text-slate-300"
                     />
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Use blocks or Markdown to embed images. Featured selector chooses the title card image.
-                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{tne("manager.imagesHelpBlocks")}</p>
 
                     {images.length > 0 && (
                       <div className="space-y-2 pt-2">
@@ -1040,7 +1019,7 @@ function NewsManagerInner({
                                 >
                                   {imageSizeOptions.map((size) => (
                                     <option key={size} value={size}>
-                                      {imageSizeLabels[size]}
+                                      {tne(`manager.imgSize.${size}`)}
                                     </option>
                                   ))}
                                 </select>
@@ -1051,18 +1030,14 @@ function NewsManagerInner({
                                     checked={featuredImage === img.name}
                                     onChange={() => setFeaturedImage(img.name)}
                                     className="h-3 w-3"
-                                  />
-                                  Featured
-                                </label>
+                                  />{tne("manager.featuredRadio")}</label>
                               </div>
                             </div>
                             <button
                               type="button"
                               onClick={() => handleRemoveImage(img.name)}
                               className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"
-                            >
-                              Remove
-                            </button>
+                            >{ts("removeImage")}</button>
                           </div>
                         ))}
                       </div>
@@ -1072,20 +1047,14 @@ function NewsManagerInner({
                   {/* Mode Toggle */}
                   <div className="flex items-center justify-between border-t border-slate-200 pt-3 dark:border-slate-700">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                        Editor Mode:
-                      </span>
-                      <span className="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-900/50 dark:text-brand-300">
-                        Block Editor
-                      </span>
+                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{tne("manager.editorMode")}</span>
+                      <span className="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-900/50 dark:text-brand-300">{tne("manager.blockEditor")}</span>
                     </div>
                     <button
                       type="button"
                       onClick={toggleBlockMode}
                       className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-                    >
-                      Switch to Markdown
-                    </button>
+                    >{tne("manager.switchToMarkdown")}</button>
                   </div>
 
                   {/* Block Mode Actions: Version History & Auto-Translate */}
@@ -1102,20 +1071,18 @@ function NewsManagerInner({
                             const res = await fetch(`/api/admin/news/${encodeURIComponent(editingId)}?action=versions&locale=${encodeURIComponent(locale)}`, { method: "GET" });
                             const payload = (await res.json().catch(() => null)) as { versions?: VersionInfo[]; error?: string } | null;
                             if (!res.ok || !payload?.versions) {
-                              setVersionsError(payload?.error ?? "Failed to load versions");
+                              setVersionsError(payload?.error ?? tne("manager.failedLoadVersions"));
                             } else {
                               setVersions(payload.versions);
                             }
                           } catch {
-                            setVersionsError("Failed to load versions");
+                            setVersionsError(tne("manager.failedLoadVersions"));
                           } finally {
                             setVersionsLoading(false);
                           }
                         }}
                         className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
-                      >
-                        Version history
-                      </button>
+                      >{tne("manager.versionHistory")}</button>
                     )}
 
                     <button
@@ -1146,7 +1113,7 @@ function NewsManagerInner({
                           if (!res.ok || !payload) {
                             setStatus({
                               type: "error",
-                              message: payload?.error ?? "Translate failed",
+                              message: payload?.error ?? tne("manager.translateFailed"),
                             });
                             return;
                           }
@@ -1174,16 +1141,16 @@ function NewsManagerInner({
                           if (onLocaleChange) onLocaleChange(target);
                           setStatus({
                             type: "success",
-                            message: `Translated to ${target.toUpperCase()} (set as draft)`,
+                            message: tne("manager.translatedToDraft", { target: target.toUpperCase() }),
                           });
                         } catch {
-                          setStatus({ type: "error", message: "Translate error" });
+                          setStatus({ type: "error", message: tne("manager.translateError") });
                         }
                       }}
-                      title={published ? "Switch to Draft to enable auto-translate" : undefined}
+                      title={published ? tne("manager.autoTranslateDisabled") : undefined}
                       className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
                     >
-                      Auto-translate to {locale === "bg" ? "EN" : "BG"}
+                      {tne("manager.autoTranslate", { target: locale === "bg" ? "EN" : "BG" })}
                     </button>
 
                     {/* Save the BG source as an EN review-draft in the DB (DeepL,
@@ -1232,9 +1199,9 @@ function NewsManagerInner({
               {isEditing && (
                 <div className="flex flex-col gap-3 rounded-lg border border-brand-200 bg-brand-50/80 px-4 py-3 text-sm text-brand-800 dark:border-brand-500/40 dark:bg-brand-500/10 dark:text-brand-100 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <p className="font-medium">Editing: /novini/{editingId}</p>
+                    <p className="font-medium">{tne("manager.editingPath", { id: editingId ?? "" })}</p>
                     <p className="text-xs text-brand-700/80 dark:text-brand-100/80">
-                      Changes will replace the current data.
+                      {tne("manager.changesReplace")}
                     </p>
                   </div>
                 </div>
@@ -1248,9 +1215,9 @@ function NewsManagerInner({
                       <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                     </svg>
                     <div className="flex-1">
-                      <p className="font-medium">Both languages required</p>
+                      <p className="font-medium">{tne("manager.bothLanguagesRequired")}</p>
                       <p className="text-xs text-amber-700/80 dark:text-amber-100/80">
-                        Please switch to {otherLocale.toUpperCase()} and add content before saving. Use the language toggle in the toolbar.
+                        {tne("manager.bothLanguagesSwitch", { locale: otherLocale.toUpperCase() })}
                       </p>
                     </div>
                   </div>
@@ -1261,14 +1228,13 @@ function NewsManagerInner({
               {isPrefilling && (
                 <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-brand-600" />
-                  Loading content...
+                  {tne("manager.loadingContent")}
                 </div>
               )}
 
               {/* Title */}
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                  Title <span className="text-red-500">*</span>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-200">{ts("title")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -1276,29 +1242,26 @@ function NewsManagerInner({
                   onChange={(e) => handleTitleChange(e.target.value)}
                   required
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-                  placeholder="Enter post title"
+                  placeholder={tne("manager.titlePlaceholder")}
                 />
               </div>
 
               {/* Status & Slug Row */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                    Status
-                  </label>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-200">{tne("manager.status")}</label>
                   <select
                     value={published ? "published" : "draft"}
                     onChange={(e) => setField("published", e.target.value === "published")}
                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                   >
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
+                    <option value="draft">{tn("filter_draft")}</option>
+                    <option value="published">{tn("filter_published")}</option>
                   </select>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                    Slug <span className="text-red-500">*</span>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-200">{tne("manager.slug")} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -1307,19 +1270,17 @@ function NewsManagerInner({
                     onBlur={() => setField("slugTouched", true)}
                     required
                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-                    placeholder="example-post-slug"
+                    placeholder={tne("manager.slugPlaceholder")}
                   />
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    URL: /novini/{slug || "..."}
+                    {tne("manager.urlPreview", { slug: slug || "…" })}
                   </p>
                 </div>
               </div>
 
               {/* Date */}
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                  Date
-                </label>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-200">{ts("date")}</label>
                 <input
                   type="date"
                   value={date}
@@ -1331,29 +1292,25 @@ function NewsManagerInner({
 
               {/* Excerpt */}
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                  Excerpt
-                </label>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-200">{ts("excerpt")}</label>
                 <textarea
                   value={excerpt}
                   onChange={(e) => setField("excerpt", e.target.value)}
                   rows={3}
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-                  placeholder="Enter a short summary"
+                  placeholder={tne("manager.excerptPlaceholder")}
                 />
               </div>
 
               {/* Featured Image Preview/Selector */}
               {images.length > 0 && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                    Featured Image (Title Card)
-                  </label>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-200">{tne("manager.featuredImage")}</label>
                   {featuredPreviewSrc && (
                     <div className="relative inline-block">
                       <img
                         src={featuredPreviewSrc}
-                        alt="Featured"
+                        alt={tne("manager.featuredAlt")}
                         className="h-32 w-full max-w-md rounded-lg border border-slate-200 object-cover dark:border-slate-700"
                       />
                       <div className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-1 text-xs text-white">
@@ -1372,20 +1329,16 @@ function NewsManagerInner({
                       </option>
                     ))}
                   </select>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    This image will be displayed as the cover for this news article.
-                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{tne("manager.featuredHelpFull")}</p>
                 </div>
               )}
 
               {/* Images */}
               <div className="space-y-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800/50">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                    Images
-                  </label>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-200">{tne("manager.images")}</label>
                   <span className="text-xs text-slate-500 dark:text-slate-400">
-                    {images.length} image{images.length !== 1 ? "s" : ""}
+                    {tne("manager.imgCount", { count: images.length })}
                   </span>
                 </div>
                 <input
@@ -1397,7 +1350,7 @@ function NewsManagerInner({
                   className="w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-brand-700 dark:text-slate-300"
                 />
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Use Markdown <code className="rounded bg-slate-100 px-1 dark:bg-slate-700">![alt](filename)</code> to embed images in content.
+                  {tne("manager.imagesHelpMarkdown")}
                 </p>
 
                 {images.length > 0 && (
@@ -1426,7 +1379,7 @@ function NewsManagerInner({
                             >
                               {imageSizeOptions.map((size) => (
                                 <option key={size} value={size}>
-                                  {imageSizeLabels[size]}
+                                  {tne(`manager.imgSize.${size}`)}
                                 </option>
                               ))}
                             </select>
@@ -1437,18 +1390,14 @@ function NewsManagerInner({
                                 checked={featuredImage === img.name}
                                 onChange={() => setFeaturedImage(img.name)}
                                 className="h-3 w-3"
-                              />
-                              Featured
-                            </label>
+                              />{tne("manager.featuredRadio")}</label>
                           </div>
                         </div>
                         <button
                           type="button"
                           onClick={() => handleRemoveImage(img.name)}
                           className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"
-                        >
-                          Remove
-                        </button>
+                        >{ts("removeImage")}</button>
                       </div>
                     ))}
                   </div>
@@ -1458,12 +1407,11 @@ function NewsManagerInner({
               {/* Content Mode Toggle */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                    Content <span className="text-red-500">*</span>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-200">{tne("manager.content")} <span className="text-red-500">*</span>
                   </label>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-500 dark:text-slate-400">
-                      {useBlocks ? "Block Editor" : "Markdown"}
+                      {useBlocks ? tne("manager.blockEditor") : tne("manager.markdown")}
                     </span>
                     <button
                       type="button"
@@ -1485,7 +1433,7 @@ function NewsManagerInner({
 
                 {useBlocks ? (
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Use the block palette on the right to add content blocks. Click a block to edit its properties.
+                    {tne("manager.useBlockPalette")}
                   </p>
                 ) : (
                   <RichTextEditor
@@ -1493,7 +1441,7 @@ function NewsManagerInner({
                     required
                     value={markdown}
                     onChange={(val) => setField("markdown", val)}
-                    placeholder="Write your post content here..."
+                    placeholder={tne("manager.contentPlaceholder")}
                     images={images.map((img) => ({
                       name: img.name,
                       preview: img.preview,
@@ -1509,18 +1457,18 @@ function NewsManagerInner({
                 <button
                   type="submit"
                   disabled={submitDisabled}
-                  title={!isEditing && !hasOtherLocaleContent ? `Please add content in ${otherLocale.toUpperCase()} before saving` : undefined}
+                  title={!isEditing && !hasOtherLocaleContent ? tne("manager.addContentBeforeSave", { locale: otherLocale.toUpperCase() }) : undefined}
                   className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {status.type === "loading" ? (
                     <>
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                      Saving...
+                      {tne("toolbar.saving")}
                     </>
                   ) : isEditing ? (
-                    "Save changes"
+                    tne("toolbar.saveChanges")
                   ) : (
-                    "Save post"
+                    tne("toolbar.savePost")
                   )}
                 </button>
 
@@ -1529,9 +1477,7 @@ function NewsManagerInner({
                     type="button"
                     onClick={handleResetForm}
                     className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
-                  >
-                    Cancel
-                  </button>
+                  >{tne("toolbar.cancel")}</button>
                 )}
 
                 {/* Version History Button */}
@@ -1547,20 +1493,18 @@ function NewsManagerInner({
                         const res = await fetch(`/api/admin/news/${encodeURIComponent(editingId)}?action=versions&locale=${encodeURIComponent(locale)}`, { method: "GET" });
                         const payload = (await res.json().catch(() => null)) as { versions?: VersionInfo[]; error?: string } | null;
                         if (!res.ok || !payload?.versions) {
-                          setVersionsError(payload?.error ?? "Failed to load versions");
+                          setVersionsError(payload?.error ?? tne("manager.failedLoadVersions"));
                         } else {
                           setVersions(payload.versions);
                         }
                       } catch {
-                        setVersionsError("Failed to load versions");
+                        setVersionsError(tne("manager.failedLoadVersions"));
                       } finally {
                         setVersionsLoading(false);
                       }
                     }}
                     className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
-                  >
-                    Version history
-                  </button>
+                  >{tne("manager.versionHistory")}</button>
                 )}
 
                 <button
@@ -1591,7 +1535,7 @@ function NewsManagerInner({
                       if (!res.ok || !payload) {
                         setStatus({
                           type: "error",
-                          message: payload?.error ?? "Translate failed",
+                          message: payload?.error ?? tne("manager.translateFailed"),
                         });
                         return;
                       }
@@ -1618,16 +1562,16 @@ function NewsManagerInner({
                       if (onLocaleChange) onLocaleChange(target);
                       setStatus({
                         type: "success",
-                        message: `Translated to ${target.toUpperCase()} (set as draft)`,
+                        message: tne("manager.translatedToDraft", { target: target.toUpperCase() }),
                       });
                     } catch {
-                      setStatus({ type: "error", message: "Translate error" });
+                      setStatus({ type: "error", message: tne("manager.translateError") });
                     }
                   }}
-                  title={published ? "Switch to Draft to enable auto-translate" : undefined}
+                  title={published ? tne("manager.autoTranslateDisabled") : undefined}
                   className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
-                  Auto-translate to {locale === "bg" ? "EN" : "BG"}
+                  {tne("manager.autoTranslate", { target: locale === "bg" ? "EN" : "BG" })}
                 </button>
 
                 {status.type === "error" && (
