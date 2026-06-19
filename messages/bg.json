@@ -426,7 +426,8 @@
       "prev": "← Предишна",
       "next": "Следваща →",
       "required": "Задължително поле",
-      "selectPlaceholder": "— Избери —"
+      "selectPlaceholder": "— Избери —",
+      "recordCount": "{count, plural, one {# запис} other {# записа}}"
     },
     "media": {
       "title": "Медийна библиотека",
@@ -656,6 +657,30 @@
           "desc": "Какво се случи и какво предстои."
         }
       }
+    },
+    "settings": {
+      "title": "Настройки",
+      "subtitle": "Обновете профила си и сменете паролата си.",
+      "loading": "Зареждане…",
+      "profile": "Профил",
+      "email": "Имейл",
+      "firstName": "Име",
+      "lastName": "Фамилия",
+      "grade": "Клас (8–12)",
+      "classLabel": "Паралелка",
+      "save": "Запази",
+      "profileSaved": "Профилът е обновен успешно.",
+      "changePassword": "Смяна на парола",
+      "currentPassword": "Текуща парола",
+      "newPassword": "Нова парола",
+      "confirmPassword": "Потвърди новата парола",
+      "updatePassword": "Обнови паролата",
+      "passwordChanged": "Паролата е сменена успешно.",
+      "errLoad": "Неуспешно зареждане на профила.",
+      "errSave": "Неуспешно записване на профила.",
+      "errChange": "Неуспешна смяна на паролата.",
+      "errEnterPw": "Моля, въведете текущата и новата парола.",
+      "errMismatch": "Новите пароли не съвпадат."
     }
   },
   "Clubs": {

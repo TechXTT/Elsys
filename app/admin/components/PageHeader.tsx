@@ -3,6 +3,7 @@
 import { ReactNode } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface PageHeaderProps {
   title: string;
@@ -12,13 +13,14 @@ interface PageHeaderProps {
 }
 
 export function PageHeader({ title, description, breadcrumbs, actions }: PageHeaderProps) {
+  const t = useTranslations("Admin.nav");
   return (
     <div className="mb-8 space-y-4">
       {/* Breadcrumbs */}
       {breadcrumbs && breadcrumbs.length > 0 && (
         <nav className="text-body-sm flex items-center gap-1 text-[var(--color-text-muted)]">
           <Link href="/admin" className="hover:text-[var(--color-text-link)]">
-            Dashboard
+            {t("dashboard")}
           </Link>
           {breadcrumbs.map((crumb, index) => (
             <span key={index} className="flex items-center gap-1">
