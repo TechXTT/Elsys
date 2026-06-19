@@ -833,6 +833,10 @@ Registration for the first workshop is now open!`,
       const data = {
         slug: root.slug,
         locale,
+        // Shared groupId so bg+en are ONE nav group. Without this the admin nav
+        // builder treated each locale as a separate single-locale group and
+        // synthesized locale-suffixed duplicates (the ghost factory).
+        groupId: `navroot-${root.slug}`,
         title: locale === "bg" ? root.bg : root.en,
         navLabel: locale === "bg" ? root.bg : root.en,
         visible: true,
