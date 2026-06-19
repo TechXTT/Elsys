@@ -20,7 +20,9 @@ test.describe("Cookie consent (G5-4)", () => {
 
   test("preferences modal toggles analytics on and persists", async ({ page, context }) => {
     await page.goto("/bg");
-    await page.getByRole("button", { name: "Настройки" }).click();
+    // Exact match: the footer "Настройки за бисквитки" trigger also contains
+    // "Настройки", so scope to the banner's exact "Настройки" (customize) button.
+    await page.getByRole("button", { name: "Настройки", exact: true }).click();
     const modal = page.getByRole("dialog", { name: "Настройки за бисквитки" });
     await expect(modal).toBeVisible();
     await modal.locator('[data-ui="analytics-toggle"]').check();
