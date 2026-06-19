@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { getNewsBlockMeta, getNewsBlockIcon } from "./block-meta";
 import type { NewsBlockInstance } from "./types";
+import { useBlockI18n } from "./use-block-i18n";
 
 interface NewsBlockWrapperProps {
   block: NewsBlockInstance;
@@ -53,6 +54,7 @@ export function NewsBlockWrapper({
   onDrop,
   children,
 }: NewsBlockWrapperProps) {
+  const { t, tr } = useBlockI18n();
   const blockRef = useRef<HTMLDivElement>(null);
   const meta = getNewsBlockMeta(block.type);
   const Icon = meta ? getNewsBlockIcon(meta.icon) : Settings;
@@ -105,7 +107,7 @@ export function NewsBlockWrapper({
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
             className="cursor-grab rounded p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 active:cursor-grabbing dark:hover:bg-slate-700 dark:hover:text-slate-300"
-            title="Drag to reorder"
+            title={t("canvas.dragToReorder")}
           >
             <GripVertical className="h-4 w-4" />
           </button>
@@ -113,7 +115,7 @@ export function NewsBlockWrapper({
           {/* Block type label */}
           <div className="flex items-center gap-1.5 px-2 text-sm font-medium text-slate-700 dark:text-slate-200">
             <Icon className="h-3.5 w-3.5 text-slate-500" />
-            <span>{meta?.label || block.type}</span>
+            <span>{tr(meta?.label) || block.type}</span>
           </div>
 
           <div className="mx-1 h-4 w-px bg-slate-200 dark:bg-slate-600" />
@@ -127,7 +129,7 @@ export function NewsBlockWrapper({
             }}
             disabled={index === 0}
             className="rounded p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-slate-300"
-            title="Move up"
+            title={t("canvas.moveUp")}
           >
             <ChevronUp className="h-4 w-4" />
           </button>
@@ -141,7 +143,7 @@ export function NewsBlockWrapper({
             }}
             disabled={index === totalBlocks - 1}
             className="rounded p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-slate-300"
-            title="Move down"
+            title={t("canvas.moveDown")}
           >
             <ChevronDown className="h-4 w-4" />
           </button>
@@ -156,7 +158,7 @@ export function NewsBlockWrapper({
               onDuplicate();
             }}
             className="rounded p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-300"
-            title="Duplicate"
+            title={t("canvas.duplicate")}
           >
             <Copy className="h-4 w-4" />
           </button>
@@ -169,7 +171,7 @@ export function NewsBlockWrapper({
               onRemove();
             }}
             className="rounded p-1.5 text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/50"
-            title="Delete"
+            title={t("canvas.delete")}
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -200,6 +202,7 @@ interface EmptyCanvasProps {
 }
 
 export function EmptyNewsCanvas({ onDrop }: EmptyCanvasProps) {
+  const { t } = useBlockI18n();
   const [isDragOver, setIsDragOver] = useState(false);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -242,15 +245,15 @@ export function EmptyNewsCanvas({ onDrop }: EmptyCanvasProps) {
         />
       </div>
       <h3 className="mb-2 text-base font-semibold text-slate-900 dark:text-white">
-        Start building your article
+        {t("canvas.startBuilding")}
       </h3>
       <p className="mb-3 max-w-xs text-sm text-slate-500 dark:text-slate-400">
-        Drag blocks from the sidebar or click on a block to add it
+        {t("canvas.emptyHint")}
       </p>
       <p
         className={`text-sm ${isDragOver ? "text-brand-600 dark:text-brand-400" : "text-slate-400"}`}
       >
-        {isDragOver ? "Drop to add block" : "Drag & drop a block here"}
+        {isDragOver ? t("canvas.dropToAdd") : t("canvas.dragDropHere")}
       </p>
     </div>
   );
