@@ -1,9 +1,12 @@
 /* eslint-disable no-console */
-// One-off DEV-DB purge of the 14 ghost pages: a 2026-06-17T12:45:59 burst of
-// `${slug}-bg` / `${slug}-en` duplicate roots with swapped labels (locale bg
-// rows holding English titles and vice-versa). Capture-first to scripts/.cache/,
-// then delete by EXACT id in a transaction with an == 14 assertion. Never uses a
-// LIKE/pattern delete.  pnpm purge:ghosts
+// DEV-DB purge of the "ghost" duplicate roots: `${root}-bg` / `${root}-en` pages
+// (locale-suffixed slugs with swapped labels) plus the empty crawl-junk orphans,
+// in BOTH locales. Targets by EXACT slug+locale (id-independent, so it works even
+// after the ghosts are re-created with new ids), captures-first to scripts/.cache/,
+// deletes in a transaction, then RE-QUERIES in the same connection and asserts 0
+// remain (rolls back / exits non-zero otherwise). Finally bumps the nav caches —
+// the other maintenance scripts don't, which can leave the admin API stale.
+//   pnpm purge:ghosts
 import "dotenv/config";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -11,43 +14,42 @@ import { PrismaClient } from "@prisma/client";
 
 const CACHE = path.join(process.cwd(), "scripts/.cache");
 
-// The exact 14 ids identified (7 roots × 2 locales).
-const GHOST_IDS = [
-  "cmqi2e3v50049g5f5q3jve0b9", // bg/novini-bg
-  "cmqi2e3wt004bg5f5dhvxwkhn", // en/novini-en
-  "cmqi2e403004dg5f5zwnp1yie", // bg/priem-bg
-  "cmqi2e41z004fg5f5s6gl623j", // en/priem-en
-  "cmqi2e43a004hg5f56hqz3i34", // en/obuchenie-en
-  "cmqi2e44g004jg5f5iu56cx6d", // bg/obuchenie-bg
-  "cmqi2e45q004lg5f5z6bjgsl3", // en/uchilishteto-en
-  "cmqi2e478004ng5f52afwh0er", // bg/uchilishteto-bg
-  "cmqi2e48n004pg5f5qnt6wtjp", // en/uchenicheski-zhivot-en
-  "cmqi2e49w004rg5f5z6zbxodh", // bg/uchenicheski-zhivot-bg
-  "cmqi2e4bk004tg5f5zbe5zarh", // bg/blog-bg
-  "cmqi2e4ek004vg5f5o0ksllq0", // en/blog-en
-  "cmqi2e4fu004xg5f5autlly2v", // en/evroproekti-en
-  "cmqi2e4h8004zg5f5h4iocdvu", // bg/evroproekti-bg
+const GHOST_ROOTS = ["novini", "priem", "obuchenie", "uchilishteto", "uchenicheski-zhivot", "blog", "evroproekti"];
+// `${root}-bg` and `${root}-en` ghost slugs + the two empty crawl-junk slugs.
+const TARGET_SLUGS = [
+  ...GHOST_ROOTS.flatMap((r) => [`${r}-bg`, `${r}-en`]),
+  "galleries/xhr",
+  "novini-i-sybitija/novini",
 ];
+
+async function flushNavCache() {
+  const url = process.env.REDIS_URL;
+  if (!url) { console.log("   (no REDIS_URL — skipping cache flush)"); return; }
+  const { default: Redis } = await import("ioredis");
+  const r = new Redis(url);
+  let n = 0;
+  for (const pat of ["nav-tree:*", "cache:*"]) {
+    const ks = await r.keys(pat);
+    if (ks.length) { await r.del(...ks); n += ks.length; }
+  }
+  await r.quit();
+  console.log(`   flushed ${n} nav/content cache keys`);
+}
 
 async function main() {
   const prisma = new PrismaClient();
 
-  // 1) Capture-first: dump full records.
-  const rows = await prisma.page.findMany({ where: { id: { in: GHOST_IDS } } });
-  console.log(`Found ${rows.length} of ${GHOST_IDS.length} target rows.`);
+  // 1) Capture-first: dump full records (by exact slug, both locales).
+  const rows = await prisma.page.findMany({ where: { slug: { in: TARGET_SLUGS } } });
+  console.log(`Matched ${rows.length} ghost/junk rows by exact slug (both locales).`);
   for (const r of rows) console.log(`  ${r.id} ${r.locale}/${r.slug} title=${JSON.stringify(r.title)}`);
+  if (rows.length === 0) { console.log("Nothing to purge."); await flushNavCache(); await prisma.$disconnect(); return; }
 
-  // 2) Safety asserts BEFORE any delete.
-  if (rows.length !== GHOST_IDS.length) {
-    console.error(`✋ Abort: expected ${GHOST_IDS.length} rows, found ${rows.length}. No deletion performed.`);
-    const missing = GHOST_IDS.filter((id) => !rows.some((r) => r.id === id));
-    console.error("Missing ids:", missing.join(", "));
-    await prisma.$disconnect();
-    process.exit(2);
-  }
-  const wrongShape = rows.filter((r) => !/-(bg|en)$/.test(r.slug));
-  if (wrongShape.length) {
-    console.error("✋ Abort: some target slugs don't match the -bg/-en ghost shape:", wrongShape.map((r) => r.slug).join(", "));
+  // Safety: every matched row must be a locale-suffixed ghost or a known junk slug.
+  const junk = new Set(["galleries/xhr", "novini-i-sybitija/novini"]);
+  const wrong = rows.filter((r) => !junk.has(r.slug) && !/-(bg|en)$/.test(r.slug));
+  if (wrong.length) {
+    console.error("✋ Abort: matched a row that isn't a ghost/junk shape:", wrong.map((r) => r.slug).join(", "));
     await prisma.$disconnect();
     process.exit(3);
   }
@@ -57,18 +59,31 @@ async function main() {
   await writeFile(dump, JSON.stringify(rows, null, 2));
   console.log(`Recoverable dump → ${dump}`);
 
-  // 3) Delete in a transaction, by exact id, with an == 14 assertion (rolls back otherwise).
+  const ids = rows.map((r) => r.id);
+
+  // 2) Delete in a transaction (handle the Page↔PageVersion circular FK).
   const deleted = await prisma.$transaction(async (tx) => {
-    await tx.page.updateMany({ where: { id: { in: GHOST_IDS } }, data: { currentVersionId: null } });
-    const v = await tx.pageVersion.deleteMany({ where: { pageId: { in: GHOST_IDS } } });
-    const p = await tx.page.deleteMany({ where: { id: { in: GHOST_IDS } } });
-    if (p.count !== GHOST_IDS.length) {
-      throw new Error(`Deleted ${p.count} pages, expected ${GHOST_IDS.length} — rolling back.`);
-    }
+    await tx.page.updateMany({ where: { id: { in: ids } }, data: { currentVersionId: null } });
+    const v = await tx.pageVersion.deleteMany({ where: { pageId: { in: ids } } });
+    const p = await tx.page.deleteMany({ where: { id: { in: ids } } });
+    if (p.count !== ids.length) throw new Error(`Deleted ${p.count}, expected ${ids.length} — rolling back.`);
     return { pages: p.count, versions: v.count };
   });
+  console.log(`✓ Deleted ${deleted.pages} pages (+${deleted.versions} versions).`);
 
-  console.log(`✓ Purged ${deleted.pages} ghost pages (+${deleted.versions} versions). Transaction committed.`);
+  // 3) READ-BACK assertion in the same connection.
+  const remaining = await prisma.page.findMany({ where: { slug: { in: TARGET_SLUGS } }, select: { slug: true, locale: true } });
+  if (remaining.length !== 0) {
+    console.error(`✋ Read-back FAILED: ${remaining.length} target rows still present:`, remaining.map((r) => `${r.locale}/${r.slug}`).join(", "));
+    await prisma.$disconnect();
+    process.exit(4);
+  }
+  console.log("✓ Read-back: 0 ghost/junk rows remain in Postgres.");
+
+  // 4) Bump nav caches so the admin/public nav reflects the deletion.
+  console.log("Flushing nav caches…");
+  await flushNavCache();
+
   await prisma.$disconnect();
 }
 
