@@ -13,8 +13,11 @@ test.describe("News category chip + filter (Phase E2)", () => {
 
     const unfiltered = await page.locator('[data-ui="news-card"]').count();
 
-    // Filter to "Събитие" (seeded on 2 posts) → fewer cards, chip marked current.
-    await page.goto("/bg/novini?category=Събитие");
+    // Filter to a free-text category → fewer cards, chip marked current.
+    // (The former "Събитие" free-text category was deduped into the canonical
+    // relational "Събития" Page — see news-category dedup in prisma/seed.js — so
+    // this asserts free-text filtering still works via an unaffected category.)
+    await page.goto("/bg/novini?category=Награди");
     const filtered = page.locator('[data-ui="news-card"]');
     await expect(filtered.first()).toBeVisible();
     const filteredCount = await filtered.count();
@@ -22,7 +25,7 @@ test.describe("News category chip + filter (Phase E2)", () => {
     expect(filteredCount).toBeLessThan(unfiltered);
 
     const active = page.locator('[data-ui="news-filter"][aria-current="true"]');
-    await expect(active).toHaveText(/Събитие/);
+    await expect(active).toHaveText(/Награди/);
   });
 
   // M2.4: a post's category can come from a linked parent Page (taxonomy).

@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState, DragEvent, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { locales as supportedLocales, defaultLocale } from "@/i18n/config";
+import { useTranslations } from "next-intl";
 import {
   Plus,
   Save,
@@ -57,6 +58,7 @@ const PRIMARY_LOCALE = defaultLocale && NAV_LOCALES.includes(defaultLocale)
   : (NAV_LOCALES[0] ?? "bg");
 
 export default function NavigationAdminPage() {
+  const t = useTranslations("Admin.navManager");
   const router = useRouter();
   const [locale, setLocale] = useState<string>(PRIMARY_LOCALE);
   const [tree, setTree] = useState<PageNode[]>([]);
@@ -122,7 +124,7 @@ export default function NavigationAdminPage() {
       setTreesByLocale(byLocale);
       setTree(byLocale[initialLocale] || []);
     } catch (e: any) {
-      setError(e.message || "Failed to load navigation");
+      setError(e.message || t("errLoad"));
     } finally {
       setLoading(false);
     }
@@ -154,7 +156,7 @@ export default function NavigationAdminPage() {
       };
       const res = await fetch('/api/admin/navigation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Create failed');
+      if (!res.ok) throw new Error(data.error || t("errCreate"));
       setNewParent('');
       setNewSlug({ bg: "", en: "" });
       setNewExternal({ bg: "", en: "" });
@@ -165,7 +167,7 @@ export default function NavigationAdminPage() {
       setNewKind('PAGE');
       await load();
     } catch (e: any) {
-      setError(e.message || 'Failed to create');
+      setError(e.message || t("errCreate"));
     } finally { setCreating(false); }
   }
 
@@ -411,7 +413,7 @@ export default function NavigationAdminPage() {
           body: JSON.stringify(patch),
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || `Save failed for ${id}`);
+        if (!res.ok) throw new Error(data.error || t("errSave"));
       }));
       const errors = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
       if (errors.length) {
@@ -422,7 +424,7 @@ export default function NavigationAdminPage() {
       setPending({});
       await load(locale);
     } catch (e: any) {
-      setError(e.message || 'Save failed');
+      setError(e.message || t("errSave"));
     } finally {
       setSaving(false);
     }
@@ -434,9 +436,9 @@ export default function NavigationAdminPage() {
   }
 
   async function remove(id: string) {
-    if (!confirm('Delete this item and its descendants?')) return;
+    if (!confirm(t("deleteConfirm"))) return;
     const res = await fetch(`/api/admin/navigation/${id}`, { method: 'DELETE' });
-    if (!res.ok) { setError('Delete failed'); return; }
+    if (!res.ok) { setError(t("errDelete")); return; }
     await load(locale);
   }
 
@@ -485,9 +487,9 @@ export default function NavigationAdminPage() {
       {/* Header */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Pages & Navigation</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t("title")}</h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Manage your site's page hierarchy and navigation structure
+            {t("subtitle")}
           </p>
         </div>
 
@@ -522,7 +524,7 @@ export default function NavigationAdminPage() {
             className="flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-40 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             <RotateCcw className="h-4 w-4" />
-            Discard
+            {t("discard")}
           </button>
           <button
             onClick={saveAll}
@@ -534,7 +536,7 @@ export default function NavigationAdminPage() {
             ) : (
               <Save className="h-4 w-4" />
             )}
-            {saving ? "Saving..." : "Save"}
+            {saving ? t("saving") : t("save")}
             {pendingCount > 0 && (
               <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs">
                 {pendingCount}
@@ -557,7 +559,7 @@ export default function NavigationAdminPage() {
         <div className="flex items-center justify-center py-16">
           <div className="text-center">
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-brand-600" />
-            <p className="mt-2 text-sm text-slate-500">Loading navigation...</p>
+            <p className="mt-2 text-sm text-slate-500">{t("loading")}</p>
           </div>
         </div>
       ) : (
@@ -567,13 +569,13 @@ export default function NavigationAdminPage() {
             <div className="border-b border-slate-200 bg-slate-50 px-5 py-3 dark:border-slate-800 dark:bg-slate-800/50">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
-                  Navigation Tree
+                  {t("tree")}
                   <span className="ml-2 text-xs font-normal text-slate-500">
-                    ({flat.length} items)
+                    {t("items", { count: flat.length })}
                   </span>
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Drag items to reorder • {locale.toUpperCase()} locale
+                  {t("dragHint", { locale: locale.toUpperCase() })}
                 </p>
               </div>
             </div>
@@ -602,7 +604,7 @@ export default function NavigationAdminPage() {
             <div className="border-b border-slate-200 bg-slate-50 px-5 py-3 dark:border-slate-800 dark:bg-slate-800/50">
               <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
                 <Plus className="h-4 w-4" />
-                Create New Item
+                {t("createTitle")}
               </h2>
             </div>
             <form onSubmit={createItem} className="p-5">
@@ -610,14 +612,14 @@ export default function NavigationAdminPage() {
                 {/* Parent & Kind */}
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Parent
+                    {t("parent")}
                   </label>
                   <select
                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                     value={newParent}
                     onChange={(e) => setNewParent(e.target.value)}
                   >
-                    <option value="">(Root level)</option>
+                    <option value="">{t("rootLevel")}</option>
                     {flat.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.navLabel || p.slug || p.id}
@@ -628,17 +630,17 @@ export default function NavigationAdminPage() {
 
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Type
+                    {t("type")}
                   </label>
                   <select
                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
                     value={newKind}
                     onChange={(e) => setNewKind(e.target.value)}
                   >
-                    <option value="PAGE">📄 Page</option>
-                    <option value="FOLDER">📁 Folder</option>
-                    <option value="LINK">🔗 External Link</option>
-                    <option value="ROUTE">🛤️ Dynamic Route</option>
+                    <option value="PAGE">{t("kindPage")}</option>
+                    <option value="FOLDER">{t("kindFolder")}</option>
+                    <option value="LINK">{t("kindLink")}</option>
+                    <option value="ROUTE">{t("kindRoute")}</option>
                   </select>
                 </div>
 
@@ -647,7 +649,7 @@ export default function NavigationAdminPage() {
                   <div key={`segment-${code}`}>
                     <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
                       {code.toUpperCase()}{" "}
-                      {newKind === "LINK" ? "URL" : newKind === "ROUTE" ? "Route Path" : "Slug"}
+                      {newKind === "LINK" ? t("url") : newKind === "ROUTE" ? t("routePath") : t("slug")}
                     </label>
                     <input
                       disabled={newKind === "LINK"}
@@ -661,7 +663,7 @@ export default function NavigationAdminPage() {
                         }
                       }}
                       className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-                      placeholder={newKind === "ROUTE" ? "pages/news" : "e.g. about-us"}
+                      placeholder={newKind === "ROUTE" ? t("phRoute") : t("phSlug")}
                     />
                   </div>
                 ))}
@@ -672,13 +674,13 @@ export default function NavigationAdminPage() {
                 {NAV_LOCALES.map((code) => (
                   <div key={`label-${code}`}>
                     <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                      {code.toUpperCase()} Label
+                      {code.toUpperCase()} {t("label")}
                     </label>
                     <input
                       value={newNavLabel[code]}
                       onChange={(e) => setNewNavLabel((prev) => ({ ...prev, [code]: e.target.value }))}
                       className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-                      placeholder="Display name"
+                      placeholder={t("phDisplayName")}
                     />
                   </div>
                 ))}
@@ -687,13 +689,13 @@ export default function NavigationAdminPage() {
                   NAV_LOCALES.map((code) => (
                     <div key={`external-${code}`}>
                       <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                        {code.toUpperCase()} URL
+                        {code.toUpperCase()} {t("url")}
                       </label>
                       <input
                         value={newExternal[code]}
                         onChange={(e) => setNewExternal((prev) => ({ ...prev, [code]: e.target.value }))}
                         className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-                        placeholder="https://..."
+                        placeholder={t("phUrl")}
                       />
                     </div>
                   ))}
@@ -710,7 +712,7 @@ export default function NavigationAdminPage() {
                   ) : (
                     <Plus className="h-4 w-4" />
                   )}
-                  {creating ? "Creating..." : "Create Item"}
+                  {creating ? t("creating") : t("createItem")}
                 </button>
               </div>
             </form>
@@ -980,6 +982,7 @@ function NavTree({ nodes, fullTree, flatNodes, parentId, draggingId, dropTargetI
 
 function NavItem({ node: n, fullTree, flatNodes, draggingId, dropTargetId, dropMode, setDraggingId, setDropTargetId, setDropMode, onDragStart, onDragOverItem, onDrop, onUpdate, onDelete, locale, buildHierarchicalSlug }: {
   node: PageNode; fullTree: PageNode[]; flatNodes: PageNode[]; draggingId: string | null; dropTargetId: string | null; dropMode: DropMode; setDraggingId: (id:string|null)=>void; setDropTargetId:(id:string|null)=>void; setDropMode:(m:DropMode)=>void; onDragStart:(e:DragEvent<HTMLDivElement>,id:string,el?:HTMLElement|null)=>void; onDragOverItem:(id:string,mode:DropMode, clientY: number | null)=>void; onDrop:()=>void; onUpdate:(id:string,patch:Partial<PageNode>)=>void; onDelete:(id:string)=>void; locale:string; buildHierarchicalSlug:(n:PageNode,t:PageNode[], loc?: string)=>string }) {
+  const t = useTranslations("Admin.navManager");
   const router = useRouter();
   const [expanded,setExpanded]=useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -1138,7 +1141,7 @@ function NavItem({ node: n, fullTree, flatNodes, draggingId, dropTargetId, dropM
               ? 'bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50'
               : 'bg-slate-100 text-slate-400 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-500 dark:hover:bg-slate-700'
           }`}
-          title={n.visible ? 'Visible in nav' : 'Hidden from nav'}
+          title={n.visible ? t("visible") : t("hidden")}
         >
           {n.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
         </button>
@@ -1150,14 +1153,14 @@ function NavItem({ node: n, fullTree, flatNodes, draggingId, dropTargetId, dropM
               <button
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300"
                 onClick={edit}
-                title="Edit page"
+                title={t("editPage")}
               >
                 <Pencil className="h-4 w-4" />
               </button>
               <button
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300"
                 onClick={preview}
-                title="Preview page"
+                title={t("previewPage")}
               >
                 <ExternalLink className="h-4 w-4" />
               </button>
@@ -1167,7 +1170,7 @@ function NavItem({ node: n, fullTree, flatNodes, draggingId, dropTargetId, dropM
             className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30 dark:hover:bg-slate-800 dark:hover:text-slate-300"
             disabled={atTop}
             onClick={moveUp}
-            title="Move up"
+            title={t("moveUp")}
           >
             <ArrowUp className="h-4 w-4" />
           </button>
@@ -1175,7 +1178,7 @@ function NavItem({ node: n, fullTree, flatNodes, draggingId, dropTargetId, dropM
             className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30 dark:hover:bg-slate-800 dark:hover:text-slate-300"
             disabled={atBottom}
             onClick={moveDown}
-            title="Move down"
+            title={t("moveDown")}
           >
             <ArrowDown className="h-4 w-4" />
           </button>
@@ -1183,21 +1186,21 @@ function NavItem({ node: n, fullTree, flatNodes, draggingId, dropTargetId, dropM
               className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30 dark:hover:bg-slate-800 dark:hover:text-slate-300"
               disabled={!n.parentId}
               onClick={outdent}
-              title="Outdent"
+              title={t("outdent")}
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
           <button
             className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300"
             onClick={() => setShowDetails(!showDetails)}
-            title="Edit details"
+            title={t("editDetails")}
           >
             <ChevronDown className={`h-4 w-4 transition-transform ${showDetails ? 'rotate-180' : ''}`} />
           </button>
           <button
             className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-red-400 dark:hover:bg-red-950/30"
             onClick={() => onDelete(n.id)}
-            title="Delete"
+            title={t("delete")}
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -1211,7 +1214,7 @@ function NavItem({ node: n, fullTree, flatNodes, draggingId, dropTargetId, dropM
             <span className="rounded-md bg-slate-200 px-2 py-0.5 font-semibold uppercase tracking-wide dark:bg-slate-700">
               {locale}
             </span>
-            <span>Editing locale</span>
+            <span>{t("editingLocale")}</span>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
@@ -1223,7 +1226,7 @@ function NavItem({ node: n, fullTree, flatNodes, draggingId, dropTargetId, dropM
                   const targetId = n.idsByLocale?.[locale] || n.id;
                   onUpdate(targetId, { navLabel: e.target.value });
                 }}
-                placeholder="Display name"
+                placeholder={t("phDisplayName")}
               />
             </div>
             {n.kind === 'ROUTE' ? (
@@ -1237,7 +1240,7 @@ function NavItem({ node: n, fullTree, flatNodes, draggingId, dropTargetId, dropM
                       const targetId = n.idsByLocale?.[locale] || n.id;
                       onUpdate(targetId, { routePath: e.target.value });
                     }}
-                    placeholder="pages/news or pages/news/[slug]"
+                    placeholder={t("phRoutePath")}
                   />
                 </div>
                 <div>
@@ -1249,7 +1252,7 @@ function NavItem({ node: n, fullTree, flatNodes, draggingId, dropTargetId, dropM
                       const targetId = n.idsByLocale?.[locale] || n.id;
                       onUpdate(targetId, { slug: e.target.value });
                     }}
-                    placeholder="fills [slug] or appends"
+                    placeholder={t("phRouteSlug")}
                   />
                 </div>
               </>
@@ -1272,7 +1275,7 @@ function NavItem({ node: n, fullTree, flatNodes, draggingId, dropTargetId, dropM
                       else onUpdate(targetId, { slug: v });
                     }
                   }}
-                  placeholder={n.kind === 'LINK' ? 'https://...' : 'e.g. about-us'}
+                  placeholder={n.kind === 'LINK' ? t("phUrl") : t("phSlug")}
                 />
               </div>
             )}
@@ -1298,7 +1301,7 @@ function NavItem({ node: n, fullTree, flatNodes, draggingId, dropTargetId, dropM
                   const targetId = n.idsByLocale?.[locale] || n.id;
                   onUpdate(targetId, { routeOverride: e.target.value || null });
                 }}
-                placeholder="e.g. pages/news or /custom/path (supports [slug])"
+                placeholder={t("phRouteOverride")}
               />
             </div>
             <div className="sm:col-span-2 lg:col-span-3">

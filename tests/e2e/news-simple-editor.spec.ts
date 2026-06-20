@@ -18,6 +18,18 @@ test.describe("News Simple Mode editor (G3-1)", () => {
     await expect(page.getByText("Featured изображение")).toBeVisible();
   });
 
+  test("admin pages emit no next-intl errors (IntlError/INVALID_KEY guard)", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
+    page.on("pageerror", (e) => errors.push(String(e)));
+    for (const path of ["/admin", "/admin/news", "/admin/news/simple"]) {
+      await page.goto(path);
+      await page.waitForLoadState("networkidle").catch(() => {});
+    }
+    const intl = errors.filter((e) => /IntlError|INVALID_KEY|MISSING_MESSAGE/i.test(e));
+    expect(intl, `next-intl errors present: ${intl.join(" | ")}`).toHaveLength(0);
+  });
+
   test("creates a published post that appears publicly", async ({ page }) => {
     const stamp = Date.now();
     const title = `Опростена новина ${stamp}`;

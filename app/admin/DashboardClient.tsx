@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import {
   Newspaper,
   FileText,
@@ -138,6 +138,7 @@ function NewsRow({
   updatedAt: string;
   id: string;
 }) {
+  const locale = useLocale();
   return (
     <Link
       href={`/admin/news?edit=${id}` as any}
@@ -155,7 +156,7 @@ function NewsRow({
         <div className="mt-0.5 flex items-center gap-2 text-xs text-ink-muted">
           {author && <span>{author}</span>}
           {author && <span className="text-ink-muted">•</span>}
-          <span>{formatDistanceToNow(new Date(updatedAt))}</span>
+          <span data-ui="volatile-time">{formatDistanceToNow(new Date(updatedAt), locale)}</span>
         </div>
       </div>
       <ChevronRight className="h-4 w-4 text-ink-muted transition-transform group-hover:translate-x-1 group-hover:text-ink-link" />
@@ -175,6 +176,7 @@ function ActivityRow({
   user: string;
   time: Date;
 }) {
+  const locale = useLocale();
   const getActionColor = (action: string) => {
     const lower = action.toLowerCase();
     if (lower.includes("create") || lower.includes("add")) return "bg-[var(--color-tag-green)]";
@@ -192,7 +194,7 @@ function ActivityRow({
           {entity && <span className="text-ink-muted"> → {entity}</span>}
         </p>
         <p className="mt-0.5 text-xs text-ink-muted">
-          {user} • {formatDistanceToNow(time)}
+          {user} • <span data-ui="volatile-time">{formatDistanceToNow(time, locale)}</span>
         </p>
       </div>
     </div>
@@ -201,6 +203,7 @@ function ActivityRow({
 
 export function DashboardClient() {
   const t = useTranslations("Admin");
+  const locale = useLocale();
   const { data: session } = useSession();
   const isAdmin = (session?.user as any)?.role === "ADMIN";
   const [data, setData] = useState<DashboardStats | null>(null);
@@ -240,14 +243,17 @@ export function DashboardClient() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+          {/* muted text → use the generated token, not a raw slate literal (M4.4 token sweep) */}
+          <p className="text-sm font-medium text-[var(--color-text-muted)]">
             <Calendar className="mr-1.5 inline-block h-4 w-4" />
-            {new Date().toLocaleDateString("en-US", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
+            <span data-ui="volatile-time">
+              {new Date().toLocaleDateString(locale, {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </span>
           </p>
           <h1 className="text-h2 mt-1 text-[var(--color-text-heading)]">
             {greeting()}, {userName}

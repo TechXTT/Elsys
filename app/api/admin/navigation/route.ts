@@ -9,7 +9,6 @@ import { invalidateNavigationTree } from "@/lib/navigation-build";
 import { recordAudit } from "@/lib/audit";
 import { revalidatePublicPages } from "@/lib/revalidate";
 import { bumpCacheVersion } from "@/lib/cache";
-import { statusFromPublished } from "@/lib/content/shared";
 
 const NAV_LOCALES = Array.from(supportedLocales);
 const NAV_PAGE_SELECT = {
@@ -56,8 +55,6 @@ type NavPageRow = {
   authorId: string | null;
 };
 
-const slugLocaleKey = (slug: string, locale: string) => `${locale}::${slug}`;
-
 function ensureAdmin(session: any): asserts session is { user: { id: string; role?: string } } {
   if (!session || !(session.user as any)?.id || (session.user as any)?.role !== "ADMIN") {
     throw NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -74,13 +71,20 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const requestedLocaleParam = searchParams.get("locale");
     const preferredLocale = NAV_LOCALES.find((loc) => loc === requestedLocaleParam) ?? defaultLocale;
-    // Ensure every navigation group has entries for all locales before building tree
-    const all = await ensureNavigationLocaleCoverage();
+    // Read-only projection: GET must be side-effect-free. We DO NOT create
+    // missing-locale rows (that was the ghost factory — it cloned `${slug}-${loc}`
+    // pages with swapped labels on every load). A group missing a locale is
+    // projected as a virtual "needs translation" node using the fallback-locale
+    // label; real locale versions are created ONLY by the explicit translate /
+    // create-version action.
+    const all = await fetchNavPageRows();
     const groups = new Map<string, any[]>();
+    const groupByPageId = new Map<string, string>(); // page id -> its group id
     for (const p of all) {
       const gid = p.groupId ?? p.id; // fallback during transition
       if (!groups.has(gid)) groups.set(gid, []);
       groups.get(gid)!.push(p);
+      groupByPageId.set(p.id, gid);
     }
     // Build nodes using primary locale page per group (prefer 'bg', else any)
     const nodesById = new Map<string, any>();
@@ -106,13 +110,31 @@ export async function GET(req: Request) {
         routePathByLocale[v.locale] = v.routePath;
         externalUrlByLocale[v.locale] = v.externalUrl;
       }
-      const node = { ...primary, idsByLocale, slugByLocale, labelByLocale, routeOverrideByLocale, routePathByLocale, externalUrlByLocale, children: [] as any[] };
+      // Virtual projection for locales with no real row: show the fallback-locale
+      // label (so e.g. a bg-only page still appears in the EN tab) and flag it as
+      // needing translation. No row is created — idsByLocale stays absent for it.
+      const needsTranslationByLocale: Record<string, boolean> = {};
+      for (const loc of NAV_LOCALES) {
+        if (idsByLocale[loc]) continue;
+        needsTranslationByLocale[loc] = true;
+        if (labelByLocale[loc] == null) labelByLocale[loc] = primary.navLabel ?? primary.title ?? null;
+        if (slugByLocale[loc] == null) slugByLocale[loc] = primary.slug ?? null;
+      }
+      const node = { ...primary, idsByLocale, slugByLocale, labelByLocale, routeOverrideByLocale, routePathByLocale, externalUrlByLocale, needsTranslationByLocale, children: [] as any[] };
       nodesById.set(primary.id, node);
       primaryByGroup.set(gid, node);
     }
     for (const node of nodesById.values()) {
-      const primaryParent = node.parentId ? nodesById.get(node.parentId) : null;
-      if (primaryParent) primaryParent.children.push(node); else nodes.push(node);
+      // Resolve the parent by its GROUP, not a raw page id. A virtual child's
+      // primary is the fallback-locale row, so node.parentId is THAT locale's
+      // parent id — which won't match a parent node keyed by a different locale's
+      // id (the bug: EN children orphaning to root under a real EN parent). The
+      // groupId-merge unifies bg+en of a page, so the parent's group always
+      // resolves to whichever node represents that parent in this locale.
+      const parentGid = node.parentId ? groupByPageId.get(node.parentId) : null;
+      const parentNode = parentGid ? primaryByGroup.get(parentGid) : null;
+      if (parentNode && parentNode !== node) parentNode.children.push(node);
+      else nodes.push(node);
     }
     sortTree(nodes);
     return NextResponse.json({ items: nodes });
@@ -261,112 +283,3 @@ async function fetchNavPageRows(): Promise<NavPageRow[]> {
   return await (prisma as any).page.findMany({ orderBy: [{ parentId: 'asc' }, { order: 'asc' }], select: NAV_PAGE_SELECT });
 }
 
-async function ensureNavigationLocaleCoverage(): Promise<NavPageRow[]> {
-  const rows = await fetchNavPageRows();
-  if (!rows.length) return rows;
-  const pageById = new Map<string, NavPageRow>(rows.map((row) => [row.id, row]));
-  const groupInfo = new Map<string, { nodes: NavPageRow[]; parentGroupId: string | null }>();
-  const localeIdsByGroup = new Map<string, Record<string, string>>();
-  const missingGroupIds = new Set<string>();
-
-  for (const row of rows) {
-    const gid = row.groupId ?? row.id;
-    if (!groupInfo.has(gid)) groupInfo.set(gid, { nodes: [], parentGroupId: null });
-    const info = groupInfo.get(gid)!;
-    info.nodes.push(row);
-    const parent = row.parentId ? pageById.get(row.parentId) : null;
-    const parentGroupId = parent ? (parent.groupId ?? parent.id) : null;
-    if (parentGroupId && info.parentGroupId === null) info.parentGroupId = parentGroupId;
-    const locMap = localeIdsByGroup.get(gid) ?? {};
-    locMap[row.locale] = row.id;
-    localeIdsByGroup.set(gid, locMap);
-    if (!row.groupId) missingGroupIds.add(row.id);
-  }
-
-  const slugUsage = new Set<string>();
-  for (const row of rows) {
-    if (row.slug) slugUsage.add(slugLocaleKey(row.slug, row.locale));
-  }
-
-  let mutated = false;
-  if (missingGroupIds.size) {
-    mutated = true;
-    await (prisma as any).$transaction(
-      Array.from(missingGroupIds).map((id) => (prisma as any).page.update({ where: { id }, data: { groupId: id } }))
-    );
-    for (const row of rows) {
-      if (!row.groupId) row.groupId = row.id;
-    }
-  }
-
-  const depthCache = new Map<string, number>();
-  const getDepth = (gid: string | null | undefined): number => {
-    if (!gid) return 0;
-    if (depthCache.has(gid)) return depthCache.get(gid)!;
-    const parent = groupInfo.get(gid)?.parentGroupId ?? null;
-    const depth = parent ? getDepth(parent) + 1 : 0;
-    depthCache.set(gid, depth);
-    return depth;
-  };
-
-  const sortedGroups = Array.from(groupInfo.keys()).sort((a, b) => getDepth(a) - getDepth(b));
-  for (const gid of sortedGroups) {
-    const info = groupInfo.get(gid)!;
-    const locMap = localeIdsByGroup.get(gid) ?? {};
-    const missingLocales = NAV_LOCALES.filter((loc) => !locMap[loc]);
-    if (!missingLocales.length) continue;
-    const template = info.nodes.find((n) => n.locale === defaultLocale) ?? info.nodes[0];
-    if (!template) continue;
-    for (const loc of missingLocales) {
-      mutated = true;
-      const parentLocaleId = info.parentGroupId ? (localeIdsByGroup.get(info.parentGroupId)?.[loc] ?? null) : null;
-      const nextSlug = allocateCloneSlug(template.slug, loc, slugUsage);
-      const created = await (prisma as any).page.create({
-        data: {
-          locale: loc,
-          groupId: gid,
-          parentId: parentLocaleId,
-          slug: nextSlug,
-          externalUrl: template.externalUrl,
-          routePath: template.routePath,
-          routeOverride: template.routeOverride,
-          navLabel: template.navLabel,
-          kind: template.kind,
-          visible: template.visible,
-          order: template.order,
-          accessRole: template.accessRole,
-          title: template.title,
-          excerpt: template.excerpt,
-          bodyMarkdown: template.bodyMarkdown,
-          blocks: template.blocks,
-          published: template.published,
-          status: statusFromPublished(template.published),
-          authorId: template.authorId,
-        },
-        select: NAV_PAGE_SELECT,
-      });
-      info.nodes.push(created);
-      const updatedMap = localeIdsByGroup.get(gid) ?? {};
-      updatedMap[loc] = created.id;
-      localeIdsByGroup.set(gid, updatedMap);
-      pageById.set(created.id, created);
-    }
-  }
-
-  if (!mutated) return rows;
-  return await fetchNavPageRows();
-}
-
-function allocateCloneSlug(baseSlug: string | null, locale: string, usage: Set<string>) {
-  if (!baseSlug) return null;
-  const cleanBase = baseSlug.trim();
-  if (!cleanBase) return null;
-  let candidate = cleanBase;
-  let attempt = 0;
-  while (usage.has(slugLocaleKey(candidate, locale))) {
-    attempt += 1;
-    candidate = `${cleanBase}-${locale}${attempt > 1 ? `-${attempt}` : ""}`;
-  }
-  usage.add(slugLocaleKey(candidate, locale));
-  return candidate;
-}

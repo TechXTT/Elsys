@@ -5,6 +5,8 @@ import { X, Settings2, Upload, ImageIcon, ChevronDown } from "lucide-react";
 import { useNewsBuilder, type SelectedImage, type ImageSize } from "../NewsBuilderContext";
 import { getNewsBlockMeta, getNewsBlockIcon } from "./block-meta";
 import type { NewsBlockField, NewsBlockMeta } from "./types";
+import { useTranslations } from "next-intl";
+import { useBlockI18n } from "./use-block-i18n";
 
 interface FieldEditorProps {
   field: NewsBlockField;
@@ -13,23 +15,25 @@ interface FieldEditorProps {
 }
 
 function TextFieldEditor({ field, value, onChange }: FieldEditorProps) {
+  const { tr } = useBlockI18n();
   return (
     <input
       type="text"
       value={(value as string) || ""}
       onChange={(e) => onChange(e.target.value)}
-      placeholder={field.placeholder}
+      placeholder={tr(field.placeholder)}
       className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
     />
   );
 }
 
 function TextAreaFieldEditor({ field, value, onChange }: FieldEditorProps) {
+  const { tr } = useBlockI18n();
   return (
     <textarea
       value={(value as string) || ""}
       onChange={(e) => onChange(e.target.value)}
-      placeholder={field.placeholder}
+      placeholder={tr(field.placeholder)}
       rows={4}
       className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
     />
@@ -37,11 +41,12 @@ function TextAreaFieldEditor({ field, value, onChange }: FieldEditorProps) {
 }
 
 function RichTextFieldEditor({ field, value, onChange }: FieldEditorProps) {
+  const { tr } = useBlockI18n();
   return (
     <textarea
       value={(value as string) || ""}
       onChange={(e) => onChange(e.target.value)}
-      placeholder={field.placeholder}
+      placeholder={tr(field.placeholder)}
       rows={6}
       className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
     />
@@ -49,6 +54,7 @@ function RichTextFieldEditor({ field, value, onChange }: FieldEditorProps) {
 }
 
 function SelectFieldEditor({ field, value, onChange }: FieldEditorProps) {
+  const { tr } = useBlockI18n();
   return (
     <select
       value={(value as string) || ""}
@@ -57,7 +63,7 @@ function SelectFieldEditor({ field, value, onChange }: FieldEditorProps) {
     >
       {field.options?.map((option) => (
         <option key={option.value} value={option.value}>
-          {option.label}
+          {tr(option.label)}
         </option>
       ))}
     </select>
@@ -98,6 +104,7 @@ function generateImageName(original: string, used: Set<string>) {
 }
 
 function ImageFieldEditor({ field, value, onChange }: FieldEditorProps) {
+  const { t } = useBlockI18n();
   const { state, addImage } = useNewsBuilder();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showGallery, setShowGallery] = React.useState(false);
@@ -161,7 +168,7 @@ function ImageFieldEditor({ field, value, onChange }: FieldEditorProps) {
           className="flex flex-1 items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 py-2 text-sm text-slate-600 transition-colors hover:border-brand-400 hover:text-brand-600 dark:border-slate-600 dark:text-slate-400 dark:hover:border-brand-500 dark:hover:text-brand-400"
         >
           <Upload className="h-4 w-4" />
-          Upload
+          {t("propertyPanel.upload")}
         </button>
         {images.length > 0 && (
           <button
@@ -170,7 +177,7 @@ function ImageFieldEditor({ field, value, onChange }: FieldEditorProps) {
             className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-slate-300 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-800"
           >
             <ImageIcon className="h-4 w-4" />
-            Gallery ({images.length})
+            {t("propertyPanel.gallery", { count: images.length })}
             <ChevronDown className={`h-3 w-3 transition-transform ${showGallery ? "rotate-180" : ""}`} />
           </button>
         )}
@@ -189,7 +196,7 @@ function ImageFieldEditor({ field, value, onChange }: FieldEditorProps) {
       {showGallery && images.length > 0 && (
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800/50">
           <p className="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-            Select from uploaded images:
+            {t("propertyPanel.selectUploaded")}
           </p>
           <div className="grid grid-cols-3 gap-2">
             {images.map((img) => {
@@ -237,7 +244,7 @@ function ImageFieldEditor({ field, value, onChange }: FieldEditorProps) {
       {/* Manual URL Input (collapsed by default) */}
       <details className="group">
         <summary className="cursor-pointer text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300">
-          Or enter URL manually
+          {t("propertyPanel.orEnterUrl")}
         </summary>
         <input
           type="text"
@@ -267,6 +274,7 @@ function ArraySubFieldInput({
   value: unknown;
   onChange: (value: unknown) => void;
 }) {
+  const { tr } = useBlockI18n();
   if (subField.type === "image") {
     return <ImageFieldEditor field={subField} value={value} onChange={onChange} />;
   }
@@ -276,7 +284,7 @@ function ArraySubFieldInput({
       <textarea
         value={(value as string) || ""}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={subField.placeholder}
+        placeholder={tr(subField.placeholder)}
         rows={2}
         className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
       />
@@ -292,7 +300,7 @@ function ArraySubFieldInput({
       >
         {subField.options.map((option) => (
           <option key={option.value} value={option.value}>
-            {option.label}
+            {tr(option.label)}
           </option>
         ))}
       </select>
@@ -305,13 +313,14 @@ function ArraySubFieldInput({
       type="text"
       value={(value as string) || ""}
       onChange={(e) => onChange(e.target.value)}
-      placeholder={subField.placeholder}
+      placeholder={tr(subField.placeholder)}
       className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
     />
   );
 }
 
 function ArrayFieldEditor({ field, value, onChange }: ArrayFieldEditorProps) {
+  const { t, tr } = useBlockI18n();
   const items = (value as Array<Record<string, unknown>>) || [];
   const subFields = field.fields || [];
 
@@ -352,7 +361,7 @@ function ArrayFieldEditor({ field, value, onChange }: ArrayFieldEditorProps) {
             {hasImageField && (
               <div className="mb-2 flex items-center justify-between">
                 <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300">
-                  Image {index + 1}
+                  {t("propertyPanel.imageN", { n: index + 1 })}
                 </span>
                 <button
                   type="button"
@@ -367,7 +376,7 @@ function ArrayFieldEditor({ field, value, onChange }: ArrayFieldEditorProps) {
               <div key={subField.name}>
                 {subFields.length > 1 && (
                   <label className="mb-1 block text-xs text-slate-500 dark:text-slate-400">
-                    {subField.label}
+                    {tr(subField.label)}
                   </label>
                 )}
                 <ArraySubFieldInput
@@ -395,7 +404,7 @@ function ArrayFieldEditor({ field, value, onChange }: ArrayFieldEditorProps) {
         onClick={handleAddItem}
         className="w-full rounded-lg border-2 border-dashed border-slate-300 py-2 text-sm text-slate-500 transition-colors hover:border-brand-400 hover:text-brand-600 dark:border-slate-600 dark:text-slate-400 dark:hover:border-brand-500 dark:hover:text-brand-400"
       >
-        + Add {hasImageField ? "Image" : "Item"}
+        + {hasImageField ? t("propertyPanel.addImage") : t("propertyPanel.addItem")}
       </button>
     </div>
   );
@@ -421,6 +430,8 @@ function FieldEditor({ field, value, onChange }: FieldEditorProps) {
 }
 
 export function NewsBlockPropertyPanel() {
+  const { t, tr } = useBlockI18n();
+  const tb = useTranslations("Admin.builder");
   const { state, selectedBlock, updateBlock, selectBlock } = useNewsBuilder();
 
   if (!selectedBlock) {
@@ -428,14 +439,14 @@ export function NewsBlockPropertyPanel() {
       <div className="flex h-full flex-col">
         <div className="border-b border-slate-200 p-4 dark:border-slate-700">
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-            Block Properties
+            {t("propertyPanel.blockProperties")}
           </h3>
         </div>
         <div className="flex flex-1 items-center justify-center p-4">
           <div className="text-center">
             <Settings2 className="mx-auto mb-2 h-8 w-8 text-slate-300 dark:text-slate-600" />
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Select a block to edit its properties
+              {tb("selectBlock")}
             </p>
           </div>
         </div>
@@ -447,7 +458,7 @@ export function NewsBlockPropertyPanel() {
   if (!meta) {
     return (
       <div className="p-4">
-        <p className="text-sm text-red-500">Unknown block type: {selectedBlock.type}</p>
+        <p className="text-sm text-red-500">{t("propertyPanel.unknownType", { type: selectedBlock.type })}</p>
       </div>
     );
   }
@@ -468,10 +479,10 @@ export function NewsBlockPropertyPanel() {
           </div>
           <div>
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-              {meta.label}
+              {tr(meta.label)}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              {meta.description}
+              {tr(meta.description)}
             </p>
           </div>
         </div>
@@ -490,7 +501,7 @@ export function NewsBlockPropertyPanel() {
           {meta.fields.map((field) => (
             <div key={field.name}>
               <label className="mb-1.5 flex items-center gap-1 text-sm font-medium text-slate-700 dark:text-slate-300">
-                {field.label}
+                {tr(field.label)}
                 {field.required && <span className="text-red-500">*</span>}
               </label>
               <FieldEditor

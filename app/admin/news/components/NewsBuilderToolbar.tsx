@@ -14,6 +14,7 @@ import {
   PanelRight,
   X,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useNewsBuilder } from "./NewsBuilderContext";
 
 type PreviewMode = "desktop" | "tablet" | "mobile";
@@ -50,6 +51,8 @@ export function NewsBuilderToolbar({
     hasChanges,
   } = useNewsBuilder();
 
+  const t = useTranslations("Admin.newsEditor");
+  const te = useTranslations("Admin.editor");
   const { previewMode } = state;
 
   const setPreviewMode = (mode: PreviewMode) => {
@@ -63,7 +66,7 @@ export function NewsBuilderToolbar({
         <div className="flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-1.5 dark:bg-slate-800">
           <FileText className="h-4 w-4 text-brand-600 dark:text-brand-400" />
           <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-            {isEditing ? "Editing post" : "New post"}
+            {isEditing ? t("toolbar.editingPost") : t("toolbar.newPost")}
           </span>
         </div>
 
@@ -73,7 +76,7 @@ export function NewsBuilderToolbar({
             className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
           >
             <X className="h-3.5 w-3.5" />
-            Cancel
+            {t("toolbar.cancel")}
           </button>
         )}
 
@@ -121,7 +124,7 @@ export function NewsBuilderToolbar({
           onClick={undo}
           disabled={!canUndo}
           className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 disabled:opacity-30 dark:text-slate-400 dark:hover:bg-slate-800"
-          title="Undo (Ctrl+Z)"
+          title={t("toolbar.undo")}
         >
           <Undo2 className="h-4 w-4" />
         </button>
@@ -129,7 +132,7 @@ export function NewsBuilderToolbar({
           onClick={redo}
           disabled={!canRedo}
           className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 disabled:opacity-30 dark:text-slate-400 dark:hover:bg-slate-800"
-          title="Redo (Ctrl+Shift+Z)"
+          title={t("toolbar.redo")}
         >
           <Redo2 className="h-4 w-4" />
         </button>
@@ -145,7 +148,7 @@ export function NewsBuilderToolbar({
                 ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white"
                 : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
             }`}
-            title="Desktop view"
+            title={t("toolbar.deviceDesktop")}
           >
             <Monitor className="h-4 w-4" />
           </button>
@@ -156,7 +159,7 @@ export function NewsBuilderToolbar({
                 ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white"
                 : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
             }`}
-            title="Tablet view"
+            title={t("toolbar.deviceTablet")}
           >
             <Tablet className="h-4 w-4" />
           </button>
@@ -167,7 +170,7 @@ export function NewsBuilderToolbar({
                 ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white"
                 : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
             }`}
-            title="Mobile view"
+            title={t("toolbar.deviceMobile")}
           >
             <Smartphone className="h-4 w-4" />
           </button>
@@ -184,7 +187,7 @@ export function NewsBuilderToolbar({
           }`}
         >
           {showPreviewPanel ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-          {showPreviewPanel ? "Preview" : "Editor"}
+          {showPreviewPanel ? te("preview") : t("toolbar.editorToggle")}
         </button>
       </div>
 
@@ -193,7 +196,7 @@ export function NewsBuilderToolbar({
         {hasChanges && !isEditing && (
           <span className="mr-2 flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
             <span className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />
-            Unsaved changes
+            {t("toolbar.unsavedChanges")}
           </span>
         )}
 
@@ -206,12 +209,12 @@ export function NewsBuilderToolbar({
             {isSaving ? (
               <>
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                Saving...
+                {t("toolbar.saving")}
               </>
             ) : (
               <>
                 <Save className="h-4 w-4" />
-                {isEditing ? "Save changes" : "Save post"}
+                {isEditing ? t("toolbar.saveChanges") : t("toolbar.savePost")}
               </>
             )}
           </button>
@@ -226,7 +229,7 @@ export function NewsBuilderToolbar({
               ? "bg-brand-50 text-brand-600 dark:bg-brand-950/50 dark:text-brand-400"
               : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
           }`}
-          title="Toggle preview panel"
+          title={t("toolbar.togglePreview")}
         >
           <PanelRight className="h-4 w-4" />
         </button>

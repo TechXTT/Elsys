@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { IntlProvider } from "next-intl";
 import { Locale, defaultLocale } from "@/i18n/config";
 
@@ -34,28 +35,25 @@ interface AdminLocaleProviderProps {
 }
 
 export function AdminLocaleProvider({ children }: AdminLocaleProviderProps) {
+  const router = useRouter();
   const [locale, setLocaleState] = useState<Locale>(defaultLocale);
   const [mounted, setMounted] = useState(false);
 
-  // Load saved locale from localStorage on mount
+  // Load saved admin locale on mount. Source of truth = the `admin-locale`
+  // cookie (also read by the server in i18n/request.ts); localStorage is a
+  // fallback. NEVER reads NEXT_LOCALE — that belongs to the public path-driven
+  // locale and must not leak into admin.
   useEffect(() => {
     setMounted(true);
     try {
-      const saved = localStorage.getItem("admin-locale") as Locale | null;
-      if (saved && (saved === "bg" || saved === "en")) {
-        setLocaleState(saved);
-      } else {
-        // Try to get from cookie
-        const cookieLocale = document.cookie
-          .split("; ")
-          .find((row) => row.startsWith("NEXT_LOCALE="))
-          ?.split("=")[1] as Locale | undefined;
-        if (cookieLocale && (cookieLocale === "bg" || cookieLocale === "en")) {
-          setLocaleState(cookieLocale);
-        }
-      }
+      const cookieLocale = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("admin-locale="))
+        ?.split("=")[1] as Locale | undefined;
+      const saved = (localStorage.getItem("admin-locale") as Locale | null) ?? cookieLocale ?? null;
+      if (saved === "bg" || saved === "en") setLocaleState(saved);
     } catch {
-      // Ignore localStorage errors
+      // Ignore storage errors
     }
   }, []);
 
@@ -63,12 +61,15 @@ export function AdminLocaleProvider({ children }: AdminLocaleProviderProps) {
     setLocaleState(newLocale);
     try {
       localStorage.setItem("admin-locale", newLocale);
-      // Also set cookie for consistency with site locale
-      document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000`;
+      // Admin-only cookie (NOT NEXT_LOCALE): the server reads this in
+      // i18n/request.ts so server-rendered admin pages match the toggle.
+      document.cookie = `admin-locale=${newLocale}; path=/; max-age=31536000; samesite=lax`;
     } catch {
-      // Ignore localStorage errors
+      // Ignore storage errors
     }
-  }, []);
+    // Re-render server components with the new locale immediately.
+    router.refresh();
+  }, [router]);
 
   const toggleLocale = useCallback(() => {
     const newLocale = locale === "bg" ? "en" : "bg";

@@ -40,3 +40,6 @@ node_modules/
 .claude/settings.local.json
 # G4 migration scrape cache (never committed)
 scripts/import/.cache/
+
+# M4.4 visual diff output (baselines ARE committed; diffs are not)
+tests/visual/.diffs/

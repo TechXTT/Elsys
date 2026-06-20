@@ -13,6 +13,22 @@ test.describe("Search (Phase E3)", () => {
     await expect(results.first().locator('[data-ui="badge"]')).toBeVisible();
   });
 
+  test("snippets are plain prose — no block JSON / PDF-metadata leakage", async ({ page }) => {
+    // /bg/search?q=прием previously leaked serialized block JSON + PDF-metadata
+    // objects in the Прием / Документи result snippets.
+    await page.goto("/bg/search?q=" + encodeURIComponent("прием"));
+    const results = page.getByTestId("search-results").locator("> li");
+    const n = await results.count();
+    expect(n).toBeGreaterThanOrEqual(1); // FTS still matches
+
+    const text = (await page.getByTestId("search-results").innerText());
+    expect(text).not.toContain("{");
+    expect(text).not.toContain('"type"');
+    expect(text).not.toContain('"props"');
+    expect(text).not.toContain('"href"');
+    expect(text).not.toMatch(/\d+\s*KB/); // PDF size metadata
+  });
+
   test("no query shows the prompt; an unmatched query shows the empty state", async ({ page }) => {
     await page.goto("/bg/search");
     await expect(page.getByText("Въведете дума за търсене.")).toBeVisible();
